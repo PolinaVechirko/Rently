@@ -1,10 +1,18 @@
 document.addEventListener("DOMContentLoaded", () => {
+  const redirectToLogin = () => {
+    localStorage.setItem("redirectAfterAuth", window.location.href);
+    window.location.href = "./login.html";
+  };
+
+  const redirectToHostHome = () => {
+    window.location.href = "./host-mode.html";
+  };
+
   // Check if user is logged in at page load
   // If not logged in, redirect to login with return URL
   const token = localStorage.getItem("auth_token");
   if (!token) {
-    localStorage.setItem("redirectAfterAuth", window.location.href);
-    window.location.href = "./login.html";
+    redirectToLogin();
     return;
   }
 
@@ -81,13 +89,34 @@ document.addEventListener("DOMContentLoaded", () => {
       editPreviewButton.innerText = "Update listing";
     }
 
-    fetch(`/api/Accommodations/${editAccommodationId}`, {
+    fetch("/api/Accommodations/my", {
       headers: {
         Authorization: "Bearer " + (localStorage.getItem("auth_token") || ""),
       },
     })
-      .then((resp) => (resp.ok ? resp.json() : null))
+      .then((resp) => {
+        if (resp.status === 401) {
+          localStorage.removeItem("auth_token");
+          localStorage.removeItem("isLoggedIn");
+          redirectToLogin();
+          return null;
+        }
+        return resp.ok ? resp.json() : null;
+      })
+      .then((items) => {
+        if (!Array.isArray(items)) return null;
+        return (
+          items.find(
+            (item) =>
+              String(item?.id ?? item?.Id ?? "") === String(editAccommodationId),
+          ) || null
+        );
+      })
       .then((data) => {
+        if (editAccommodationId && !data) {
+          redirectToHostHome();
+          return;
+        }
         if (!data) return;
         const typeEl = document.getElementById("prop-type");
         const countryEl = document.getElementById("country");
@@ -974,7 +1003,10 @@ document.addEventListener("DOMContentLoaded", () => {
             // Clear invalid token
             localStorage.removeItem("auth_token");
             localStorage.removeItem("isLoggedIn");
-            window.location.href = "./login.html";
+            redirectToLogin();
+            return;
+          } else if (res.status === 404) {
+            redirectToHostHome();
             return;
           } else {
             try {

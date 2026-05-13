@@ -97,6 +97,75 @@ namespace Rently.Api.Services
                 guests.TryGetValue(booking.GuestId, out var guest) ? guest : null));
         }
 
+        public async Task<BookingDto?> CancelPendingBookingAsync(string guestId, int bookingId)
+        {
+            var booking = await _context.Bookings
+                .Include(b => b.Accommodation)
+                    .ThenInclude(a => a.Address)
+                .Include(b => b.Accommodation)
+                    .ThenInclude(a => a.Photos)
+                .FirstOrDefaultAsync(b => b.Id == bookingId && b.GuestId == guestId);
+
+            if (booking == null) return null;
+            if (booking.Status != BookingStatus.Pending)
+            {
+                throw new InvalidOperationException("Only pending bookings can be cancelled.");
+            }
+
+            booking.Status = BookingStatus.Cancelled;
+            await _context.SaveChangesAsync();
+
+            return MapToDto(booking);
+        }
+
+        public async Task<BookingDto?> ConfirmPendingBookingAsync(string hostId, int bookingId)
+        {
+            var booking = await _context.Bookings
+                .Include(b => b.Accommodation)
+                    .ThenInclude(a => a.Address)
+                .Include(b => b.Accommodation)
+                    .ThenInclude(a => a.Photos)
+                .FirstOrDefaultAsync(b =>
+                    b.Id == bookingId &&
+                    b.Accommodation != null &&
+                    b.Accommodation.HostId == hostId);
+
+            if (booking == null) return null;
+            if (booking.Status != BookingStatus.Pending)
+            {
+                throw new InvalidOperationException("Only pending bookings can be accepted.");
+            }
+
+            booking.Status = BookingStatus.Confirmed;
+            await _context.SaveChangesAsync();
+
+            return MapToDto(booking);
+        }
+
+        public async Task<BookingDto?> DeclinePendingBookingAsync(string hostId, int bookingId)
+        {
+            var booking = await _context.Bookings
+                .Include(b => b.Accommodation)
+                    .ThenInclude(a => a.Address)
+                .Include(b => b.Accommodation)
+                    .ThenInclude(a => a.Photos)
+                .FirstOrDefaultAsync(b =>
+                    b.Id == bookingId &&
+                    b.Accommodation != null &&
+                    b.Accommodation.HostId == hostId);
+
+            if (booking == null) return null;
+            if (booking.Status != BookingStatus.Pending)
+            {
+                throw new InvalidOperationException("Only pending bookings can be declined.");
+            }
+
+            booking.Status = BookingStatus.Cancelled;
+            await _context.SaveChangesAsync();
+
+            return MapToDto(booking);
+        }
+
         private BookingDto MapToDto(Booking entity, ApplicationUser? guest = null)
         {
             return new BookingDto

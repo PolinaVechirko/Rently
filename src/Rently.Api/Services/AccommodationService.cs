@@ -409,6 +409,7 @@ namespace Rently.Api.Services
                 .Include(a => a.Photos)
                 .Include(a => a.Reviews)
                 .Include(a => a.Bookings)
+                .Include(a => a.FavoritedBy)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(a => a.Id == id);
 
@@ -420,7 +421,9 @@ namespace Rently.Api.Services
             var reviewersList = await _context.Users.Where(u => reviewerIds.Contains(u.Id)).ToListAsync();
             var reviewersDict = reviewersList.ToDictionary(u => u.Id);
 
-            return MapToDto(accommodation, host, reviewersDict);
+            var dto = MapToDto(accommodation, host, reviewersDict);
+            dto.FavoritesCount = CountGuestFavorites(accommodation);
+            return dto;
         }
 
         public async Task<AccommodationDto> CreateAccommodationAsync(string hostId, CreateAccommodationDto dto)
@@ -493,11 +496,17 @@ namespace Rently.Api.Services
                 .Include(a => a.Photos)
                 .Include(a => a.Reviews)
                 .Include(a => a.Bookings)
+                .Include(a => a.FavoritedBy)
                 .Where(a => a.HostId == hostId)
                 .OrderByDescending(a => a.CreatedAt)
                 .ToListAsync();
 
-            return accommodations.Select(a => MapToDto(a));
+            return accommodations.Select(a =>
+            {
+                var dto = MapToDto(a);
+                dto.FavoritesCount = CountGuestFavorites(a);
+                return dto;
+            });
         }
 
         public async Task<AccommodationDto?> UpdateAccommodationAsync(int id, string hostId, UpdateAccommodationDto dto)
@@ -688,6 +697,11 @@ namespace Rently.Api.Services
                 HostCreatedAt = null,
                 HostEmail = null
             };
+        }
+
+        private static int CountGuestFavorites(Accommodation entity)
+        {
+            return entity.FavoritedBy?.Count(f => f.Type == FavoriteType.Guest) ?? 0;
         }
     }
 }

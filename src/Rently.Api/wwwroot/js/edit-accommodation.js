@@ -1,10 +1,18 @@
 document.addEventListener("DOMContentLoaded", () => {
+  const redirectToLogin = () => {
+    localStorage.setItem("redirectAfterAuth", window.location.href);
+    window.location.href = "./login.html";
+  };
+
+  const redirectToHostHome = () => {
+    window.location.href = "./host-mode.html";
+  };
+
   // Check if user is logged in at page load
   // If not logged in, redirect to login with return URL
   const token = localStorage.getItem("auth_token");
   if (!token) {
-    localStorage.setItem("redirectAfterAuth", window.location.href);
-    window.location.href = "./login.html";
+    redirectToLogin();
     return;
   }
 
@@ -182,9 +190,34 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   if (_editAccomId && _editToken) {
-    fetch(`/api/Accommodations/${_editAccomId}`)
-      .then((r) => (r.ok ? r.json() : null))
+    fetch("/api/Accommodations/my", {
+      headers: {
+        Authorization: "Bearer " + _editToken,
+      },
+    })
+      .then((r) => {
+        if (r.status === 401) {
+          localStorage.removeItem("auth_token");
+          localStorage.removeItem("isLoggedIn");
+          redirectToLogin();
+          return null;
+        }
+        return r.ok ? r.json() : null;
+      })
+      .then((items) => {
+        if (!Array.isArray(items)) return null;
+        return (
+          items.find(
+            (item) =>
+              String(item?.id ?? item?.Id ?? "") === String(_editAccomId),
+          ) || null
+        );
+      })
       .then((data) => {
+        if (_editAccomId && !data) {
+          redirectToHostHome();
+          return;
+        }
         if (!data) return;
         const titleEl = document.getElementById("listing-title");
         const descEl = document.getElementById("listing-desc");
@@ -718,14 +751,15 @@ document.addEventListener("DOMContentLoaded", () => {
           if (!resp.ok) {
             if (resp.status === 401) {
               // Token expired or invalid; redirect to login with return URL
-              localStorage.setItem(
-                "redirectAfterAuth",
-                window.location.href,
-              );
+              localStorage.setItem("redirectAfterAuth", window.location.href);
               // Clear invalid token
               localStorage.removeItem("auth_token");
               localStorage.removeItem("isLoggedIn");
-              window.location.href = "./login.html";
+              redirectToLogin();
+              return;
+            }
+            if (resp.status === 404) {
+              redirectToHostHome();
               return;
             }
             const err = await resp.json().catch(() => ({}));

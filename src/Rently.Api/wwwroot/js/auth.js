@@ -8,6 +8,155 @@ const RentlyAuthCache = {
   avatarThumb: "rently_header_avatar_thumb",
 };
 
+const RentlyScopedAuthKeys = new Set([
+  "auth_token",
+  "isLoggedIn",
+  "redirectAfterAuth",
+  "selectedAccommodationId",
+  RentlyAuthCache.user,
+  RentlyAuthCache.avatar,
+  RentlyAuthCache.avatarThumb,
+]);
+
+(function patchScopedAuthStorage() {
+  if (typeof window === "undefined") return;
+  const local = window.localStorage;
+  const session = window.sessionStorage;
+  const storageProto = window.Storage && window.Storage.prototype;
+  if (!local || !session || !storageProto || storageProto.__rentlyScopedAuthPatched) {
+    return;
+  }
+
+  const originalGetItem = storageProto.getItem;
+  const originalSetItem = storageProto.setItem;
+  const originalRemoveItem = storageProto.removeItem;
+
+  for (const key of RentlyScopedAuthKeys) {
+    try {
+      originalRemoveItem.call(local, key);
+    } catch {
+      return;
+    }
+  }
+
+  storageProto.getItem = function getScopedItem(key) {
+    const normalizedKey = String(key);
+    if (this === local && RentlyScopedAuthKeys.has(normalizedKey)) {
+      return originalGetItem.call(session, normalizedKey);
+    }
+    return originalGetItem.call(this, normalizedKey);
+  };
+
+  storageProto.setItem = function setScopedItem(key, value) {
+    const normalizedKey = String(key);
+    const normalizedValue = String(value);
+    if (this === local && RentlyScopedAuthKeys.has(normalizedKey)) {
+      originalSetItem.call(session, normalizedKey, normalizedValue);
+      return;
+    }
+    originalSetItem.call(this, normalizedKey, normalizedValue);
+  };
+
+  storageProto.removeItem = function removeScopedItem(key) {
+    const normalizedKey = String(key);
+    if (this === local && RentlyScopedAuthKeys.has(normalizedKey)) {
+      originalRemoveItem.call(session, normalizedKey);
+      return;
+    }
+    originalRemoveItem.call(this, normalizedKey);
+  };
+
+  Object.defineProperty(storageProto, "__rentlyScopedAuthPatched", {
+    value: true,
+    configurable: false,
+    enumerable: false,
+    writable: false,
+  });
+})();
+
+function isRestrictedHostIdRoute(urlLike = window.location.href) {
+  try {
+    const url = new URL(urlLike, window.location.href);
+    const path = url.pathname || "";
+    if (/\/host-mode\/property-dashboard\.html$/i.test(path)) {
+      return url.searchParams.has("id");
+    }
+    if (/\/edit-accommodation\.html$/i.test(path)) {
+      return url.searchParams.has("id");
+    }
+    if (/\/adding-accommodation\.html$/i.test(path)) {
+      return url.searchParams.has("id");
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+function getLoginPageHref() {
+  return window.location.pathname.includes("/host-mode/")
+    ? "../login.html"
+    : "./login.html";
+}
+
+function getHostHomeHref() {
+  return window.location.pathname.includes("/host-mode/")
+    ? "../host-mode.html"
+    : "./host-mode.html";
+}
+
+function redirectToLoginPreservingCurrentLocation() {
+  localStorage.setItem("redirectAfterAuth", window.location.href);
+  window.location.href = getLoginPageHref();
+}
+
+async function userOwnsAccommodation(token, accommodationId) {
+  if (!token || !accommodationId) return false;
+  try {
+    const resp = await fetch("/api/Accommodations/my", {
+      headers: { Authorization: "Bearer " + token },
+    });
+    if (!resp.ok) return false;
+    const data = await resp.json();
+    if (!Array.isArray(data)) return false;
+    return data.some(
+      (item) =>
+        String(item?.id ?? item?.Id ?? "") === String(accommodationId),
+    );
+  } catch {
+    return false;
+  }
+}
+
+async function resolvePostAuthRedirect(token, fallbackPath = "./index.html") {
+  const fallbackUrl = new URL(fallbackPath, window.location.href).href;
+  const rawRedirect = localStorage.getItem("redirectAfterAuth") || "";
+  localStorage.removeItem("redirectAfterAuth");
+
+  if (!rawRedirect) return fallbackUrl;
+
+  let targetUrl;
+  try {
+    targetUrl = new URL(rawRedirect, window.location.href);
+  } catch {
+    return fallbackUrl;
+  }
+
+  if (targetUrl.origin !== window.location.origin) {
+    return fallbackUrl;
+  }
+
+  if (isRestrictedHostIdRoute(targetUrl.href)) {
+    const targetId = targetUrl.searchParams.get("id");
+    const ownsAccommodation = await userOwnsAccommodation(token, targetId);
+    if (!ownsAccommodation) {
+      return new URL("./host-mode.html", window.location.href).href;
+    }
+  }
+
+  return targetUrl.href;
+}
+
 /** Static assets (icons, default avatar) relative to current HTML path */
 function getAuthAssetBase() {
   const path = window.location.pathname || "";
@@ -49,6 +198,20 @@ function getHeaderAvatarThumbUrl(resolvedUrl) {
 function markAuthReady() {
   if (document.body) {
     document.body.classList.add("auth-ready");
+  }
+}
+
+let resolveAuthInitPromise = null;
+window.rentlyAuthInitPromise =
+  window.rentlyAuthInitPromise ||
+  new Promise((resolve) => {
+    resolveAuthInitPromise = resolve;
+  });
+
+function resolveAuthInit(isAuthenticated) {
+  if (resolveAuthInitPromise) {
+    resolveAuthInitPromise(!!isAuthenticated);
+    resolveAuthInitPromise = null;
   }
 }
 
@@ -160,8 +323,7 @@ function checkAuthState() {
 
   // If NOT logged in and trying to access host mode - redirect to login
   if (!isLoggedIn && isHostMode) {
-    localStorage.setItem("redirectAfterAuth", window.location.href);
-    window.location.href = inHostSubfolder ? "../login.html" : "./login.html";
+    redirectToLoginPreservingCurrentLocation();
     return;
   }
 
@@ -188,10 +350,11 @@ function checkAuthState() {
         ) {
           link.addEventListener("click", (e) => {
             e.preventDefault();
-            localStorage.setItem("redirectAfterAuth", href);
-            window.location.href = inHostSubfolder
-              ? "../login.html"
-              : "./login.html";
+            localStorage.setItem(
+              "redirectAfterAuth",
+              new URL(href, window.location.href).href,
+            );
+            window.location.href = getLoginPageHref();
           });
         }
       });
@@ -395,6 +558,7 @@ function getStoredHostData() {
 async function validateAndFetchUser(token) {
   if (!token) {
     syncAllUserData(null);
+    resolveAuthInit(false);
     return;
   }
 
@@ -409,13 +573,26 @@ async function validateAndFetchUser(token) {
       localStorage.removeItem("isLoggedIn");
       updateHeaderUI(false, false);
       syncAllUserData(null);
+      resolveAuthInit(false);
+      if (
+        window.location.pathname.includes("/host-mode/") ||
+        isRestrictedHostIdRoute()
+      ) {
+        redirectToLoginPreservingCurrentLocation();
+      }
       return;
     }
 
-    if (!resp.ok) return;
+    if (!resp.ok) {
+      resolveAuthInit(false);
+      return;
+    }
 
     const user = await resp.json();
-    if (!user) return;
+    if (!user) {
+      resolveAuthInit(false);
+      return;
+    }
 
     // Token is valid, ensure auth state is set
     localStorage.setItem("isLoggedIn", "true");
@@ -429,8 +606,10 @@ async function validateAndFetchUser(token) {
 
     // Special handling for dropdown links
     updateDropdownLinks(user);
+    resolveAuthInit(true);
   } catch (e) {
     console.error("Auth validation failed:", e);
+    resolveAuthInit(false);
   }
 }
 
@@ -497,6 +676,7 @@ function initAuth() {
   } else {
     syncAllUserData(null);
     markAuthReady();
+    resolveAuthInit(false);
   }
 
   // 3. Attach common event listeners
@@ -574,9 +754,7 @@ function attachListeners() {
           cacheUserSnapshot(data.user);
         }
 
-        const redirectUrl =
-          localStorage.getItem("redirectAfterAuth") || "./index.html";
-        localStorage.removeItem("redirectAfterAuth");
+        const redirectUrl = await resolvePostAuthRedirect(token, "./index.html");
         window.location.href = redirectUrl;
       } catch (err) {
         if (localStorage.getItem("auth_token")) {
@@ -636,9 +814,10 @@ function attachListeners() {
           cacheUserSnapshot(data.user);
         }
 
-        const redirectUrl =
-          localStorage.getItem("redirectAfterAuth") || "./index.html";
-        localStorage.removeItem("redirectAfterAuth");
+        const redirectUrl = await resolvePostAuthRedirect(
+          data.token,
+          "./index.html",
+        );
         window.location.href = redirectUrl;
       } catch (err) {
         if (localStorage.getItem("auth_token")) {

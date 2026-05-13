@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Booking History - Rently</title>
+  <title>My Booking - Rently</title>
 
   <link rel="apple-touch-icon" sizes="180x180" href="./icons/favicon_io/apple-touch-icon.png" />
   <link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon_io/favicon-32x32.png" />
@@ -19,7 +19,7 @@
     rel="stylesheet" />
 
   <link rel="stylesheet" href="./css/global.css?v=2" />
-  <link rel="stylesheet" href="./css/history.css" />
+  <link rel="stylesheet" href="./css/my-booking.css" />
   <style>
     .empty-state-card {
       width: 100%;
@@ -134,7 +134,7 @@
               <div class="user-dropdown-menu" id="user-dropdown">
                 <a href="./profile.html" class="dropdown-item-custom">Profile</a>
                 <a href="./favorites.html" class="dropdown-item-custom">Favorites</a>
-                <a href="./history.html" class="dropdown-item-custom">Booking History</a>
+                <a href="./my-booking.html" class="dropdown-item-custom">My booking</a>
                 <a href="./host-mode.html" class="dropdown-item-custom host-mode-link">Host Mode</a>
                 <a href="#" class="dropdown-item-custom">Help Center</a>
                 <div class="dropdown-item-custom logout-item" id="logout-btn">
@@ -149,14 +149,28 @@
     </nav>
   </header>
 
-  <main class="history-main">
+  <main class="history-main my-booking-main">
     <div class="container-wide">
-      <h1 class="history-title">Booking History</h1>
-      <p class="history-subtitle">
-        Your past trips, sorted from newest to oldest
-      </p>
+      <section class="history-section">
+        <div class="history-section-header">
+          <h2 class="history-section-title">Active Booking</h2>
+        </div>
+        <div class="history-list" id="active-bookings-list"></div>
+      </section>
 
-      <div class="history-list" id="history-list"></div>
+      <section class="history-section">
+        <div class="history-section-header">
+          <h2 class="history-section-title">Upcoming Booking</h2>
+        </div>
+        <div class="history-list" id="upcoming-bookings-list"></div>
+      </section>
+
+      <section class="history-section">
+        <div class="history-section-header">
+          <h2 class="history-section-title">Booking History</h2>
+        </div>
+        <div class="history-list" id="booking-history-list"></div>
+      </section>
     </div>
   </main>
 
@@ -236,8 +250,12 @@
   <script src="./js/main.js?v=20260513_host_favorite_paths"></script>
   <script>
     document.addEventListener("DOMContentLoaded", () => {
-      if (typeof renderBookingHistory === "function") {
-        renderBookingHistory("history-list");
+      if (typeof renderMyBookingPage === "function") {
+        renderMyBookingPage(
+          "active-bookings-list",
+          "upcoming-bookings-list",
+          "booking-history-list",
+        );
       }
     });
   </script>

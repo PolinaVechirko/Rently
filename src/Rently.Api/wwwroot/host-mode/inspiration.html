@@ -87,21 +87,6 @@
                             <datalist id="search-loc-suggestions"></datalist>
                         </div>
                         <div class="search-divider"></div>
-                        <div class="search-input-box">
-                            <label>Check-in</label>
-                            <input type="text" placeholder="Add date" id="search-checkin">
-                        </div>
-                        <div class="search-divider"></div>
-                        <div class="search-input-box">
-                            <label>Check-out</label>
-                            <input type="text" placeholder="Add date" id="search-checkout">
-                        </div>
-                        <div class="search-divider"></div>
-                        <div class="search-input-box">
-                            <label>Guests</label>
-                            <input type="text" placeholder="Number of people" id="search-guests" value="1">
-                        </div>
-                        <div class="search-divider"></div>
                         <div class="search-input-box sort-box">
                             <label>Sort By</label>
                             <select id="search-sort">
@@ -127,32 +112,6 @@
                     <!-- Advanced Filters Expansion -->
                     <div class="advanced-filters" id="advanced-filters">
                         <div class="advanced-grid">
-                            <div class="adv-col full-width">
-                                <h6>Price Range</h6>
-                                <div class="price-input-wrapper">
-                                    <div class="price-field">
-                                        <span>Min</span>
-                                        <div class="price-counter">
-                                            <button type="button" class="price-btn down"
-                                                data-target="min-price">-</button>
-                                            <input type="number" id="min-price" value="0" min="0" step="100">
-                                            <button type="button" class="price-btn up"
-                                                data-target="min-price">+</button>
-                                        </div>
-                                    </div>
-                                    <div class="price-field">
-                                        <span>Max</span>
-                                        <div class="price-counter">
-                                            <button type="button" class="price-btn down"
-                                                data-target="max-price">-</button>
-                                            <input type="number" id="max-price" value="1000" min="0" step="100">
-                                            <button type="button" class="price-btn up"
-                                                data-target="max-price">+</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
                             <div class="adv-col full-width">
                                 <h6>Property Type</h6>
                                 <div class="property-types-grid">
@@ -211,33 +170,6 @@
                                             <input type="text" id="cnt-beds" value="0" readonly>
                                             <button type="button" class="cnt-btn plus" data-target="cnt-beds">+</button>
                                         </div>
-                                    </div>
-                                </div>
-
-                                <div class="adv-col full-width">
-                                    <h6>Amenities</h6>
-                                    <div class="amenities-check-grid">
-                                        <label><input type="checkbox" value="Wi-Fi"> Wi-Fi</label>
-                                        <label><input type="checkbox" value="TV"> TV</label>
-                                        <label><input type="checkbox" value="Kitchen"> Kitchen</label>
-                                        <label><input type="checkbox" value="Air Conditioning"> Air Conditioning</label>
-                                        <label><input type="checkbox" value="Heating"> Heating</label>
-                                        <label><input type="checkbox" value="Dedicated Workspace"> Dedicated
-                                            Workspace</label>
-                                        <label><input type="checkbox" value="Washer"> Washer</label>
-                                        <label><input type="checkbox" value="Free Parking"> Free Parking</label>
-                                        <label><input type="checkbox" value="Gym"> Gym</label>
-                                        <label><input type="checkbox" value="Pets Allowed"> Pets Allowed</label>
-                                        <label><input type="checkbox" value="Balcony"> Balcony</label>
-                                        <label><input type="checkbox" value="Self Check-in"> Self Check-in</label>
-                                        <label><input type="checkbox" value="Crib"> Crib</label>
-                                        <label><input type="checkbox" value="Family Friendly"> Family Friendly</label>
-                                        <label><input type="checkbox" value="Meal Service"> Meal Service</label>
-                                        <label><input type="checkbox" value="Pool"> Pool</label>
-                                        <label><input type="checkbox" value="Dryer"> Dryer</label>
-                                        <label><input type="checkbox" value="Iron"> Iron</label>
-                                        <label><input type="checkbox" value="Smoke Alarm"> Smoke Alarm</label>
-                                        <label><input type="checkbox" value="First Aid Kit"> First Aid Kit</label>
                                     </div>
                                 </div>
                             </div>
@@ -328,9 +260,8 @@
     <script src="../js/renderers.js?v=20260513_host_favorite_paths"></script>
     <script src="../js/ui-utils.js?v=20260509_2"></script>
     <script src="../js/auth.js?v=20260513_profile_return"></script>
-    <script src="../js/search-logic.js?v=20260511_1"></script>
     <script src="../js/main.js?v=20260513_host_favorite_paths"></script>
-    <script src="../js/inspiration-mode.js?v=20260513_host_favorite_paths"></script>
+    <script src="../js/inspiration-mode.js?v=20260513_host_filters_fix"></script>
     <script>
         document.addEventListener("DOMContentLoaded", async () => {
             const token = localStorage.getItem("auth_token") || "";
@@ -340,6 +271,9 @@
                 // Immediately redirect unauthenticated visitors to login
                 window.location.href = "../login.html";
                 return;
+            }
+            if (window.rentlyAuthInitPromise) {
+                await window.rentlyAuthInitPromise;
             }
             if (typeof initInspirationMode === "function") {
                 initInspirationMode();

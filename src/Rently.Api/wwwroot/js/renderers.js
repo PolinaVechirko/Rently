@@ -563,79 +563,60 @@ async function renderAccommodations(
   }
 }
 
-async function renderBookingHistory(containerId) {
-  const container = document.getElementById(containerId);
-  if (!container) return;
+async function renderMyBookingPage(
+  activeContainerId,
+  upcomingContainerId,
+  historyContainerId,
+) {
+  const activeContainer = document.getElementById(activeContainerId);
+  const upcomingContainer = document.getElementById(upcomingContainerId);
+  const historyContainer = document.getElementById(historyContainerId);
+  if (!activeContainer || !upcomingContainer || !historyContainer) return;
 
   const assetBase = getAssetBase();
-  container.innerHTML = `
+  const loadingState = `
         <div class="empty-state-card">
             <div class="empty-state-content">
                 <span class="empty-state-title">Loading...</span>
-                <p class="empty-state-text">Loading booking history...</p>
+                <p class="empty-state-text">Loading your bookings...</p>
+            </div>
+        </div>
+  `;
+  activeContainer.innerHTML = loadingState;
+  upcomingContainer.innerHTML = loadingState;
+  historyContainer.innerHTML = loadingState;
+
+  const buildEmptyState = (title, text) => `
+        <div class="empty-state-card">
+            <div class="empty-state-content">
+                <span class="empty-state-title">${title}</span>
+                <p class="empty-state-text">${text}</p>
             </div>
         </div>
   `;
 
-  try {
-    const token = localStorage.getItem("auth_token") || "";
-    const response = await fetch("/api/Bookings/my-bookings", {
-      headers: { Authorization: "Bearer " + token },
-    });
+  const formatDate = (value) => {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value || "";
+    return new Intl.DateTimeFormat("en-GB", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }).format(date);
+  };
 
-    if (response.status === 401) {
-      container.innerHTML = `
-        <div class="empty-state-card">
-            <div class="empty-state-content">
-                <span class="empty-state-title">Sign In Required</span>
-                <p class="empty-state-text">Sign in to see your booking history.</p>
-            </div>
-        </div>
-      `;
+  const statusClassMap = {
+    Pending: "status-pending",
+    Confirmed: "status-confirmed",
+    Cancelled: "status-cancelled",
+    Completed: "status-completed",
+  };
+
+  const renderBookingsGroup = (container, bookings, emptyTitle, emptyText) => {
+    if (!Array.isArray(bookings) || bookings.length === 0) {
+      container.innerHTML = buildEmptyState(emptyTitle, emptyText);
       return;
     }
-
-    if (!response.ok) {
-      container.innerHTML = `
-        <div class="empty-state-card">
-            <div class="empty-state-content">
-                <span class="empty-state-title">An issue occurred</span>
-                <p class="empty-state-text">Could not load booking history.</p>
-            </div>
-        </div>
-      `;
-      return;
-    }
-
-    const bookings = await response.json();
-    if (!bookings || bookings.length === 0) {
-      container.innerHTML = `
-        <div class="empty-state-card">
-            <div class="empty-state-content">
-                <span class="empty-state-title">You have no bookings yet.</span>
-                <p class="empty-state-text">Start exploring accommodations and book your perfect stay!</p>
-            </div>
-        </div>
-      `;
-      return;
-    }
-
-    const formatDate = (value) => {
-      const date = new Date(value);
-      if (Number.isNaN(date.getTime())) return value || "";
-      return new Intl.DateTimeFormat("en-GB", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      }).format(date);
-    };
-
-    const statusClassMap = {
-      Pending: "status-pending",
-      Confirmed: "status-confirmed",
-      Cancelled: "status-cancelled",
-      Completed: "status-completed",
-    };
 
     let html = "";
     bookings.forEach((booking, index) => {
@@ -658,9 +639,29 @@ async function renderBookingHistory(containerId) {
       const totalPrice = (Number(pricePerNight) * stayNights).toFixed(2);
       const status = booking.status || "Pending";
       const statusClass = statusClassMap[status] || "status-pending";
+      const isPending = status === "Pending";
+      const cardClass = booking.__section === "history"
+        ? "history-card history-card-muted"
+        : "history-card";
+      const actionButton = isPending && booking.__section === "upcoming"
+        ? `
+                            <button class="booking-cancel-btn" data-booking-id="${booking.id}">
+                                <span>Cancel booking</span>
+                            </button>
+                            <a class="add-comment-btn" href="./property.html?id=${booking.accommodationId}">
+                                <span>View stay</span>
+                                <img src="${assetBase}icons/arrowDown.svg" alt="go">
+                            </a>
+                          `
+        : `
+                            <a class="add-comment-btn" href="./property.html?id=${booking.accommodationId}">
+                                <span>View stay</span>
+                                <img src="${assetBase}icons/arrowDown.svg" alt="go">
+                            </a>
+                          `;
 
       html += `
-            <div class="history-card">
+            <div class="${cardClass}">
                 <div class="history-card-img">
                     <img src="${photo}" alt="${booking.accommodationType || "Property"}">
                 </div>
@@ -680,10 +681,7 @@ async function renderBookingHistory(containerId) {
                     </div>
                     <div class="history-card-bottom">
                         <div class="history-comment-area">
-                            <a class="add-comment-btn" href="./property.html?id=${booking.accommodationId}">
-                                <span>View stay</span>
-                                <img src="${assetBase}icons/arrowDown.svg" alt="go">
-                            </a>
+                            ${actionButton}
                         </div>
                     </div>
                 </div>
@@ -692,16 +690,100 @@ async function renderBookingHistory(containerId) {
     });
 
     container.innerHTML = html;
+  };
+
+  try {
+    const token = localStorage.getItem("auth_token") || "";
+    const response = await fetch("/api/Bookings/my-bookings", {
+      headers: { Authorization: "Bearer " + token },
+    });
+
+    if (response.status === 401) {
+      const unauthorizedState = buildEmptyState(
+        "Sign In Required",
+        "Sign in to see your bookings.",
+      );
+      activeContainer.innerHTML = unauthorizedState;
+      upcomingContainer.innerHTML = unauthorizedState;
+      historyContainer.innerHTML = unauthorizedState;
+      return;
+    }
+
+    if (!response.ok) {
+      const errorState = buildEmptyState(
+        "An issue occurred",
+        "Could not load your bookings.",
+      );
+      activeContainer.innerHTML = errorState;
+      upcomingContainer.innerHTML = errorState;
+      historyContainer.innerHTML = errorState;
+      return;
+    }
+
+    const bookings = await response.json();
+    const safeBookings = Array.isArray(bookings) ? bookings : [];
+    const now = new Date();
+    const activeBookings = safeBookings.filter((booking) => {
+      const status = String(booking.status || "");
+      const checkIn = new Date(booking.checkInDate);
+      const checkOut = new Date(booking.checkOutDate);
+      if (status !== "Confirmed") return false;
+      if (Number.isNaN(checkIn.getTime()) || Number.isNaN(checkOut.getTime())) {
+        return false;
+      }
+      return checkIn <= now && checkOut >= now;
+    });
+    const upcomingBookings = safeBookings.filter((booking) => {
+      if (activeBookings.includes(booking)) return false;
+      const status = String(booking.status || "");
+      const checkIn = new Date(booking.checkInDate);
+      if (status === "Pending") return true;
+      if (status === "Confirmed") {
+        return !Number.isNaN(checkIn.getTime()) && checkIn > now;
+      }
+      return false;
+    });
+    const historyBookings = safeBookings.filter((booking) => {
+      return !activeBookings.includes(booking) && !upcomingBookings.includes(booking);
+    });
+
+    activeBookings.forEach((booking) => {
+      booking.__section = "active";
+    });
+    upcomingBookings.forEach((booking) => {
+      booking.__section = "upcoming";
+    });
+    historyBookings.forEach((booking) => {
+      booking.__section = "history";
+    });
+
+    renderBookingsGroup(
+      activeContainer,
+      activeBookings,
+      "No active bookings yet.",
+      "There are no apartment cards in this section yet.",
+    );
+    renderBookingsGroup(
+      upcomingContainer,
+      upcomingBookings,
+      "No upcoming bookings yet.",
+      "There are no apartment cards in this section yet.",
+    );
+    renderBookingsGroup(
+      historyContainer,
+      historyBookings,
+      "No booking history yet.",
+      "There are no apartment cards in this section yet.",
+    );
   } catch (error) {
     console.error("Failed to load booking history:", error);
-    container.innerHTML = `
-        <div class="empty-state-card">
-            <div class="empty-state-content">
-                <span class="empty-state-title">Error</span>
-                <p class="empty-state-text">Error loading booking history.</p>
-            </div>
-        </div>
-    `;
+    const failureState = buildEmptyState(
+      "Error",
+      "Error loading your bookings.",
+    );
+    activeContainer.innerHTML = failureState;
+    upcomingContainer.innerHTML = failureState;
+    historyContainer.innerHTML = failureState;
   }
 }
 

@@ -163,9 +163,11 @@ async function syncFavoriteButtons() {
   if (buttons.length === 0) return;
 
   const favoriteType = getFavoriteType();
+  const rememberedStates = new Map();
   buttons.forEach((btn) => {
     const rememberedState = getRememberedFavoriteState(btn.dataset.id, favoriteType);
     if (rememberedState !== null) {
+      rememberedStates.set(String(btn.dataset.id), rememberedState);
       setFavoriteButtonState(btn, rememberedState);
     }
   });
@@ -196,7 +198,11 @@ async function syncFavoriteButtons() {
     );
 
     buttons.forEach((btn) => {
-      setFavoriteButtonState(btn, favoriteIds.has(String(btn.dataset.id)));
+      const buttonId = String(btn.dataset.id);
+      if (rememberedStates.has(buttonId)) {
+        return;
+      }
+      setFavoriteButtonState(btn, favoriteIds.has(buttonId));
     });
   } catch (error) {
     console.debug("Could not sync favorite buttons:", error);
@@ -256,7 +262,7 @@ document.addEventListener("DOMContentLoaded", () => {
   window.addEventListener("focus", syncFavoriteButtons);
   if (typeof initAboutSlider === "function") initAboutSlider();
   if (typeof initPropertyPage === "function") initPropertyPage();
-  if (typeof initHistoryPage === "function") initHistoryPage();
+  if (typeof initMyBookingPage === "function") initMyBookingPage();
   if (typeof initSearchPage === "function") initSearchPage();
 
   // --- HOME SECTION TITLE LINKS ---
@@ -353,12 +359,13 @@ document.addEventListener("DOMContentLoaded", () => {
       const favoriteType = getFavoriteType();
       const onHostFavoritesPage =
         window.location.pathname.includes("/host-mode/favorites.html");
+      const onFavoritesPage = /\/favorites\.html$/i.test(window.location.pathname);
 
       (async () => {
         try {
           const isActive = favBtn.classList.contains("active");
           if (isActive) {
-            if (onHostFavoritesPage) {
+            if (onFavoritesPage) {
               rememberFavoriteChange(id, favoriteType, false);
             }
             // currently active -> remove favorite
@@ -378,10 +385,6 @@ document.addEventListener("DOMContentLoaded", () => {
               if (img) img.src = getFavoriteIconSrc(false);
             } catch {}
             rememberFavoriteChange(id, favoriteType, false);
-            const onFavoritesPage = /\/favorites\.html$/i.test(window.location.pathname);
-            if (onFavoritesPage && !onHostFavoritesPage) {
-              card?.remove();
-            }
           } else {
             const resp = await fetch(
               `/api/Favorites/${id}?type=${favoriteType}`,
@@ -400,7 +403,7 @@ document.addEventListener("DOMContentLoaded", () => {
             rememberFavoriteChange(id, favoriteType, true);
           }
         } catch (err) {
-          if (isInHostMode() && onHostFavoritesPage) {
+          if (onFavoritesPage) {
             rememberFavoriteChange(id, favoriteType, true);
           }
           // Fail silently in UI beyond console logging

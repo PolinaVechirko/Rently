@@ -23,6 +23,10 @@
     window.location.href = "../login.html";
   }
 
+  function redirectToHostHome() {
+    window.location.href = "../host-mode.html";
+  }
+
   function authHeaders() {
     const token = getToken();
     return token ? { Authorization: "Bearer " + token } : {};
@@ -197,7 +201,10 @@
     );
     const heroPhoto = document.getElementById("dashboard-property-photo");
     if (heroPhoto) heroPhoto.src = photo;
-    setText("dashboard-saved-count", String(selected.favoritesCount || 0));
+    setText(
+      "dashboard-saved-count",
+      String(selected.favoritesCount ?? selected.FavoritesCount ?? 0),
+    );
   }
 
   function renderStats(selected, bookings) {
@@ -237,12 +244,20 @@
       .map((booking) => {
         const checkIn = new Date(booking.checkInDate || booking.CheckInDate);
         const status = booking.status || booking.Status || "Pending";
+        const normalizedStatus = String(status).toLowerCase();
         const statusClass =
-          status === "Confirmed"
+          normalizedStatus === "confirmed"
             ? "bg-success-subtle text-success"
-            : status === "Cancelled"
+            : normalizedStatus === "cancelled"
               ? "bg-danger-subtle text-danger"
               : "bg-warning-subtle text-warning";
+        const actions =
+          normalizedStatus === "pending"
+            ? `
+              <button class="btn btn-sm rounded-pill px-3 text-white host-booking-confirm-btn" style="background-color: #2986FE; border-color: #2986FE;" data-booking-id="${booking.id || booking.Id}">Confirm</button>
+              <button class="btn btn-sm btn-outline-dark rounded-pill px-3 host-booking-decline-btn" data-booking-id="${booking.id || booking.Id}">Decline</button>
+            `
+            : "";
         return `
         <tr>
           <td>
@@ -252,10 +267,51 @@
           <td class="fw-bold">${dateFormatter.format(checkIn)}</td>
           <td>${formatStayNights(booking.checkInDate || booking.CheckInDate, booking.checkOutDate || booking.CheckOutDate)}</td>
           <td><span class="badge ${statusClass} px-2 py-1">${status}</span></td>
+          <td>
+            <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end">
+              ${actions}
+            </div>
+          </td>
         </tr>
       `;
       })
       .join("");
+
+    tableBody.querySelectorAll(".host-booking-confirm-btn").forEach((button) => {
+      button.addEventListener("click", async () => {
+        const bookingId = button.getAttribute("data-booking-id");
+        if (!bookingId) return;
+
+        button.disabled = true;
+        try {
+          await fetchJson(`/api/Bookings/${encodeURIComponent(bookingId)}/confirm`, {
+            method: "PUT",
+          });
+          await loadDashboard();
+        } catch (error) {
+          alert(error.message || "Failed to confirm booking.");
+          button.disabled = false;
+        }
+      });
+    });
+
+    tableBody.querySelectorAll(".host-booking-decline-btn").forEach((button) => {
+      button.addEventListener("click", async () => {
+        const bookingId = button.getAttribute("data-booking-id");
+        if (!bookingId) return;
+
+        button.disabled = true;
+        try {
+          await fetchJson(`/api/Bookings/${encodeURIComponent(bookingId)}/decline`, {
+            method: "PUT",
+          });
+          await loadDashboard();
+        } catch (error) {
+          alert(error.message || "Failed to decline booking.");
+          button.disabled = false;
+        }
+      });
+    });
   }
 
   function renderReviews(selected, currentHostName) {
@@ -371,17 +427,15 @@
     }
 
     const accommodations = await fetchJson("/api/Accommodations/my");
-    let selected = accommodations.find(
-      (item) => String(item.id || item.Id) === String(accommodationId),
-    );
+    let selected = null;
 
-    if (!selected && accommodationId) {
-      try {
-        selected = await fetchJson(
-          `/api/Accommodations/${encodeURIComponent(accommodationId)}`,
-        );
-      } catch {
-        selected = null;
+    if (accommodationId) {
+      selected = accommodations.find(
+        (item) => String(item.id || item.Id) === String(accommodationId),
+      );
+      if (!selected) {
+        redirectToHostHome();
+        return;
       }
     }
 
@@ -389,6 +443,7 @@
       selected = accommodations[0];
     }
     if (!selected) {
+      redirectToHostHome();
       return;
     }
 

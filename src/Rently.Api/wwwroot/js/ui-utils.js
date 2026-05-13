@@ -763,6 +763,87 @@ function initPropertyBooking() {
   const resModalText = document.getElementById("res-modal-text");
   const resModalIcon = document.getElementById("res-modal-icon");
 
+  function parseBookingDate(value) {
+    const raw = String(value || "").trim();
+    if (!raw) return null;
+    const parts = raw.split(".");
+    if (parts.length === 3) {
+      const [day, month, year] = parts.map((part) => Number(part));
+      if (
+        Number.isFinite(day) &&
+        Number.isFinite(month) &&
+        Number.isFinite(year)
+      ) {
+        return new Date(Date.UTC(year, month - 1, day));
+      }
+    }
+    const parsed = new Date(raw);
+    if (Number.isNaN(parsed.getTime())) return null;
+    return parsed;
+  }
+
+  function toIsoDateString(date) {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
+    return date.toISOString();
+  }
+
+  async function createBooking(checkInValue, checkOutValue) {
+    const token = localStorage.getItem("auth_token") || "";
+    const checkInDate = parseBookingDate(checkInValue);
+    const checkOutDate = parseBookingDate(checkOutValue);
+    const bookingPropertyId = new URLSearchParams(window.location.search).get(
+      "id",
+    );
+
+    if (!token) {
+      localStorage.setItem("redirectAfterAuth", window.location.href);
+      window.location.href = window.location.pathname.includes("/host-mode/")
+        ? "../login.html"
+        : "./login.html";
+      return false;
+    }
+
+    if (!checkInDate || !checkOutDate) {
+      throw new Error("Please select valid booking dates.");
+    }
+    if (!bookingPropertyId) {
+      throw new Error("Property id is missing.");
+    }
+
+    const response = await fetch("/api/Bookings", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token,
+      },
+      body: JSON.stringify({
+        accommodationId: Number(bookingPropertyId),
+        checkInDate: toIsoDateString(checkInDate),
+        checkOutDate: toIsoDateString(checkOutDate),
+      }),
+    });
+
+    if (response.status === 401) {
+      localStorage.removeItem("auth_token");
+      localStorage.removeItem("isLoggedIn");
+      localStorage.setItem("redirectAfterAuth", window.location.href);
+      window.location.href = window.location.pathname.includes("/host-mode/")
+        ? "../login.html"
+        : "./login.html";
+      return false;
+    }
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => null);
+      const fallback = await response.text().catch(() => "");
+      throw new Error(
+        payload?.message || fallback || "Failed to create booking.",
+      );
+    }
+
+    return true;
+  }
+
   let modalFpCheckin, modalFpCheckout;
   const modalCheckin = document.getElementById("modal-checkin");
   const modalCheckout = document.getElementById("modal-checkout");
@@ -789,7 +870,7 @@ function initPropertyBooking() {
     resModalOk.textContent = "Reserve Now";
     if (modalFpCheckin) modalFpCheckin.clear();
     if (modalFpCheckout) modalFpCheckout.clear();
-    resModalOk.onclick = () => {
+    resModalOk.onclick = async () => {
       if (!modalCheckin.value || !modalCheckout.value) {
         if (!modalCheckin.value) modalCheckin.style.borderColor = "#ef4444";
         if (!modalCheckout.value) modalCheckout.style.borderColor = "#ef4444";
@@ -802,7 +883,16 @@ function initPropertyBooking() {
       if (checkinInput) checkinInput.value = modalCheckin.value;
       if (checkoutInput) checkoutInput.value = modalCheckout.value;
       updateAvailabilityHint();
-      showSuccessModal(modalCheckin.value, modalCheckout.value);
+      try {
+        resModalOk.disabled = true;
+        const created = await createBooking(modalCheckin.value, modalCheckout.value);
+        if (!created) return;
+        showSuccessModal(modalCheckin.value, modalCheckout.value);
+      } catch (error) {
+        alert(error.message || "Failed to create booking.");
+      } finally {
+        resModalOk.disabled = false;
+      }
     };
     resModal.classList.add("show");
     document.body.style.overflow = "hidden";
@@ -835,7 +925,18 @@ function initPropertyBooking() {
       showDateModal();
       return;
     }
-    showSuccessModal(checkinInput.value, checkoutInput.value);
+    (async () => {
+      try {
+        reserveBtn.disabled = true;
+        const created = await createBooking(checkinInput.value, checkoutInput.value);
+        if (!created) return;
+        showSuccessModal(checkinInput.value, checkoutInput.value);
+      } catch (error) {
+        alert(error.message || "Failed to create booking.");
+      } finally {
+        reserveBtn.disabled = false;
+      }
+    })();
   });
 
   document.getElementById("res-modal-close")?.addEventListener("click", () => {
@@ -850,44 +951,42 @@ function initPropertyBooking() {
   });
 }
 
-function initHistoryPage() {
-  const historyList = document.getElementById("history-list");
-  if (!historyList) return;
+function initMyBookingPage() {
+  const pageRoot = document.querySelector(".my-booking-main");
+  if (!pageRoot) return;
 
-  historyList.addEventListener("click", (e) => {
-    const addBtn = e.target.closest(".add-comment-btn");
-    if (addBtn) {
-      const commentArea = addBtn.closest(".history-comment-area");
-      const existingForm = commentArea.querySelector(".comment-form");
-      if (existingForm) {
-        existingForm.remove();
-        addBtn.classList.remove("expanded");
-        addBtn.querySelector("span").textContent = "Add a review";
-      } else {
-        addBtn.classList.add("expanded");
-        addBtn.querySelector("span").textContent = "Cancel";
-        const form = document.createElement("div");
-        form.className = "comment-form";
-        form.innerHTML = `<textarea class="comment-textarea" placeholder="Write your review here..." maxlength="500"></textarea><button class="comment-submit-btn">Submit Review</button>`;
-        commentArea.appendChild(form);
-        form.querySelector(".comment-textarea").focus();
-      }
-      return;
-    }
+  pageRoot.addEventListener("click", async (e) => {
+    const cancelBtn = e.target.closest(".booking-cancel-btn");
+    if (!cancelBtn) return;
 
-    const submitBtn = e.target.closest(".comment-submit-btn");
-    if (submitBtn) {
-      const form = submitBtn.closest(".comment-form");
-      const text = form.querySelector(".comment-textarea").value.trim();
-      if (!text) {
-        form.querySelector(".comment-textarea").style.borderColor = "#ef4444";
-        setTimeout(() => {
-          form.querySelector(".comment-textarea").style.borderColor = "";
-        }, 1500);
-        return;
+    const bookingId = cancelBtn.getAttribute("data-booking-id");
+    if (!bookingId) return;
+
+    try {
+      cancelBtn.disabled = true;
+      const token = localStorage.getItem("auth_token") || "";
+      const response = await fetch(`/api/Bookings/${encodeURIComponent(bookingId)}/cancel`, {
+        method: "PUT",
+        headers: {
+          Authorization: "Bearer " + token,
+        },
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        throw new Error(payload?.message || "Failed to cancel booking.");
       }
-      const commentArea = submitBtn.closest(".history-comment-area");
-      commentArea.innerHTML = `<div class="history-existing-review"><div class="existing-review-label">Your review:</div><p class="existing-review-text">"${text}"</p></div>`;
+
+      if (typeof renderMyBookingPage === "function") {
+        await renderMyBookingPage(
+          "active-bookings-list",
+          "upcoming-bookings-list",
+          "booking-history-list",
+        );
+      }
+    } catch (error) {
+      alert(error.message || "Failed to cancel booking.");
+      cancelBtn.disabled = false;
     }
   });
 }
