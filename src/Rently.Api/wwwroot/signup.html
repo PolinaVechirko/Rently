@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sign Up - Rently</title>
+
+    <!-- Favicons -->
+    <link
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="./icons/favicon_io/apple-touch-icon.png"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="./icons/favicon_io/favicon-32x32.png"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="16x16"
+      href="./icons/favicon_io/favicon-16x16.png"
+    />
+    <link rel="shortcut icon" href="./icons/favicon_io/favicon.ico" />
+    <link rel="manifest" href="./icons/favicon_io/site.webmanifest" />
+
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB"
+      crossorigin="anonymous"
+    />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap"
+      rel="stylesheet"
+    />
+
+    <link
+      href="node_modules/bootstrap/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./css/global.css" />
+    <link rel="stylesheet" href="./css/signup.css" />
+  </head>
+
+  <body>
+    <div style="height: 20px"></div>
+
+    <header class="header sticky-top bg-white">
+      <nav class="navbar navbar-expand-md">
+        <div class="container">
+          <a class="navbar-brand rently-logo" href="./index.html">Rently</a>
+          <button
+            class="navbar-toggler"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#navbarNav"
+            aria-controls="navbarNav"
+            aria-expanded="false"
+            aria-label="Toggle navigation"
+          >
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav custom-nav-spacing">
+              <li class="nav-item">
+                <a class="nav-link nav-link-custom" href="./index.html#top"
+                  >HOME</a
+                >
+              </li>
+              <li class="nav-item">
+                <a class="nav-link nav-link-custom" href="./index.html#about-us"
+                  >ABOUT</a
+                >
+              </li>
+              <li class="nav-item">
+                <a class="nav-link nav-link-custom" href="./search.html"
+                  >ACCOMMODATIONS</a
+                >
+              </li>
+              <li class="nav-item">
+                <a class="nav-link nav-link-custom" href="#">BECOME A HOST</a>
+              </li>
+            </ul>
+            <div class="header-auth-container ms-auto">
+              <a href="./login.html" class="sign-in-btn" id="header-signin-btn"
+                >SIGN IN</a
+              >
+              <div class="user-profile-wrapper hidden" id="header-user-wrapper">
+                <img
+                  src="./icons/user.svg"
+                  alt="User"
+                  class="user-profile-icon"
+                  id="header-user-icon"
+                />
+                <!-- Dropdown Menu -->
+                <div class="user-dropdown-menu" id="user-dropdown">
+                  <a href="#" class="dropdown-item-custom">Profile</a>
+                  <a href="#" class="dropdown-item-custom">Favorites</a>
+                  <a href="./history.html" class="dropdown-item-custom"
+                    >Booking History</a
+                  >
+                  <a
+                    href="./host-mode.html"
+                    class="dropdown-item-custom host-mode-link"
+                    >Host Mode</a
+                  >
+                  <a href="#" class="dropdown-item-custom">Help Center</a>
+                  <div class="dropdown-item-custom logout-item" id="logout-btn">
+                    <span>Log Out</span>
+                    <img
+                      src="./icons/logout.svg"
+                      alt="Logout"
+                      class="logout-icon"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <main class="container-wide">
+      <div class="signup-wrapper">
+        <div class="signup-card">
+          <h2 class="signup-title">Create Account</h2>
+          <p class="signup-subtitle">
+            Join Rently today! Please enter your details.
+          </p>
+
+          <form class="signup-form" id="signup-form">
+            <div class="signup-input-group">
+              <label class="signup-label">Full Name</label>
+              <input
+                id="signup-fullname"
+                name="fullName"
+                type="text"
+                class="signup-field"
+                placeholder="Enter your name"
+                required
+              />
+            </div>
+
+            <div class="signup-input-group">
+              <label class="signup-label">Email Address</label>
+              <input
+                id="signup-email"
+                name="email"
+                type="email"
+                class="signup-field"
+                placeholder="Enter your email"
+                required
+              />
+            </div>
+
+            <div class="signup-input-group">
+              <label class="signup-label">Password</label>
+              <input
+                id="signup-password"
+                name="password"
+                type="password"
+                class="signup-field"
+                placeholder="Create a password"
+                required
+              />
+            </div>
+
+            <div class="signup-input-group">
+              <label class="signup-label">Confirm Password</label>
+              <input
+                id="signup-password-confirm"
+                name="confirmPassword"
+                type="password"
+                class="signup-field"
+                placeholder="Repeat your password"
+                required
+              />
+            </div>
+
+            <button type="submit" class="signup-btn mt-4">Sign Up</button>
+          </form>
+
+          <div class="signup-footer mt-4">
+            <span>Already have an account?</span>
+            <a href="./login.html" class="login-link">Sign In</a>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="footer-section">
+      <div class="container-wide">
+        <div class="footer-columns">
+          <div class="footer-col">
+            <h5 class="footer-title">Support</h5>
+            <ul class="footer-links">
+              <li><a href="#">Help Center</a></li>
+              <li><a href="#">Anti-discrimination</a></li>
+              <li><a href="#">Disability support</a></li>
+              <li><a href="#">Cancellation options</a></li>
+            </ul>
+          </div>
+          <div class="footer-col">
+            <h5 class="footer-title">Hosting</h5>
+            <ul class="footer-links">
+              <li><a href="#">List your home</a></li>
+              <li><a href="#">AirCover for Hosts</a></li>
+              <li><a href="#">Hosting resources</a></li>
+              <li><a href="#">Community forum</a></li>
+              <li><a href="#">Hosting responsibly</a></li>
+            </ul>
+          </div>
+          <div class="footer-col">
+            <h5 class="footer-title">Accommodation</h5>
+            <ul class="footer-links">
+              <li><a href="#">Apartments & Lofts</a></li>
+              <li><a href="#">Villas & Mansions</a></li>
+              <li><a href="#">Countryside homes</a></li>
+              <li><a href="#">Unique stays</a></li>
+              <li><a href="#">Pet-friendly stays</a></li>
+            </ul>
+          </div>
+          <div class="footer-col">
+            <h5 class="footer-title">Company</h5>
+            <ul class="footer-links">
+              <li><a href="#">About Us</a></li>
+              <li><a href="#">Newsroom</a></li>
+              <li><a href="#">Careers</a></li>
+              <li><a href="#">Investors</a></li>
+              <li><a href="#">Gift cards</a></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="footer-bottom">
+          <div class="footer-bottom-left">
+            <span class="copyright">© 2026 Rently Inc.</span>
+            <span class="footer-dot">·</span>
+            <a href="#" class="legal-link">Privacy</a>
+            <span class="footer-dot">·</span>
+            <a href="#" class="legal-link">Terms</a>
+            <span class="footer-dot">·</span>
+            <a href="#" class="legal-link">Sitemap</a>
+            <span class="footer-dot">·</span>
+            <a href="#" class="legal-link">Company details</a>
+          </div>
+          <div class="footer-bottom-right">
+            <span class="follow-text">Follow us:</span>
+            <div class="social-icons">
+              <a href="#"><img src="./icons/LinkedIn.svg" alt="LinkedIn" /></a>
+              <a href="#"><img src="./icons/YouTube.svg" alt="YouTube" /></a>
+              <a href="#"><img src="./icons/Twitter.svg" alt="Twitter" /></a>
+              <a href="#"><img src="./icons/Facebook.svg" alt="Facebook" /></a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+      crossorigin="anonymous"
+    ></script>
+    <script src="./js/auth.js?v=20260513_avatar_cache"></script>
+  </body>
+</html>

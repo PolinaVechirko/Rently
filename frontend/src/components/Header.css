@@ -1,0 +1,69 @@
+:root {
+  --text-color: #101010;
+  --header-height: 80px;
+  --gap-between-links: 48px;
+}
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap');
+
+/* header container with no drop shadow per design request */
+.app-header {
+  position: sticky;
+  top: 20px;
+  width: 100%;
+  background-color: white;
+  height: var(--header-height);
+  /* box-shadow intentionally removed */
+  padding: 27px 128px 27px 128px; /* top/bottom 27, left/right 128 */
+  display: flex;
+  align-items: center;
+  z-index: 100;
+  font-family: 'DM Sans', sans-serif;
+}
+
+.app-header.sticky {
+  top: 0;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.logo {
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--text-color);
+  margin-right: 128px; /* space between logo and first link */
+}
+
+.nav-menu {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-between-links);
+  flex: 1;
+}
+
+.app-header .nav-link {
+  font-weight: 500;
+  font-size: 16px;
+  /* explicit dark color and higher specificity so Layout.css won't override it */
+  color: var(--text-color);
+  text-decoration: none;
+  padding-top: 29px;
+  padding-bottom: 30px;
+}
+
+.app-header .nav-link:hover {
+  /* underline from below with a small offset */
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.user-icon {
+  width: 50px;
+  height: 50px;
+  margin-left: auto;
+  margin-right: 120px;
+}

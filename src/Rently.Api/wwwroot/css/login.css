@@ -1,0 +1,155 @@
+/* --- Login Page Styles --- */
+.login-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* Adaptive block: 100px top + 500px card + 100px bottom = 700px */
+    min-height: 700px;
+    width: 100%;
+}
+
+.login-card {
+    width: 460px;
+    height: 500px;
+    background-color: #ffffff;
+    border-radius: 50px;
+    box-shadow: 0 0 20px 5px #f0f0f0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    position: relative;
+    padding: 0 60px;
+
+    /* Horizontal padding for form elements */
+}
+
+.login-title {
+    font-weight: 600;
+    font-size: 32px;
+    color: #101010;
+    margin-top: 60px;
+    /* Matching .search-title */
+    margin-bottom: 2px;
+}
+
+.login-subtitle {
+    font-weight: 400;
+    font-size: 16px;
+    color: #3D3D3D;
+    margin-bottom: 30px;
+    /* Reduced to fit */
+}
+
+.login-form {
+    width: 100%;
+}
+
+.login-input-group {
+    width: 100%;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.login-input-group+.login-input-group {
+    margin-top: 10px;
+    /* Заменили mt-4 на более компактный отступ */
+}
+
+.login-label {
+    font-weight: 500;
+    font-size: 14px;
+    color: #101010;
+    margin-bottom: 2px;
+    /* Reduced */
+    margin-left: 10px;
+}
+
+.login-field {
+    width: 100%;
+    height: 50px;
+    /* Reduced height to fit everything in 500px */
+    background: #ffffff;
+    border: 1px solid #E0E0E0;
+    border-radius: 25px;
+    padding: 0 20px;
+    font-weight: 400;
+    font-size: 15px;
+    color: #101010;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+.login-field:focus {
+    border-color: #2A86FE;
+    box-shadow: 0 0 0 4px rgba(42, 134, 254, 0.1);
+}
+
+.login-options {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    /* Smaller */
+}
+
+.remember-me {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #3D3D3D;
+}
+
+.remember-me input {
+    cursor: pointer;
+}
+
+.forgot-password {
+    color: #2A86FE;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.forgot-password:hover {
+    text-decoration: underline;
+}
+
+.login-btn {
+    width: 100%;
+    height: 50px;
+    /* Matching login-field height */
+    background-color: #101010;
+    color: #ffffff;
+    font-weight: 500;
+    font-size: 16px;
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.login-btn:hover {
+    background-color: #313131;
+    transform: translateY(-2px);
+}
+
+.login-footer {
+    font-size: 14px;
+    color: #3D3D3D;
+    margin-top: 25px;
+    /* Added margin to push it down correctly */
+}
+
+.sign-up-link {
+    color: #2A86FE;
+    text-decoration: none;
+    font-weight: 600;
+    margin-left: 5px;
+}
+
+.sign-up-link:hover {
+    text-decoration: underline;
+}

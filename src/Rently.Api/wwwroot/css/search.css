@@ -1,0 +1,469 @@
+/* --- Search Page Styles --- */
+
+.search-main {
+  padding-top: 40px;
+  background-color: #ffffff;
+}
+
+/* Composite Search Bar */
+.search-bar-composite {
+  background-color: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 40px;
+  padding: 10px 15px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  margin-bottom: 40px;
+}
+
+.search-inputs-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.search-input-box {
+  flex: 1;
+  padding: 10px 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.search-input-box label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #101010;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.search-input-box input,
+.search-input-box select {
+  border: none;
+  font-size: 16px;
+  font-weight: 400;
+  color: #404040;
+  width: 100%;
+  background: transparent;
+  outline: none;
+}
+
+.search-input-box input::placeholder {
+  color: #b0b0b0;
+}
+
+.search-divider {
+  width: 1px;
+  height: 35px;
+  background-color: #e0e0e0;
+}
+
+.search-main-trigger {
+  background-color: #3b82f6;
+  /* Premium Blue */
+  border: none;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    transform 0.2s ease,
+    background-color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.search-main-trigger:hover {
+  background-color: #2563eb;
+  transform: scale(1.05);
+}
+
+.search-main-trigger img {
+  width: 20px;
+  filter: brightness(0) invert(1);
+}
+
+/* More Filters Toggle */
+.more-filters-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 14px;
+  color: #101010;
+  border-top: 1px solid #f0f0f0;
+  margin-top: 10px;
+}
+
+.more-filters-toggle img {
+  width: 12px;
+  margin-left: 8px;
+  transition: transform 0.3s ease;
+}
+
+/* Advanced Filters */
+.advanced-filters {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s ease-out;
+}
+
+.advanced-filters.show {
+  max-height: 1200px;
+  /* Increased for more content */
+  padding-bottom: 20px;
+}
+
+.advanced-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  padding: 20px 30px;
+}
+
+.adv-col h6 {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: #101010;
+}
+
+/* Price Counter */
+.price-input-wrapper {
+  display: flex;
+  gap: 40px;
+}
+
+.price-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.price-field span {
+  font-size: 14px;
+  color: #404040;
+}
+
+.price-counter {
+  display: flex;
+  align-items: center;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  overflow: hidden;
+  width: 180px;
+  height: 45px;
+}
+
+.price-btn {
+  width: 50px;
+  height: 100%;
+  border: none;
+  background-color: #f8f8f8;
+  font-size: 20px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.price-btn:hover {
+  background-color: #eee;
+}
+
+.price-counter input {
+  flex: 1;
+  border: none;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 500;
+  outline: none;
+  width: 80px;
+}
+
+/* Hide spin buttons */
+.price-counter input::-webkit-outer-spin-button,
+.price-counter input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Property Types Grid */
+.property-types-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.type-pill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 15px;
+  border: 1px solid #eee;
+  border-radius: 100px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #fff;
+  white-space: nowrap;
+}
+
+.type-pill:hover {
+  border-color: #3b82f6;
+  background: #f0f7ff;
+}
+
+.type-pill input {
+  cursor: pointer;
+}
+
+/* Rooms & Beds Counters */
+.counter-group {
+  display: flex;
+  gap: 40px;
+}
+
+.counter-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.counter-item span {
+  font-size: 14px;
+  color: #404040;
+}
+
+.counter-controls {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.cnt-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid #b0b0b0;
+  background: #fff;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #717171;
+  transition: all 0.2s;
+}
+
+.cnt-btn:hover {
+  border-color: #222;
+  color: #222;
+}
+
+.counter-controls input {
+  width: 20px;
+  border: none;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 400;
+  background: transparent;
+  outline: none;
+}
+
+.adv-inputs {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.adv-inputs input {
+  width: 80px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 14px;
+}
+
+.adv-col select {
+  width: 100%;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 8px;
+  font-size: 14px;
+}
+
+/* Amenities Grid */
+.amenities-check-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px 20px;
+}
+
+.amenities-check-grid label {
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+/* Search Results (Horizontal Rows) */
+.search-results-section {
+  padding-bottom: 80px;
+}
+
+.search-row-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin-top: 40px;
+  margin-bottom: 20px;
+  color: #101010;
+}
+
+/* Results Grid override for Carousels */
+.results-grid {
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;
+  padding-bottom: 10px;
+  scrollbar-width: none;
+  /* Firefox */
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+}
+
+.results-grid::-webkit-scrollbar {
+  display: none;
+  /* Chrome/Safari */
+}
+
+.results-grid .accommodation-card {
+  flex: 0 0 auto;
+  width: calc((100% - 60px) / 4);
+  /* Match homepage 4 per view */
+  min-width: 280px;
+}
+
+@media (max-width: 1400px) {
+  .results-grid .accommodation-card {
+    width: calc((100% - 40px) / 3);
+  }
+}
+
+@media (max-width: 992px) {
+  .results-grid .accommodation-card {
+    width: calc((100% - 20px) / 2);
+  }
+
+  .advanced-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .results-grid .accommodation-card {
+    width: calc((100% - 20px) / 2);
+  }
+
+  .counter-group {
+    flex-direction: column;
+    gap: 20px;
+  }
+}
+
+@media (max-width: 576px) {
+  .results-grid .accommodation-card {
+    width: 100%;
+  }
+
+  .advanced-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .price-input-wrapper {
+    flex-direction: column;
+    gap: 20px;
+  }
+}
+
+/* --- Search Results: 8 rows x 6 cards grid --- */
+.search-results-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.search-results-grid .accommodation-card {
+  /* Override shared card sizing rules (they're for carousels) */
+  width: auto !important;
+  flex: initial !important;
+  min-width: 0 !important;
+}
+
+@media (max-width: 1600px) {
+  .search-results-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 992px) {
+  .search-results-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .search-results-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 576px) {
+  .search-results-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Pagination */
+.pagination-footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+  margin: 50px 0;
+}
+
+.pagination-pages {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.pagination-btn {
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  cursor: pointer;
+  min-width: 44px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  border-color: #3b82f6;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.pagination-btn.active {
+  background: #2a86fe;
+  border-color: #2a86fe;
+  color: #fff;
+}

@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Become a Host - Rently</title>
+
+  <!-- Favicons -->
+  <link rel="apple-touch-icon" sizes="180x180" href="./icons/favicon_io/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon_io/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="./icons/favicon_io/favicon-16x16.png" />
+  <link rel="shortcut icon" href="./icons/favicon_io/favicon.ico" />
+  <link rel="manifest" href="./icons/favicon_io/site.webmanifest" />
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap"
+    rel="stylesheet" />
+
+  <link rel="stylesheet" href="./css/global.css" />
+  <link rel="stylesheet" href="./css/become-host.css" />
+</head>
+
+<body>
+  <div style="height: 20px"></div>
+
+  <header class="header sticky-top bg-white">
+    <nav class="navbar navbar-expand-md">
+      <div class="container">
+        <a class="navbar-brand rently-logo" href="./index.html">Rently</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav custom-nav-spacing">
+            <li class="nav-item">
+              <a class="nav-link nav-link-custom" href="./index.html">HOME</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link nav-link-custom" href="./index.html#about-us">ABOUT</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link nav-link-custom" href="./search.html">ACCOMMODATIONS</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link nav-link-custom active" href="#">BECOME A HOST</a>
+            </li>
+          </ul>
+          <div class="header-auth-container ms-auto">
+            <a href="./login.html" class="sign-in-btn" id="header-signin-btn">SIGN IN</a>
+            <div class="user-profile-wrapper hidden" id="header-user-wrapper">
+              <img src="./icons/user.svg" alt="User" class="user-profile-icon" id="header-user-icon">
+              <!-- Dropdown Menu -->
+              <div class="user-dropdown-menu" id="user-dropdown">
+                <a href="#" class="dropdown-item-custom">Profile</a>
+                <a href="#" class="dropdown-item-custom">Favorites</a>
+                <a href="./history.html" class="dropdown-item-custom">Booking History</a>
+                <a href="./host-mode.html" class="dropdown-item-custom host-mode-link">Host Mode</a>
+                <a href="#" class="dropdown-item-custom">Help Center</a>
+                <div class="dropdown-item-custom logout-item" id="logout-btn">
+                  <span>Log Out</span>
+                  <img src="./icons/logout.svg" alt="Logout" class="logout-icon">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <main class="host-main">
+    <section class="host-showcase">
+      <!-- ЛЕВО: квадрат/карточка с текстовым слайдером -->
+      <div class="host-story">
+        <img src="./icons/arrow-left.svg" alt="Prev" class="host-arrow host-arrow-left" id="host-prev" />
+
+        <div class="host-slider-viewport" id="host-slider">
+          <article class="host-slide">
+            <div class="host-slide-content">
+              <h4 class="slide-title">Why hosts choose Rently:</h4>
+              <ul class="slide-list">
+                <li>Global Reach: Connect with guests from all corners of the world looking for unique stays.</li>
+                <li>Hassle-free Management: Manage your bookings, communication, and calendar from one intuitive
+                  dashboard.</li>
+                <li>Control & Flexibility: You decide when you host and how much you charge—full control at your
+                  fingertips.</li>
+              </ul>
+            </div>
+          </article>
+
+          <article class="host-slide">
+            <div class="host-slide-content">
+              <h4 class="slide-title">You stay in control:</h4>
+              <ul class="slide-list">
+                <li>House Rules: Set clear expectations and rules for your guests before they book.</li>
+                <li>Custom Availability: Block dates or set minimum stays to match your personal schedule.</li>
+                <li>Smart Pricing: Define seasonal rates and special offers to maximize your rental income.</li>
+              </ul>
+            </div>
+          </article>
+
+          <article class="host-slide">
+            <div class="host-slide-content">
+              <h4 class="slide-title">Reliable support:</h4>
+              <ul class="slide-list">
+                <li>Seamless Listing Setup: Our step-by-step tools make it easy to go live and attract your first
+                  guests.
+                </li>
+                <li>Host Assistance: Access dedicated support and resources anytime you need professional help.</li>
+                <li>Secure Community: Join a network of hosts built on trust, transparency, and safety.</li>
+              </ul>
+            </div>
+          </article>
+
+          <article class="host-slide">
+            <div class="host-slide-content">
+              <h4 class="slide-title">Grow your hosting business:</h4>
+              <ul class="slide-list">
+                <li>Actionable Insights: Track views and booking trends to understand what guests are looking for.</li>
+                <li>Personalized Growth: Get tips on how to improve your listing's performance and occupancy.</li>
+                <li>Steady Income: Turn your space into a reliable source of revenue with our optimized platform.</li>
+              </ul>
+            </div>
+          </article>
+        </div>
+
+        <img src="./icons/arrow-right.svg" alt="Next" class="host-arrow host-arrow-right" id="host-next" />
+      </div>
+
+      <!-- ПРАВО: CTA -->
+      <aside class="host-cta">
+        <h1>Open your doors to new opportunities</h1>
+        <p>
+          Start hosting with confidence and turn your space into a steady
+          source of income.
+        </p>
+        <a href="#" class="host-cta-btn" id="start-hosting-btn">Start Your Hosting Journey</a>
+      </aside>
+    </section>
+  </main>
+
+  <footer class="footer-section mt-5">
+    <div class="container-wide">
+      <div class="footer-columns">
+        <div class="footer-col">
+          <h5 class="footer-title">Support</h5>
+          <ul class="footer-links">
+            <li><a href="#">Help Center</a></li>
+            <li><a href="#">Anti-discrimination</a></li>
+            <li><a href="#">Disability support</a></li>
+            <li><a href="#">Cancellation options</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h5 class="footer-title">Hosting</h5>
+          <ul class="footer-links">
+            <li><a href="#">List your home</a></li>
+            <li><a href="#">AirCover for Hosts</a></li>
+            <li><a href="#">Hosting resources</a></li>
+            <li><a href="#">Community forum</a></li>
+            <li><a href="#">Hosting responsibly</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h5 class="footer-title">Accommodation</h5>
+          <ul class="footer-links">
+            <li><a href="#">Apartments & Lofts</a></li>
+            <li><a href="#">Villas & Mansions</a></li>
+            <li><a href="#">Countryside homes</a></li>
+            <li><a href="#">Unique stays</a></li>
+            <li><a href="#">Pet-friendly stays</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h5 class="footer-title">Company</h5>
+          <ul class="footer-links">
+            <li><a href="#">About Us</a></li>
+            <li><a href="#">Newsroom</a></li>
+            <li><a href="#">Careers</a></li>
+            <li><a href="#">Investors</a></li>
+            <li><a href="#">Gift cards</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div class="footer-bottom-left">
+          <span class="copyright">© 2026 Rently Inc.</span>
+          <span class="footer-dot">·</span>
+          <a href="#" class="legal-link">Privacy</a>
+          <span class="footer-dot">·</span>
+          <a href="#" class="legal-link">Terms</a>
+          <span class="footer-dot">·</span>
+          <a href="#" class="legal-link">Sitemap</a>
+          <span class="footer-dot">·</span>
+          <a href="#" class="legal-link">Company details</a>
+        </div>
+        <div class="footer-bottom-right">
+          <span class="follow-text">Follow us:</span>
+          <div class="social-icons">
+            <a href="#"><img src="./icons/LinkedIn.svg" alt="LinkedIn"></a>
+            <a href="#"><img src="./icons/YouTube.svg" alt="YouTube"></a>
+            <a href="#"><img src="./icons/Twitter.svg" alt="Twitter"></a>
+            <a href="#"><img src="./icons/Facebook.svg" alt="Facebook"></a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="./js/renderers.js"></script>
+  <script src="./js/ui-utils.js"></script>
+  <script src="./js/auth.js?v=20260513_avatar_cache"></script>
+  <script src="./js/search-logic.js"></script>
+  <script src="./js/main.js"></script>
+  <script src="./js/become-host.js"></script>
+</body>
+
+</html>

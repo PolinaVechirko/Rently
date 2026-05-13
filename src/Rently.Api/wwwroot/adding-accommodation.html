@@ -1,0 +1,560 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rently - Add New Listing</title>
+  <!-- Favicons -->
+  <link rel="apple-touch-icon" sizes="180x180" href="./icons/favicon_io/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon_io/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="./icons/favicon_io/favicon-16x16.png" />
+  <link rel="shortcut icon" href="./icons/favicon_io/favicon.ico" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" />
+  <link rel="stylesheet" href="./css/global.css" />
+  <link rel="stylesheet" href="./css/property.css" />
+  <link rel="stylesheet" href="./css/adding-accommodation.css" />
+</head>
+
+<body id="top">
+  <div style="height: 20px"></div>
+
+  <header class="header sticky-top bg-white">
+    <nav class="navbar navbar-expand-md">
+      <div class="container">
+        <a class="navbar-brand rently-logo" href="./host-mode.html">Rently</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav custom-nav-spacing">
+            <li class="nav-item">
+              <a class="nav-link nav-link-custom active" href="./host-mode.html">DASHBOARD</a>
+            </li>
+            <li class="nav-item">
+              <a id="adding-nav-my-listings" class="nav-link nav-link-custom"
+                href="./host-mode.html#your-apartments-title">MY LISTINGS</a>
+            </li>
+            <li class="nav-item">
+              <a id="adding-nav-inspiration" class="nav-link nav-link-custom"
+                href="./host-mode.html#inspiration-title">INSPIRATION</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link nav-link-custom" href="./index.html">SWITCH TO GUEST</a>
+            </li>
+          </ul>
+
+          <div class="header-auth-container ms-auto">
+            <div class="user-profile-wrapper" id="header-user-wrapper">
+              <img src="./icons/user.svg" alt="User" class="user-profile-icon" id="header-user-icon" />
+              <!-- Dropdown Menu -->
+              <div class="user-dropdown-menu" id="user-dropdown">
+                <a href="./host-mode/profile.html" class="dropdown-item-custom">Profile</a>
+                <a href="./host-mode.html#your-apartments-title" class="dropdown-item-custom">Your Apartments</a>
+                <a href="./favorites.html" class="dropdown-item-custom">Favorites</a>
+                <a href="./index.html" class="dropdown-item-custom">Guest Mode</a>
+                <a href="#" class="dropdown-item-custom">Help Center</a>
+                <div class="dropdown-item-custom logout-item" id="logout-btn">
+                  <span>Log Out</span>
+                  <img src="./icons/logout.svg" alt="Logout" class="logout-icon" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <!-- STEPPER -->
+  <div class="container mt-5 mb-4 stepper-container">
+    <ul class="stepper">
+      <li class="step active" data-step="1">
+        <div class="step-circle">1</div>
+        <div class="step-label">Basics & Amenities</div>
+      </li>
+      <li class="step" data-step="2">
+        <div class="step-circle">2</div>
+        <div class="step-label">Content & Pricing</div>
+      </li>
+      <li class="step" data-step="3">
+        <div class="step-circle">3</div>
+        <div class="step-label">Photos</div>
+      </li>
+      <li class="step" data-step="4">
+        <div class="step-circle">4</div>
+        <div class="step-label">Contact</div>
+      </li>
+      <li class="step" data-step="5">
+        <div class="step-circle">5</div>
+        <div class="step-label">Availability & Finish</div>
+      </li>
+    </ul>
+  </div>
+
+  <main class="container-wide mt-4" id="form-main">
+    <div class="form-wrapper bg-white shadow-sm p-4 rounded-4 mx-auto" style="max-width: 800px">
+      <form id="add-listing-form">
+        <!-- STEP 1 -->
+        <div class="form-step active" id="step-1">
+          <h3 class="mb-4 fw-bold">Step 1: Basics & Amenities</h3>
+          <p class="text-muted mb-4">
+            Let's start by laying the foundation for your listing.
+          </p>
+
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Property Type</label>
+            <select class="form-select custom-input" id="prop-type" required>
+              <option value="">Select Property Type...</option>
+              <option value="Apartment">Apartment</option>
+              <option value="House">House</option>
+              <option value="Room">Room</option>
+              <option value="Studio">Studio</option>
+              <option value="Condo">Condo</option>
+              <option value="Townhouse">Townhouse</option>
+              <option value="Guesthouse">Guesthouse</option>
+              <option value="Villa">Villa</option>
+              <option value="Cottage">Cottage</option>
+              <option value="Bungalow">Bungalow</option>
+              <option value="Cabin">Cabin</option>
+              <option value="Chalet">Chalet</option>
+              <option value="Hotel">Hotel</option>
+              <option value="Hostel">Hostel</option>
+              <option value="Motel">Motel</option>
+              <option value="Resort">Resort</option>
+              <option value="Homestay">Homestay</option>
+              <option value="Aparthotel">Aparthotel</option>
+              <option value="Farm Stay">Farm Stay</option>
+              <option value="Eco-house">Eco-house</option>
+              <option value="Tiny House">Tiny House</option>
+              <option value="Beach House">Beach House</option>
+              <option value="Lake House">Lake House</option>
+              <option value="Waterfront Apartment">
+                Waterfront Apartment
+              </option>
+              <option value="Houseboat">Houseboat</option>
+            </select>
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Location</label>
+            <div class="row g-2">
+              <div class="col-md-6">
+                <input type="text" class="form-control custom-input" id="country" placeholder="Country" required
+                  list="location-suggestions" />
+              </div>
+              <div class="col-md-6">
+                <input type="text" class="form-control custom-input" id="city" placeholder="City" required
+                  list="location-suggestions" />
+              </div>
+              <div class="col-12 mt-2">
+                <input type="text" class="form-control custom-input" id="street" placeholder="Street Address" required
+                  list="location-suggestions" />
+              </div>
+              <datalist id="location-suggestions"></datalist>
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Capacity</label>
+            <div class="row g-3">
+              <div class="col-md-4">
+                <label class="small text-muted mb-1">Guests count</label>
+                <input type="number" class="form-control custom-input" id="guests-count" min="1" value="1" required />
+              </div>
+              <div class="col-md-4">
+                <label class="small text-muted mb-1">Bedrooms</label>
+                <input type="number" class="form-control custom-input" id="bedrooms-count" min="0" value="1" required />
+              </div>
+              <div class="col-md-4">
+                <label class="small text-muted mb-1">Beds</label>
+                <input type="number" class="form-control custom-input" id="beds-count" min="1" value="1" required />
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-5">
+            <label class="form-label fw-semibold mb-3">Amenities</label>
+            <div class="row g-2" id="amenities-list">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-end">
+            <button type="button" class="btn btn-primary next-btn">
+              Next Step
+            </button>
+          </div>
+        </div>
+
+        <!-- STEP 2 -->
+        <div class="form-step d-none" id="step-2">
+          <h3 class="mb-4 fw-bold">Step 2: Content & Pricing</h3>
+          <p class="text-muted mb-4">
+            Combine your description and pricing logic to attract guests.
+          </p>
+
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Listing Title</label>
+            <input type="text" class="form-control custom-input" id="listing-title"
+              placeholder="e.g. Sunny Loft in Downtown" maxlength="50" required />
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Description</label>
+            <textarea class="form-control custom-input" id="listing-desc" rows="5"
+              placeholder="Tell guests what makes your place special..." maxlength="1000" required></textarea>
+          </div>
+
+          <div class="mb-5">
+            <label class="form-label fw-semibold">Pricing</label>
+            <div class="row g-3">
+              <div class="col-md-8">
+                <label class="small text-muted mb-1">Price per Night</label>
+                <div class="input-group">
+                  <span class="input-group-text bg-white border-end-0" id="currency-symbol">$</span>
+                  <input type="number" class="form-control custom-input border-start-0 ps-0" id="price-night"
+                    placeholder="0.00" min="0" required />
+                </div>
+              </div>
+              <div class="col-md-4">
+                <label class="small text-muted mb-1">Currency</label>
+                <select class="form-select custom-input" id="currency">
+                  <option value="USD" selected>USD ($)</option>
+                  <option value="EUR">EUR (€)</option>
+                  <option value="GBP">GBP (£)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-between">
+            <button type="button" class="btn btn-outline-secondary prev-btn">
+              Back
+            </button>
+            <button type="button" class="btn btn-primary next-btn">
+              Next Step
+            </button>
+          </div>
+        </div>
+
+        <!-- STEP 3 -->
+        <div class="form-step d-none" id="step-3">
+          <h3 class="mb-4 fw-bold">Step 3: Photos</h3>
+          <p class="text-muted mb-4">
+            Upload visual content. The first photo will serve as your cover
+            image on cards.
+          </p>
+
+          <div class="photo-upload-container mb-4 text-center p-5 border rounded-4 border-dashed" id="drop-zone">
+            <img src="./icons/upload-cloud.svg" alt="Upload" class="mb-3" style="width: 48px; opacity: 0.5" />
+            <h5 class="fw-semibold">Drag & drop your photos here</h5>
+            <p class="text-muted small">
+              or click to browse from your device
+            </p>
+            <input type="file" id="photo-upload" multiple accept="image/*" class="d-none" />
+            <button type="button" class="btn btn-primary mt-2"
+              onclick="document.getElementById('photo-upload').click()">
+              Select Photos
+            </button>
+          </div>
+
+          <div class="photo-grid mb-4 d-flex flex-wrap gap-3" id="photo-preview-grid">
+            <!-- Preview images injected by JS -->
+          </div>
+
+          <div class="d-flex justify-content-between mt-5">
+            <button type="button" class="btn btn-outline-secondary prev-btn">
+              Back
+            </button>
+            <button type="button" class="btn btn-primary next-btn">
+              Next Step
+            </button>
+          </div>
+        </div>
+
+        <!-- STEP 4 -->
+        <div class="form-step d-none" id="step-4">
+          <h3 class="mb-4 fw-bold">Step 4: Contact Information</h3>
+          <p class="text-muted mb-4">
+            Confirm how guests or Rently can reach you.
+          </p>
+
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Contact Phone</label>
+            <input type="tel" class="form-control custom-input" id="contact-phone" value="+48 123 456 789" required />
+          </div>
+
+          <div class="mb-5">
+            <label class="form-label fw-semibold">Contact Email (for booking notifications)</label>
+            <input type="email" class="form-control custom-input" id="contact-email" value="exampleName@gmail.com"
+              required />
+          </div>
+
+          <div class="d-flex justify-content-between">
+            <button type="button" class="btn btn-outline-secondary prev-btn">
+              Back
+            </button>
+            <button type="button" class="btn btn-primary next-btn">
+              Next Step
+            </button>
+          </div>
+        </div>
+
+        <!-- STEP 5 -->
+        <div class="form-step d-none" id="step-5">
+          <h3 class="mb-4 fw-bold">Step 5: Availability & Finish</h3>
+          <p class="text-muted mb-4">
+            Decide when your property is ready for guests.
+          </p>
+
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Listing Status</label>
+            <div class="custom-radio-group">
+              <label class="custom-radio-card active">
+                <input type="radio" name="listing-status" value="Active" checked class="d-none" />
+                <div class="card-content">
+                  <span class="title">Active</span>
+                  <span class="desc">Available for booking right now</span>
+                </div>
+              </label>
+
+              <label class="custom-radio-card mt-3">
+                <input type="radio" name="listing-status" value="Upcoming" class="d-none" />
+                <div class="card-content">
+                  <span class="title">Upcoming</span>
+                  <span class="desc">Available from a specific date</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div class="mb-5 d-none" id="date-picker-container">
+            <label class="form-label fw-semibold">Available From</label>
+            <input type="date" class="form-control custom-input w-50" id="available-from" />
+          </div>
+
+          <div class="d-flex justify-content-between mt-5">
+            <button type="button" class="btn btn-outline-secondary prev-btn">
+              Back
+            </button>
+            <button type="button" class="btn btn-success checkout-btn" id="to-preview-btn">
+              Final Check
+            </button>
+          </div>
+        </div>
+      </form>
+
+      <!-- PREVIEW VIEW -->
+      <div id="preview-section" class="d-none">
+        <div class="container-wide">
+          <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+            <div class="d-flex align-items-center gap-3">
+              <button type="button" class="btn btn-outline-secondary btn-sm d-none" id="back-to-dashboard-btn">
+                &larr; Back
+              </button>
+              <h3 class="fw-bold m-0">Final Review</h3>
+            </div>
+            <button type="button" class="btn btn-outline-primary btn-sm" id="edit-btn">
+              Edit Details
+            </button>
+          </div>
+
+          <div class="property-grid">
+            <!-- Left: Gallery -->
+            <div class="property-gallery">
+              <div class="main-photo-wrapper">
+                <img src="./images/hero1.png" alt="Main" id="preview-main-photo" />
+                <button class="gallery-nav prev show-on-load" id="preview-gallery-prev" style="display: none">
+                  <img src="./icons/arrow-left.svg" alt="prev" />
+                </button>
+                <button class="gallery-nav next show-on-load" id="preview-gallery-next" style="display: none">
+                  <img src="./icons/arrow-right.svg" alt="next" />
+                </button>
+              </div>
+              <div class="thumbnail-grid" id="preview-thumbnail-container">
+                <!-- Thumbnails populated by JS -->
+              </div>
+            </div>
+
+            <!-- Right: Information -->
+            <div class="property-info-card">
+              <div class="info-header">
+                <div style="flex: 1">
+                  <h1 class="property-title" id="preview-prop-title">
+                    Beautiful Property
+                  </h1>
+                  <div class="property-location">
+                    <img src="./icons/locationIcon.svg" alt="location" />
+                    <span id="preview-prop-location">France, Paris</span>
+                  </div>
+                  <div class="price-tag">
+                    <span id="preview-prop-price">$250</span>
+                    <span class="fs-6 text-muted fw-normal">/ night</span>
+                  </div>
+                </div>
+                <button class="favorite-btn" aria-label="Add to favorites" type="button">
+                  <img src="./icons/favorite.svg" alt="heart" />
+                </button>
+              </div>
+
+              <div class="property-desc-wrapper">
+                <div class="property-desc" id="preview-prop-desc">
+                  <p>Description goes here...</p>
+                </div>
+                <button class="desc-toggle" id="preview-desc-toggle" type="button">
+                  <span>Show more</span>
+                  <img src="./icons/arrowDown.svg" alt="expand" />
+                </button>
+              </div>
+
+              <div class="prop-amenities">
+                <h3 class="amenities-title">What this place offers</h3>
+                <div class="amenities-list" id="preview-prop-amenities">
+                  <!-- populated by js -->
+                </div>
+              </div>
+
+              <!-- Host Profile -->
+              <div class="host-profile">
+                <div class="host-info">
+                  <img src="./icons/user.svg" alt="Host" class="host-avatar host-photo" />
+                  <div>
+                    <div class="host-name">Host Name</div>
+                    <div class="host-label">New host</div>
+                  </div>
+                </div>
+                <button class="contact-host-btn" type="button" disabled title="This is a preview">
+                  Contact Host
+                </button>
+              </div>
+
+              <!-- Booking CTA -->
+              <div class="booking-cta">
+                <button class="reserve-btn" id="preview-reserve-btn" disabled type="button" title="This is a preview">
+                  Reserve Now
+                </button>
+                <div class="booking-dates-info">
+                  <button class="calendar-trigger" type="button" disabled title="This is a preview">
+                    <img src="./icons/calendar.svg" alt="Calendar" />
+                  </button>
+                  <input type="text" placeholder="Check-in" readonly />
+                  <span class="dates-separator">—</span>
+                  <input type="text" placeholder="Check-out" readonly />
+                  <span class="availability-hint" id="preview-prop-status">Available Status</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="text-center mt-5">
+          <button type="button" class="btn btn-primary btn-lg px-5 py-3 fw-bold shadow" id="submit-listing-btn"
+            style="max-width: 400px; width: 100%">
+            Upload
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer-section">
+    <div class="container-wide">
+      <div class="footer-columns">
+        <div class="footer-col">
+          <h5 class="footer-title">Support</h5>
+          <ul class="footer-links">
+            <li><a href="#">Help Center</a></li>
+            <li><a href="#">Anti-discrimination</a></li>
+            <li><a href="#">Disability support</a></li>
+            <li><a href="#">Cancellation options</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h5 class="footer-title">Hosting</h5>
+          <ul class="footer-links">
+            <li><a href="#">List your home</a></li>
+            <li><a href="#">AirCover for Hosts</a></li>
+            <li><a href="#">Hosting resources</a></li>
+            <li><a href="#">Community forum</a></li>
+            <li><a href="#">Hosting responsibly</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h5 class="footer-title">Accommodation</h5>
+          <ul class="footer-links">
+            <li><a href="#">Apartments & Lofts</a></li>
+            <li><a href="#">Villas & Mansions</a></li>
+            <li><a href="#">Countryside homes</a></li>
+            <li><a href="#">Unique stays</a></li>
+            <li><a href="#">Pet-friendly stays</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h5 class="footer-title">Company</h5>
+          <ul class="footer-links">
+            <li><a href="#">About Us</a></li>
+            <li><a href="#">Newsroom</a></li>
+            <li><a href="#">Careers</a></li>
+            <li><a href="#">Investors</a></li>
+            <li><a href="#">Gift cards</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div class="footer-bottom-left">
+          <span class="copyright">© 2026 Rently Inc.</span>
+          <span class="footer-dot">·</span>
+          <a href="#" class="legal-link">Privacy</a>
+          <span class="footer-dot">·</span>
+          <a href="#" class="legal-link">Terms</a>
+          <span class="footer-dot">·</span>
+          <a href="#" class="legal-link">Sitemap</a>
+          <span class="footer-dot">·</span>
+          <a href="#" class="legal-link">Company details</a>
+        </div>
+        <div class="footer-bottom-right">
+          <span class="follow-text">Follow us:</span>
+          <div class="social-icons">
+            <a href="#"><img src="./icons/LinkedIn.svg" alt="LinkedIn" /></a>
+            <a href="#"><img src="./icons/YouTube.svg" alt="YouTube" /></a>
+            <a href="#"><img src="./icons/Twitter.svg" alt="Twitter" /></a>
+            <a href="#"><img src="./icons/Facebook.svg" alt="Facebook" /></a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="./js/auth.js?v=20260513_avatar_cache"></script>
+  <script src="./js/adding-accommodation.js?v=20260511_header"></script>
+  <script>
+    (function () {
+      const myListingsLink = document.getElementById("adding-nav-my-listings");
+      const inspirationLink = document.getElementById("adding-nav-inspiration");
+      if (myListingsLink) {
+        myListingsLink.onclick = function (e) {
+          e.preventDefault();
+          window.location.href = "./host-mode.html#your-apartments-title";
+        };
+      }
+      if (inspirationLink) {
+        inspirationLink.onclick = function (e) {
+          e.preventDefault();
+          window.location.href = "./host-mode.html#inspiration-title";
+        };
+      }
+
+    })();
+  </script>
+</body>
+
+</html>

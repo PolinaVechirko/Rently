@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Inspiration - Host Mode - Rently</title>
+
+    <!-- Favicons -->
+    <link rel="apple-touch-icon" sizes="180x180" href="../icons/favicon_io/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="../icons/favicon_io/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="../icons/favicon_io/favicon-16x16.png">
+    <link rel="shortcut icon" href="../icons/favicon_io/favicon.ico">
+    <link rel="manifest" href="../icons/favicon_io/site.webmanifest">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap"
+        rel="stylesheet" />
+
+    <!-- Flatpickr -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
+    <link rel="stylesheet" href="../css/global.css" />
+    <link rel="stylesheet" href="../css/search.css?v=20260430_3" />
+    <link rel="stylesheet" href="../css/host-mode.css" />
+</head>
+
+<body>
+    <div style="height: 20px;"></div>
+
+    <header class="header sticky-top bg-white">
+        <nav class="navbar navbar-expand-md">
+            <div class="container">
+                <a class="navbar-brand rently-logo" href="../host-mode.html">Rently</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav custom-nav-spacing">
+                        <li class="nav-item"><a class="nav-link nav-link-custom" href="../host-mode.html">DASHBOARD</a></li>
+                        <li class="nav-item"><a class="nav-link nav-link-custom" href="../host-mode.html#your-apartments-title">MY LISTINGS</a></li>
+                        <li class="nav-item"><a class="nav-link nav-link-custom active" href="./inspiration.html">INSPIRATION</a></li>
+                        <li class="nav-item"><a class="nav-link nav-link-custom" href="../index.html">SWITCH TO GUEST</a></li>
+                    </ul>
+                    <div class="header-auth-container ms-auto">
+                        <div class="user-profile-wrapper" id="header-user-wrapper">
+                            <img src="../icons/user.svg" alt="User" class="user-profile-icon" id="header-user-icon">
+                            <div class="user-dropdown-menu" id="user-dropdown">
+                                <a href="./profile.html" class="dropdown-item-custom">Profile</a>
+                                <a href="../host-mode.html#your-apartments-title" class="dropdown-item-custom">Your Apartments</a>
+                                <a href="./favorites.html" class="dropdown-item-custom">Favorites</a>
+                                <a href="../index.html" class="dropdown-item-custom">Guest Mode</a>
+                                <a href="#" class="dropdown-item-custom">Help Center</a>
+                                <div class="dropdown-item-custom logout-item" id="logout-btn">
+                                    <span>Log Out</span>
+                                    <img src="../icons/logout.svg" alt="Logout" class="logout-icon">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="search-main">
+        <!-- Inspiration Banner -->
+        <section class="inspiration-banner" style="background-color: #f5f5f5; padding: 40px 20px; text-align: center; margin-bottom: 30px;">
+            <div class="container">
+                <h1 style="font-size: 32px; font-weight: 600; margin-bottom: 10px;">Explore for Inspiration</h1>
+                <p style="font-size: 16px; color: #666; margin-bottom: 0;">Take a look at how other hosts present their properties to get ideas for yours</p>
+            </div>
+        </section>
+
+        <!-- Filter Bar Section -->
+        <section class="search-filters-section">
+            <div class="container-wide">
+                <div class="search-bar-composite">
+                    <div class="search-inputs-row">
+                        <div class="search-input-box">
+                            <label>Location</label>
+                            <input type="text" placeholder="Where are you going?" id="search-loc"
+                                list="search-loc-suggestions">
+                            <datalist id="search-loc-suggestions"></datalist>
+                        </div>
+                        <div class="search-divider"></div>
+                        <div class="search-input-box">
+                            <label>Check-in</label>
+                            <input type="text" placeholder="Add date" id="search-checkin">
+                        </div>
+                        <div class="search-divider"></div>
+                        <div class="search-input-box">
+                            <label>Check-out</label>
+                            <input type="text" placeholder="Add date" id="search-checkout">
+                        </div>
+                        <div class="search-divider"></div>
+                        <div class="search-input-box">
+                            <label>Guests</label>
+                            <input type="text" placeholder="Number of people" id="search-guests" value="1">
+                        </div>
+                        <div class="search-divider"></div>
+                        <div class="search-input-box sort-box">
+                            <label>Sort By</label>
+                            <select id="search-sort">
+                                <option value="">Sort By</option>
+                                <option value="price_asc">Price: Low to High</option>
+                                <option value="price_desc">Price: High to Low</option>
+                                <option value="highest_rated">Top Rated</option>
+                                <option value="newest">Newest</option>
+                                <option value="most_visited">Popularity</option>
+                            </select>
+                        </div>
+                        <button class="search-main-trigger" id="search-apply-btn">
+                            <img src="../icons/search.svg" alt="Search">
+                        </button>
+                    </div>
+
+                    <!-- More Filters Toggle -->
+                    <div class="more-filters-toggle" id="more-filters-btn">
+                        <span>More Filters</span>
+                        <img src="../icons/arrowDown.svg" alt="Down" id="filters-arrow">
+                    </div>
+
+                    <!-- Advanced Filters Expansion -->
+                    <div class="advanced-filters" id="advanced-filters">
+                        <div class="advanced-grid">
+                            <div class="adv-col full-width">
+                                <h6>Price Range</h6>
+                                <div class="price-input-wrapper">
+                                    <div class="price-field">
+                                        <span>Min</span>
+                                        <div class="price-counter">
+                                            <button type="button" class="price-btn down"
+                                                data-target="min-price">-</button>
+                                            <input type="number" id="min-price" value="0" min="0" step="100">
+                                            <button type="button" class="price-btn up"
+                                                data-target="min-price">+</button>
+                                        </div>
+                                    </div>
+                                    <div class="price-field">
+                                        <span>Max</span>
+                                        <div class="price-counter">
+                                            <button type="button" class="price-btn down"
+                                                data-target="max-price">-</button>
+                                            <input type="number" id="max-price" value="1000" min="0" step="100">
+                                            <button type="button" class="price-btn up"
+                                                data-target="max-price">+</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="adv-col full-width">
+                                <h6>Property Type</h6>
+                                <div class="property-types-grid">
+                                    <label class="type-pill"><input type="checkbox" value="Apartment"> Apartment</label>
+                                    <label class="type-pill"><input type="checkbox" value="House"> House</label>
+                                    <label class="type-pill"><input type="checkbox" value="Room"> Room</label>
+                                    <label class="type-pill"><input type="checkbox" value="Studio"> Studio</label>
+                                    <label class="type-pill"><input type="checkbox" value="Condo"> Condo</label>
+                                    <label class="type-pill"><input type="checkbox" value="Townhouse"> Townhouse</label>
+                                    <label class="type-pill"><input type="checkbox" value="Guesthouse">
+                                        Guesthouse</label>
+                                    <label class="type-pill"><input type="checkbox" value="Villa"> Villa</label>
+                                    <label class="type-pill"><input type="checkbox" value="Cottage"> Cottage</label>
+                                    <label class="type-pill"><input type="checkbox" value="Bungalow"> Bungalow</label>
+                                    <label class="type-pill"><input type="checkbox" value="Cabin"> Cabin</label>
+                                    <label class="type-pill"><input type="checkbox" value="Chalet"> Chalet</label>
+                                    <label class="type-pill"><input type="checkbox" value="Hotel"> Hotel</label>
+                                    <label class="type-pill"><input type="checkbox" value="Hostel"> Hostel</label>
+                                    <label class="type-pill"><input type="checkbox" value="Motel"> Motel</label>
+                                    <label class="type-pill"><input type="checkbox" value="Resort"> Resort</label>
+                                    <label class="type-pill"><input type="checkbox" value="Homestay"> Homestay</label>
+                                    <label class="type-pill"><input type="checkbox" value="Aparthotel">
+                                        Aparthotel</label>
+                                    <label class="type-pill"><input type="checkbox" value="Farm Stay"> Farm Stay</label>
+                                    <label class="type-pill"><input type="checkbox" value="Eco-house"> Eco-house</label>
+                                    <label class="type-pill"><input type="checkbox" value="Tiny House"> Tiny
+                                        House</label>
+                                    <label class="type-pill"><input type="checkbox" value="Beach House"> Beach
+                                        House</label>
+                                    <label class="type-pill"><input type="checkbox" value="Lake House"> Lake
+                                        House</label>
+                                    <label class="type-pill"><input type="checkbox" value="Waterfront Apartment">
+                                        Waterfront Apartment</label>
+                                    <label class="type-pill"><input type="checkbox" value="Houseboat"> Houseboat</label>
+                                </div>
+                            </div>
+
+                            <div class="adv-col rooms-beds-col">
+                                <h6>Rooms & Beds</h6>
+                                <div class="counter-group">
+                                    <div class="counter-item">
+                                        <span>Bedrooms</span>
+                                        <div class="counter-controls">
+                                            <button type="button" class="cnt-btn minus"
+                                                data-target="cnt-bedrooms">-</button>
+                                            <input type="text" id="cnt-bedrooms" value="0" readonly>
+                                            <button type="button" class="cnt-btn plus"
+                                                data-target="cnt-bedrooms">+</button>
+                                        </div>
+                                    </div>
+                                    <div class="counter-item">
+                                        <span>Beds</span>
+                                        <div class="counter-controls">
+                                            <button type="button" class="cnt-btn minus"
+                                                data-target="cnt-beds">-</button>
+                                            <input type="text" id="cnt-beds" value="0" readonly>
+                                            <button type="button" class="cnt-btn plus" data-target="cnt-beds">+</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="adv-col full-width">
+                                    <h6>Amenities</h6>
+                                    <div class="amenities-check-grid">
+                                        <label><input type="checkbox" value="Wi-Fi"> Wi-Fi</label>
+                                        <label><input type="checkbox" value="TV"> TV</label>
+                                        <label><input type="checkbox" value="Kitchen"> Kitchen</label>
+                                        <label><input type="checkbox" value="Air Conditioning"> Air Conditioning</label>
+                                        <label><input type="checkbox" value="Heating"> Heating</label>
+                                        <label><input type="checkbox" value="Dedicated Workspace"> Dedicated
+                                            Workspace</label>
+                                        <label><input type="checkbox" value="Washer"> Washer</label>
+                                        <label><input type="checkbox" value="Free Parking"> Free Parking</label>
+                                        <label><input type="checkbox" value="Gym"> Gym</label>
+                                        <label><input type="checkbox" value="Pets Allowed"> Pets Allowed</label>
+                                        <label><input type="checkbox" value="Balcony"> Balcony</label>
+                                        <label><input type="checkbox" value="Self Check-in"> Self Check-in</label>
+                                        <label><input type="checkbox" value="Crib"> Crib</label>
+                                        <label><input type="checkbox" value="Family Friendly"> Family Friendly</label>
+                                        <label><input type="checkbox" value="Meal Service"> Meal Service</label>
+                                        <label><input type="checkbox" value="Pool"> Pool</label>
+                                        <label><input type="checkbox" value="Dryer"> Dryer</label>
+                                        <label><input type="checkbox" value="Iron"> Iron</label>
+                                        <label><input type="checkbox" value="Smoke Alarm"> Smoke Alarm</label>
+                                        <label><input type="checkbox" value="First Aid Kit"> First Aid Kit</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+        </section>
+
+        <!-- Search Results Rows (Carousels) -->
+        <section class="search-results-section">
+            <div class="container-wide" id="search-results-container">
+                <!-- JS will render 10 rows of carousels here -->
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer-section">
+        <!-- Same Footer as index -->
+        <div class="container-wide">
+            <div class="footer-columns">
+                <div class="footer-col">
+                    <h5 class="footer-title">Support</h5>
+                    <ul class="footer-links">
+                        <li><a href="#">Help Center</a></li>
+                        <li><a href="#">Anti-discrimination</a></li>
+                        <li><a href="#">Disability support</a></li>
+                        <li><a href="#">Cancellation options</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h5 class="footer-title">Hosting</h5>
+                    <ul class="footer-links">
+                        <li><a href="#">List your home</a></li>
+                        <li><a href="#">AirCover for Hosts</a></li>
+                        <li><a href="#">Hosting resources</a></li>
+                        <li><a href="#">Community forum</a></li>
+                        <li><a href="#">Hosting responsibly</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h5 class="footer-title">Accommodation</h5>
+                    <ul class="footer-links">
+                        <li><a href="#">Apartments & Lofts</a></li>
+                        <li><a href="#">Villas & Mansions</a></li>
+                        <li><a href="#">Countryside homes</a></li>
+                        <li><a href="#">Unique stays</a></li>
+                        <li><a href="#">Pet-friendly stays</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h5 class="footer-title">Company</h5>
+                    <ul class="footer-links">
+                        <li><a href="#">About Us</a></li>
+                        <li><a href="#">Newsroom</a></li>
+                        <li><a href="#">Careers</a></li>
+                        <li><a href="#">Investors</a></li>
+                        <li><a href="#">Gift cards</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <div class="footer-bottom-left">
+                    <span class="copyright">© 2026 Rently Inc.</span>
+                    <span class="footer-dot">·</span>
+                    <a href="#" class="legal-link">Privacy</a>
+                    <span class="footer-dot">·</span>
+                    <a href="#" class="legal-link">Terms</a>
+                    <span class="footer-dot">·</span>
+                    <a href="#" class="legal-link">Sitemap</a>
+                    <span class="footer-dot">·</span>
+                    <a href="#" class="legal-link">Company details</a>
+                </div>
+                <div class="footer-bottom-right">
+                    <span class="follow-text">Follow us:</span>
+                    <div class="social-icons">
+                        <a href="#"><img src="../icons/LinkedIn.svg" alt="LinkedIn"></a>
+                        <a href="#"><img src="../icons/YouTube.svg" alt="YouTube"></a>
+                        <a href="#"><img src="../icons/Twitter.svg" alt="Twitter"></a>
+                        <a href="#"><img src="../icons/Facebook.svg" alt="Facebook"></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="../js/renderers.js?v=20260511_1"></script>
+    <script src="../js/ui-utils.js?v=20260509_2"></script>
+    <script src="../js/auth.js?v=20260513_avatar_cache"></script>
+    <script src="../js/search-logic.js?v=20260511_1"></script>
+    <script src="../js/main.js?v=20260511_1"></script>
+    <script src="../js/inspiration-mode.js?v=20260511_1"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", async () => {
+            const token = localStorage.getItem("auth_token") || "";
+            const isLoggedIn =
+                localStorage.getItem("isLoggedIn") === "true" || !!token;
+            if (!isLoggedIn) {
+                // Immediately redirect unauthenticated visitors to login
+                window.location.href = "../login.html";
+                return;
+            }
+            if (typeof initInspirationMode === "function") {
+                initInspirationMode();
+            }
+        });
+    </script>
+</body>
+
+</html>
