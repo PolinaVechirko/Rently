@@ -6,6 +6,41 @@ function isDefaultAvatarUrl(url) {
   return !url || /user\.svg(?:[?#]|$)/i.test(String(url));
 }
 
+function resolveAvatarUrl(url, assetBase = "./") {
+  const raw = String(url || "").trim();
+  const fallback = `${assetBase}icons/user.svg`;
+
+  if (!raw || isDefaultAvatarUrl(raw)) {
+    return { src: fallback, isFallback: true };
+  }
+
+  if (/^(data:|https?:\/\/|\/)/i.test(raw)) {
+    return { src: raw, isFallback: false };
+  }
+
+  if (raw.startsWith("./")) {
+    return {
+      src: assetBase === "../" ? `../${raw.slice(2)}` : raw,
+      isFallback: false,
+    };
+  }
+
+  if (raw.startsWith("../")) {
+    return { src: raw, isFallback: false };
+  }
+
+  return {
+    src: `${assetBase}${raw.replace(/^\/+/, "")}`,
+    isFallback: false,
+  };
+}
+
+function applyAvatarFallback(img, assetBase = "./") {
+  if (!img) return;
+  img.src = `${assetBase}icons/user.svg`;
+  img.classList.add("avatar-fallback");
+}
+
 function initScrollSnapping(container, trackSelector) {
   let isScrolling;
   let startScrollLeft = container.scrollLeft;
@@ -265,27 +300,31 @@ async function initPropertyPage() {
     if (favBtn) {
       favBtn.setAttribute("data-id", propertyId);
 
-      // Check if property is favorited
-      const token = localStorage.getItem("auth_token") || "";
-      if (token) {
-        try {
-          const favResp = await fetch(`/api/Favorites/${propertyId}`, {
-            headers: { Authorization: "Bearer " + token },
-          });
-          if (favResp.ok) {
-            const favData = await favResp.json();
-            const inHostMode = isInHostMode();
-            const isFavorited = inHostMode
-              ? favData.hostFavorited
-              : favData.guestFavorited;
-            if (isFavorited) {
-              favBtn.classList.add("active");
-              const img = favBtn.querySelector("img");
-              if (img) img.src = `${assetBase}icons/favorite-filled.svg`;
+      const isHostPropertyView =
+        window.location.pathname.includes("/host-mode/property-view.html");
+      if (!isHostPropertyView) {
+        // Check if property is favorited
+        const token = localStorage.getItem("auth_token") || "";
+        if (token) {
+          try {
+            const favResp = await fetch(`/api/Favorites/${propertyId}`, {
+              headers: { Authorization: "Bearer " + token },
+            });
+            if (favResp.ok) {
+              const favData = await favResp.json();
+              const inHostMode = isInHostMode();
+              const isFavorited = inHostMode
+                ? favData.hostFavorited
+                : favData.guestFavorited;
+              if (isFavorited) {
+                favBtn.classList.add("active");
+                const img = favBtn.querySelector("img");
+                if (img) img.src = `${assetBase}icons/favorite-filled.svg`;
+              }
             }
+          } catch (favErr) {
+            console.debug("Could not check favorite status:", favErr);
           }
-        } catch (favErr) {
-          console.debug("Could not check favorite status:", favErr);
         }
       }
     }
@@ -388,25 +427,19 @@ async function initPropertyPage() {
         hostInfoWrapper.prepend(img);
       }
             
-      const avatarSrc = property.hostAvatarUrl || property.hostPhoto || property.profilePhotoUrl || property.ProfilePhotoUrl;
-      
-      // Always use fallback for known problematic paths
-      if (!avatarSrc || avatarSrc.includes('/host-mode/images/') || avatarSrc.includes('./images/') || avatarSrc.includes('avatar') || avatarSrc.includes('portret')) {
-        console.log("Using fallback for missing avatar path:", avatarSrc);
-        img.src = "../icons/user.svg";
-        img.classList.add("avatar-fallback");
-      } else {
-        img.src = avatarSrc;
-        img.classList.toggle("avatar-fallback", isDefaultAvatarUrl(avatarSrc));
-        
-        // Handle 404 errors for missing avatar files
-        img.onerror = function() {
-          console.log("Avatar load failed, using fallback for:", this.src);
-          this.src = "../icons/user.svg";
-          this.classList.add("avatar-fallback");
-          this.onerror = null; // Prevent infinite loop
-        };
-      }
+      const avatar = resolveAvatarUrl(
+        property.hostAvatarUrl ||
+          property.hostPhoto ||
+          property.profilePhotoUrl ||
+          property.ProfilePhotoUrl,
+        assetBase,
+      );
+      img.src = avatar.src;
+      img.classList.toggle("avatar-fallback", avatar.isFallback);
+      img.onerror = function() {
+        this.onerror = null;
+        applyAvatarFallback(this, assetBase);
+      };
     }
     if (hostLabelEl && property.hostCreatedAt) {
       hostLabelEl.classList.remove("skeleton", "skeleton-text");
@@ -435,21 +468,20 @@ async function initPropertyPage() {
       reviewsGrid.innerHTML = property.reviews
         .map(
           (r, i) => {
-            let avatarSrc = r.reviewerAvatarUrl || r.profilePhotoUrl || r.ProfilePhotoUrl;
-            let isFallback = false;
-            
-            // Always use fallback for known problematic paths
-            if (!avatarSrc || avatarSrc.includes('/host-mode/images/') || avatarSrc.includes('./images/') || avatarSrc.includes('avatar') || avatarSrc.includes('portret')) {
-              console.log("Using fallback for review avatar path:", avatarSrc);
-              avatarSrc = "../icons/user.svg";
-              isFallback = true;
-            }
+            const avatar = resolveAvatarUrl(
+              r.reviewerAvatarUrl ||
+                r.profilePhotoUrl ||
+                r.ProfilePhotoUrl ||
+                r.reviewerPhotoUrl ||
+                r.userAvatarUrl,
+              assetBase,
+            );
             
             const reviewId = `review-avatar-${i}`;
             return `
                 <div class="review-item ${i >= 4 ? "extra-review" : ""}">
                     <div class="review-header">
-                        <img id="${reviewId}" src="${avatarSrc}" alt="User" class="${isDefaultAvatarUrl(avatarSrc) || isFallback ? "avatar-fallback" : ""}">
+                        <img id="${reviewId}" src="${avatar.src}" alt="User" class="${avatar.isFallback ? "avatar-fallback" : ""}">
                         <div>
                             <div class="reviewer-name">${r.reviewerName || "Anonymous"}</div>
                             <div class="review-date">${new Date(r.createdAt).toLocaleDateString("en-US", { month: "long", year: "numeric" })}</div>
@@ -474,8 +506,8 @@ async function initPropertyPage() {
         const reviewAvatar = document.getElementById(`review-avatar-${i}`);
         if (reviewAvatar) {
           reviewAvatar.onerror = function() {
-            this.src = `${assetBase}icons/user.svg`;
-            this.classList.add("avatar-fallback");
+            this.onerror = null;
+            applyAvatarFallback(this, assetBase);
           };
         }
       });

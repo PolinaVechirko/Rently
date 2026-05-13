@@ -142,6 +142,23 @@ function isInHostMode() {
   );
 }
 
+function isInHostModeFolder() {
+  return window.location.pathname.includes("/host-mode/");
+}
+
+function getHostModeHref(path, query = "") {
+  const cleanPath = String(path || "").replace(/^\/+/, "");
+  const base = isInHostModeFolder()
+    ? `./${cleanPath}`
+    : `./host-mode/${cleanPath}`;
+  return query ? `${base}${query}` : base;
+}
+
+function getHostPropertyViewHref(id) {
+  const query = id ? `?id=${encodeURIComponent(id)}` : "";
+  return getHostModeHref("property-view.html", query);
+}
+
 async function getFavoriteIds() {
   try {
     const token = localStorage.getItem("auth_token") || "";
@@ -484,35 +501,56 @@ async function renderAccommodations(
           console.log("Direct favorite toggle:", { id, isActive, favoriteType, pathname: window.location.pathname });
           
           if (isActive) {
-            const resp = await fetch(`/api/Favorites/${id}`, {
+            const resp = await fetch(`/api/Favorites/${id}?type=${favoriteType}`, {
               method: "DELETE",
               headers: { 
-                "Authorization": "Bearer " + token,
-                "Content-Type": "application/json"
-              },
-              body: JSON.stringify({ type: favoriteType })
+                "Authorization": "Bearer " + token
+              }
             });
             console.log("Direct remove response:", resp.status);
             if (!resp.ok && resp.status !== 204 && resp.status !== 404) throw new Error("Failed to remove favorite");
             btn.classList.remove("active");
             const img = btn.querySelector("img");
-            if (img) img.src = isHostMode ? 
-              "./icons/favorite.svg" : "./icons/favorite.svg";
+            if (img) img.src = getFavoriteIconSrc(false);
+            if (typeof window.rememberFavoriteChange === "function") {
+              window.rememberFavoriteChange(id, favoriteType, false);
+            }
           } else {
-            const resp = await fetch(`/api/Favorites/${id}`, {
+            const stateResp = await fetch(`/api/Favorites/${id}`, {
+              headers: {
+                "Authorization": "Bearer " + token
+              }
+            });
+            if (stateResp.ok) {
+              const stateData = await stateResp.json();
+              const alreadyActive = favoriteType === "Host"
+                ? stateData?.hostFavorited === true
+                : stateData?.guestFavorited === true;
+              if (alreadyActive) {
+                btn.classList.add("active");
+                const img = btn.querySelector("img");
+                if (img) img.src = getFavoriteIconSrc(true);
+                if (typeof window.rememberFavoriteChange === "function") {
+                  window.rememberFavoriteChange(id, favoriteType, true);
+                }
+                return;
+              }
+            }
+
+            const resp = await fetch(`/api/Favorites/${id}?type=${favoriteType}`, {
               method: "POST",
               headers: { 
-                "Authorization": "Bearer " + token,
-                "Content-Type": "application/json"
-              },
-              body: JSON.stringify({ type: favoriteType })
+                "Authorization": "Bearer " + token
+              }
             });
             console.log("Direct add response:", resp.status);
             if (!resp.ok && resp.status !== 409) throw new Error("Failed to add favorite");
             btn.classList.add("active");
             const img = btn.querySelector("img");
-            if (img) img.src = isHostMode ? 
-              "./icons/favorite-filled.svg" : "./icons/favorite-filled.svg";
+            if (img) img.src = getFavoriteIconSrc(true);
+            if (typeof window.rememberFavoriteChange === "function") {
+              window.rememberFavoriteChange(id, favoriteType, true);
+            }
           }
         } catch (err) {
           console.error("Direct favorite error:", err);
@@ -696,9 +734,24 @@ async function renderFavorites(containerId) {
       `;
       return;
     }
-    const data = await resp.json();
-    if (!data || data.length === 0) {
-      container.innerHTML = `
+    const rawData = await resp.json();
+    const data = Array.isArray(rawData)
+      ? rawData.filter((item) =>
+          isInHostMode()
+            ? item.isHostFavorite === true
+            : item.isGuestFavorite === true,
+        )
+      : [];
+    if (data.length === 0) {
+      container.innerHTML = isInHostMode()
+        ? `
+        <div class="host-empty-card">
+            <div class="host-empty-card-content">
+                <span class="host-empty-card-title">No favorites yet.</span>
+            </div>
+        </div>
+      `
+        : `
         <div class="empty-state-card">
             <div class="empty-state-content">
                 <span class="empty-state-title">You have no favorites yet.</span>
@@ -745,15 +798,6 @@ async function renderFavorites(containerId) {
     });
     container.innerHTML = html;
     
-    // Add click event listeners to favorite buttons
-    container.querySelectorAll(".favorite-btn").forEach(btn => {
-      btn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        e.preventDefault();
-        // The main.js favorite handler will take care of the API calls
-      });
-    });
-    
     // Add click handlers for cards (but not for favorite buttons)
     container.querySelectorAll(".inspiration-clickable-card").forEach(card => {
       card.addEventListener("click", (e) => {
@@ -763,7 +807,9 @@ async function renderFavorites(containerId) {
         const id = card.getAttribute("data-id");
         if (id) {
           // Open in property-view (host mode view)
-          window.location.href = `./host-mode/property-view.html?id=${id}`;
+          window.location.href = isInHostMode()
+            ? getHostPropertyViewHref(id)
+            : `./property.html?id=${encodeURIComponent(id)}`;
         }
       });
     });
@@ -1317,11 +1363,8 @@ document.addEventListener("click", function (e) {
     const isHostContext =
       window.location.pathname.includes("host-mode.html") ||
       window.location.pathname.includes("/host-mode/");
-    const inHostModeFolder = window.location.pathname.includes("/host-mode/");
     if (isHostContext) {
-      window.location.href = inHostModeFolder
-        ? `./host-mode/property-view.html${id ? "?id=" + id : ""}`
-        : `./property-view.html${id ? "?id=" + id : ""}`;
+      window.location.href = getHostPropertyViewHref(id);
     } else {
       window.location.href = `./property.html${id ? "?id=" + id : ""}`;
     }

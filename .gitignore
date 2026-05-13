@@ -27,5 +27,7 @@ yarn-error.log*
 !*.env.example
 appsettings.Development.json
 *.db
+*.db-shm
+*.db-wal
 *.sqlite
 *.sqlite3

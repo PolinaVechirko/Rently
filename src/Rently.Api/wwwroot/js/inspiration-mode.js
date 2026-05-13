@@ -274,6 +274,13 @@ function initInspirationMode() {
   }
 }
 
+function getHostInspirationPropertyHref(id) {
+  const base = window.location.pathname.includes("/host-mode/")
+    ? "./property-view.html"
+    : "./host-mode/property-view.html";
+  return id ? `${base}?id=${encodeURIComponent(id)}` : base;
+}
+
 async function renderInspirationResultsRows(
   containerId,
   rowsCount = 8,
@@ -506,13 +513,11 @@ async function renderInspirationResultsRows(
           console.log("Inspiration favorite toggle:", { id, isActive, favoriteType });
           
           if (isActive) {
-            const resp = await fetch(`/api/Favorites/${id}`, {
+            const resp = await fetch(`/api/Favorites/${id}?type=${favoriteType}`, {
               method: "DELETE",
               headers: { 
-                "Authorization": "Bearer " + token,
-                "Content-Type": "application/json"
-              },
-              body: JSON.stringify({ type: favoriteType })
+                "Authorization": "Bearer " + token
+              }
             });
             console.log("Inspiration remove response:", resp.status);
             if (!resp.ok && resp.status !== 204 && resp.status !== 404) throw new Error("Failed to remove favorite");
@@ -520,13 +525,11 @@ async function renderInspirationResultsRows(
             const img = btn.querySelector("img");
             if (img) img.src = "../icons/favorite.svg";
           } else {
-            const resp = await fetch(`/api/Favorites/${id}`, {
+            const resp = await fetch(`/api/Favorites/${id}?type=${favoriteType}`, {
               method: "POST",
               headers: { 
-                "Authorization": "Bearer " + token,
-                "Content-Type": "application/json"
-              },
-              body: JSON.stringify({ type: favoriteType })
+                "Authorization": "Bearer " + token
+              }
             });
             console.log("Inspiration add response:", resp.status);
             if (!resp.ok && resp.status !== 409) throw new Error("Failed to add favorite");
@@ -550,7 +553,7 @@ async function renderInspirationResultsRows(
         const id = card.getAttribute("data-id");
         if (id) {
           // Open in property-view (host mode view)
-          window.location.href = `./host-mode/property-view.html?id=${id}`;
+          window.location.href = getHostInspirationPropertyHref(id);
         }
       });
     });

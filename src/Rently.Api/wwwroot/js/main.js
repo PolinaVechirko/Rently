@@ -12,6 +12,58 @@ function isInHostMode() {
   );
 }
 
+function isInHostModeFolder() {
+  return window.location.pathname.includes("/host-mode/");
+}
+
+function getHostPropertyViewHref(id) {
+  const base = isInHostModeFolder()
+    ? "./property-view.html"
+    : "./host-mode/property-view.html";
+  return id ? `${base}?id=${encodeURIComponent(id)}` : base;
+}
+
+function getHostModeHref(path, query = "") {
+  const cleanPath = String(path || "").replace(/^\/+/, "");
+  const base = isInHostModeFolder()
+    ? `./${cleanPath}`
+    : `./host-mode/${cleanPath}`;
+  return query ? `${base}${query}` : base;
+}
+
+function rememberFavoriteChange(id, type, isActive) {
+  if (!id || !type) return;
+  try {
+    localStorage.setItem(
+      "rently_favorites_changed",
+      JSON.stringify({
+        id: String(id),
+        type: String(type),
+        isActive: !!isActive,
+        changedAt: Date.now(),
+      }),
+    );
+  } catch {}
+}
+
+function getRememberedFavoriteState(id, type) {
+  if (!id || !type) return null;
+  try {
+    const raw = localStorage.getItem("rently_favorites_changed");
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (!data || String(data.id) !== String(id) || String(data.type) !== String(type)) {
+      return null;
+    }
+    return !!data.isActive;
+  } catch {
+    return null;
+  }
+}
+
+window.rememberFavoriteChange = rememberFavoriteChange;
+window.getRememberedFavoriteState = getRememberedFavoriteState;
+
 /**
  * Helper function to get favorite type based on current mode
  */
@@ -37,6 +89,53 @@ function getFavoriteIconSrc(isActive) {
   }
 }
 
+function scrollToHashTarget(hash = window.location.hash, options = {}) {
+  const rawHash = String(hash || "").trim();
+  if (!rawHash || rawHash === "#") return;
+
+  const id = decodeURIComponent(rawHash.slice(1));
+  const target = document.getElementById(id);
+  if (!target) return;
+
+  const header = document.querySelector(".header");
+  const headerHeight = header ? header.getBoundingClientRect().height : 0;
+  const extraOffset = id === "about-us" ? 24 : 100;
+  const targetTop =
+    target.getBoundingClientRect().top +
+    window.pageYOffset -
+    headerHeight -
+    extraOffset;
+
+  window.scrollTo({
+    top: Math.max(0, targetTop),
+    behavior: options.behavior || "auto",
+  });
+}
+
+function stabilizeHashScroll() {
+  if (!window.location.hash) return;
+
+  const delays = [0, 80, 250, 600, 1000];
+  delays.forEach((delay) => {
+    window.setTimeout(() => scrollToHashTarget(), delay);
+  });
+}
+
+function navigateToHashUrl(href) {
+  const url = new URL(href, window.location.href);
+  const currentPath = window.location.pathname.replace(/\/$/, "");
+  const targetPath = url.pathname.replace(/\/$/, "");
+
+  if (currentPath === targetPath && url.hash) {
+    window.history.pushState(null, "", url.pathname + url.search + url.hash);
+    scrollToHashTarget(url.hash, { behavior: "smooth" });
+    window.setTimeout(() => scrollToHashTarget(url.hash), 350);
+    return;
+  }
+
+  window.location.href = url.href;
+}
+
 // Function to update all favorite icons with correct paths
 function updateAllFavoriteIcons() {
   document.querySelectorAll(".favorite-btn").forEach(btn => {
@@ -48,7 +147,78 @@ function updateAllFavoriteIcons() {
   });
 }
 
+function setFavoriteButtonState(btn, isActive) {
+  if (!btn) return;
+  btn.classList.toggle("active", isActive);
+  btn.setAttribute(
+    "aria-label",
+    isActive ? "Remove from favorites" : "Add to favorites",
+  );
+  const img = btn.querySelector("img");
+  if (img) img.src = getFavoriteIconSrc(isActive);
+}
+
+async function syncFavoriteButtons() {
+  const buttons = Array.from(document.querySelectorAll(".favorite-btn[data-id]"));
+  if (buttons.length === 0) return;
+
+  const favoriteType = getFavoriteType();
+  buttons.forEach((btn) => {
+    const rememberedState = getRememberedFavoriteState(btn.dataset.id, favoriteType);
+    if (rememberedState !== null) {
+      setFavoriteButtonState(btn, rememberedState);
+    }
+  });
+
+  const token = localStorage.getItem("auth_token") || "";
+  if (!token) return;
+
+  try {
+    const resp = await fetch(`/api/Favorites?_=${Date.now()}`, {
+      headers: {
+        Authorization: "Bearer " + token,
+        "Cache-Control": "no-cache",
+      },
+    });
+    if (!resp.ok) return;
+
+    const data = await resp.json();
+    if (!Array.isArray(data)) return;
+
+    const favoriteIds = new Set(
+      data
+        .filter((fav) =>
+          isInHostMode() ? fav.isHostFavorite === true : fav.isGuestFavorite === true,
+        )
+        .map((fav) => fav.accommodation?.id ?? fav.accommodation?.Id ?? fav.id ?? fav.Id)
+        .filter((id) => id !== null && id !== undefined)
+        .map(String),
+    );
+
+    buttons.forEach((btn) => {
+      setFavoriteButtonState(btn, favoriteIds.has(String(btn.dataset.id)));
+    });
+  } catch (error) {
+    console.debug("Could not sync favorite buttons:", error);
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
+  stabilizeHashScroll();
+
+  window.addEventListener("load", stabilizeHashScroll);
+  window.addEventListener("hashchange", stabilizeHashScroll);
+
+  document.addEventListener("click", (e) => {
+    const hashLink = e.target.closest(
+      'a[href$="#about-us"], a[href$="#your-apartments-title"], a[href$="#inspiration-title"]',
+    );
+    if (!hashLink) return;
+
+    e.preventDefault();
+    navigateToHashUrl(hashLink.getAttribute("href"));
+  });
+
   // --- HERO IMAGE LOGIC ---
   const images = [
     'url("./images/hero1.png")',
@@ -81,6 +251,9 @@ document.addEventListener("DOMContentLoaded", () => {
   
   // Update all favorite icons to ensure correct paths
   setTimeout(updateAllFavoriteIcons, 100);
+  setTimeout(syncFavoriteButtons, 200);
+  window.addEventListener("pageshow", syncFavoriteButtons);
+  window.addEventListener("focus", syncFavoriteButtons);
   if (typeof initAboutSlider === "function") initAboutSlider();
   if (typeof initPropertyPage === "function") initPropertyPage();
   if (typeof initHistoryPage === "function") initHistoryPage();
@@ -103,7 +276,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (inspirationTitle) {
     inspirationTitle.addEventListener("click", () => {
       if (isInHostMode()) {
-        window.location.href = "./host-mode/inspiration.html";
+        window.location.href = getHostModeHref("inspiration.html");
       } else {
         window.location.href = "./search.html?page=1";
       }
@@ -134,7 +307,7 @@ document.addEventListener("DOMContentLoaded", () => {
       window.location.href = "./search.html?sort=most_visited&page=1";
     } else if (trackId === "inspiration-track") {
       const inspirationPath = isInHostMode()
-        ? "./host-mode/inspiration.html"
+        ? getHostModeHref("inspiration.html")
         : "./search.html?page=1";
       window.location.href = inspirationPath;
     } else {
@@ -178,11 +351,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const token = localStorage.getItem("auth_token") || "";
       const favoriteType = getFavoriteType();
+      const onHostFavoritesPage =
+        window.location.pathname.includes("/host-mode/favorites.html");
 
       (async () => {
         try {
           const isActive = favBtn.classList.contains("active");
           if (isActive) {
+            if (onHostFavoritesPage) {
+              rememberFavoriteChange(id, favoriteType, false);
+            }
             // currently active -> remove favorite
             const resp = await fetch(
               `/api/Favorites/${id}?type=${favoriteType}`,
@@ -199,6 +377,11 @@ document.addEventListener("DOMContentLoaded", () => {
               const img = favBtn.querySelector("img");
               if (img) img.src = getFavoriteIconSrc(false);
             } catch {}
+            rememberFavoriteChange(id, favoriteType, false);
+            const onFavoritesPage = /\/favorites\.html$/i.test(window.location.pathname);
+            if (onFavoritesPage && !onHostFavoritesPage) {
+              card?.remove();
+            }
           } else {
             const resp = await fetch(
               `/api/Favorites/${id}?type=${favoriteType}`,
@@ -214,8 +397,12 @@ document.addEventListener("DOMContentLoaded", () => {
               const img = favBtn.querySelector("img");
               if (img) img.src = getFavoriteIconSrc(true);
             } catch {}
+            rememberFavoriteChange(id, favoriteType, true);
           }
         } catch (err) {
+          if (isInHostMode() && onHostFavoritesPage) {
+            rememberFavoriteChange(id, favoriteType, true);
+          }
           // Fail silently in UI beyond console logging
           console.error("Favorites Error:", err);
         }
@@ -237,30 +424,19 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
 
     const id = card.getAttribute("data-id");
-    const inHostModeFolder = isInHostMode();
+    const inHostMode = isInHostMode();
     if (id) {
-      if (inHostModeFolder) {
-        window.location.href = `./host-mode/property-view.html?id=${id}`;
+      if (inHostMode) {
+        window.location.href = getHostPropertyViewHref(id);
       } else {
         window.location.href = `./property.html?id=${id}`;
       }
     } else {
-      window.location.href = inHostModeFolder
-        ? "./host-mode/property-view.html"
+      window.location.href = inHostMode
+        ? getHostPropertyViewHref()
         : "./property.html";
     }
   });
-
-  // About Us smooth scroll (manual to center)
-  const aboutLink = document.querySelector('a[href="#about-us"]');
-  if (aboutLink) {
-    aboutLink.addEventListener("click", (e) => {
-      e.preventDefault();
-      const target = document.getElementById("about-us");
-      if (target)
-        target.scrollIntoView({ behavior: "smooth", block: "center" });
-    });
-  }
 
   // Search button on home page
   const searchBtn = document.getElementById("search-main-btn");

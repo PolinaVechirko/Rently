@@ -282,10 +282,9 @@
   display: block;
 }
 
-/* SVG / default user icon: slightly inset so the circle does not clip the glyph */
 .host-avatar.avatar-fallback {
   object-fit: contain;
-  padding: 10px;
+  padding: 0;
   box-sizing: border-box;
   background-color: #f0f0f0;
 }
@@ -602,7 +601,7 @@
 
 .review-header>img:first-child.avatar-fallback {
   object-fit: contain;
-  padding: 8px;
+  padding: 0;
   box-sizing: border-box;
 }
 

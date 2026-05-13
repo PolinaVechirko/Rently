@@ -50,7 +50,7 @@
       crossorigin=""
     />
     <link rel="stylesheet" href="../css/global.css" />
-    <link rel="stylesheet" href="../css/property.css?v=1.2" />
+    <link rel="stylesheet" href="../css/property.css?v=20260513_avatar_fit" />
     <style>
       .reserve-btn:disabled,
       .calendar-trigger:disabled {
@@ -520,7 +520,7 @@
         </p>
         <button
           class="reserve-btn res-modal-btn"
-          onclick="window.location.href = './index.html'"
+          onclick="window.location.href = '../index.html'"
         >
           Switch to Guest Mode
         </button>
@@ -602,11 +602,11 @@
       integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
       crossorigin=""
     ></script>
-    <script src="../js/renderers.js?v=1.1"></script>
-    <script src="../js/ui-utils.js?v=1.2"></script>
-    <script src="../js/auth.js?v=20260513_avatar_cache"></script>
+    <script src="../js/renderers.js?v=20260513_host_favorite_paths"></script>
+    <script src="../js/ui-utils.js?v=20260513_avatar_fix"></script>
+    <script src="../js/auth.js?v=20260513_profile_return"></script>
     <script src="../js/search-logic.js"></script>
-    <script src="../js/main.js"></script>
+    <script src="../js/main.js?v=20260513_host_favorite_paths"></script>
     <script>
       // Host Mode: Handle reserve button and show alert modal
       document.addEventListener("DOMContentLoaded", () => {
@@ -635,10 +635,94 @@
           });
         }
 
-        // Handle favorite button
+        // Handle host favorites
         const favoriteBtn = document.querySelector(".favorite-btn");
         if (favoriteBtn) {
-          favoriteBtn.addEventListener("click", (e) => {
+          const propertyId = new URLSearchParams(window.location.search).get("id");
+          const token = localStorage.getItem("auth_token");
+          const heartIcon = favoriteBtn.querySelector("img");
+
+          const setFavoriteState = (isActive) => {
+            favoriteBtn.classList.toggle("active", isActive);
+            favoriteBtn.setAttribute(
+              "aria-label",
+              isActive ? "Remove from favorites" : "Add to favorites",
+            );
+            if (heartIcon) {
+              heartIcon.src = isActive
+                ? "../icons/favorite-filled.svg"
+                : "../icons/favorite.svg";
+            }
+          };
+
+          const rememberFavoriteChange = (isActive) => {
+            if (typeof window.rememberFavoriteChange === "function") {
+              window.rememberFavoriteChange(propertyId, "Host", isActive);
+              return;
+            }
+            try {
+              localStorage.setItem(
+                "rently_favorites_changed",
+                JSON.stringify({
+                  id: String(propertyId),
+                  type: "Host",
+                  isActive,
+                  changedAt: Date.now(),
+                }),
+              );
+            } catch {
+              /* localStorage can be unavailable in private contexts */
+            }
+          };
+
+          const requestFavorite = async (method) => {
+            const response = await fetch(
+              `/api/Favorites/${propertyId}?type=Host`,
+              {
+                method,
+                headers: { Authorization: "Bearer " + token },
+              },
+            );
+
+            if (response.status === 409 && method === "POST") return "already-active";
+            if (response.status === 404 && method === "DELETE") return "already-inactive";
+            if (!response.ok) {
+              throw new Error(`Favorites request failed: ${response.status}`);
+            }
+            return method === "POST" ? "active" : "inactive";
+          };
+
+          const loadFavoriteState = async () => {
+            if (!propertyId || !token) return null;
+
+            const response = await fetch(`/api/Favorites/${propertyId}`, {
+              headers: { Authorization: "Bearer " + token },
+            });
+            if (!response.ok) return null;
+
+            const data = await response.json();
+            const isActive = !!data?.hostFavorited;
+            setFavoriteState(isActive);
+            return isActive;
+          };
+
+          if (propertyId) {
+            const rememberedState =
+              typeof window.getRememberedFavoriteState === "function"
+                ? window.getRememberedFavoriteState(propertyId, "Host")
+                : null;
+            if (rememberedState !== null) {
+              setFavoriteState(rememberedState);
+            }
+          }
+
+          if (propertyId && token) {
+            loadFavoriteState().catch((error) => {
+              console.error("Failed to load host favorite state:", error);
+            });
+          }
+
+          favoriteBtn.addEventListener("click", async (e) => {
             e.preventDefault();
             e.stopPropagation();
             
@@ -649,34 +733,34 @@
               return;
             }
 
-            const propertyId = new URLSearchParams(window.location.search).get("id");
             if (!propertyId) return;
 
             const isActive = favoriteBtn.classList.contains("active");
-            const token = localStorage.getItem("auth_token");
-            
-            if (isActive) {
-              // Remove from favorites
-              fetch(`/api/Favorites/${propertyId}`, {
-                method: "DELETE",
-                headers: { Authorization: "Bearer " + token }
-              }).then(() => {
-                favoriteBtn.classList.remove("active");
-                favoriteBtn.querySelector("img").src = "../icons/favorite.svg";
-              });
-            } else {
-              // Add to favorites
-              fetch("/api/Favorites", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: "Bearer " + token
-                },
-                body: JSON.stringify({ accommodationId: parseInt(propertyId) })
-              }).then(() => {
-                favoriteBtn.classList.add("active");
-                favoriteBtn.querySelector("img").src = "../icons/favorite-filled.svg";
-              });
+            favoriteBtn.disabled = true;
+
+            try {
+              if (!isActive) {
+                const actualState = await loadFavoriteState();
+                if (actualState === true) {
+                  rememberFavoriteChange(true);
+                  return;
+                }
+              }
+
+              const result = await requestFavorite(isActive ? "DELETE" : "POST");
+              const nextState =
+                result === "active" || result === "already-active"
+                  ? true
+                  : result === "inactive" || result === "already-inactive"
+                    ? false
+                    : !isActive;
+
+              setFavoriteState(nextState);
+              rememberFavoriteChange(nextState);
+            } catch (error) {
+              console.error("Host favorite update failed:", error);
+            } finally {
+              favoriteBtn.disabled = false;
             }
           });
         }

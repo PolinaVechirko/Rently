@@ -105,6 +105,8 @@ using (var scope = app.Services.CreateScope())
     await db.Database.MigrateAsync();
     await EnsureAspNetUsersBioColumnAsync(db);
     await EnsureFavoritesTypeColumnAsync(db);
+    await EnsureFavoritesCompositeKeyAsync(db);
+    await EnsureLegacyHostFavoritesBackfilledAsync(db);
     await EnsureReviewReplyColumnsAsync(db);
     await EnsureAvailabilityBlocksTableAsync(db);
     await EnsureAccommodationTitleColumnAsync(db);
@@ -165,6 +167,95 @@ static async Task EnsureFavoritesTypeColumnAsync(ApplicationDbContext db)
     {
         await db.Database.ExecuteSqlRawAsync("ALTER TABLE \"Favorites\" ADD COLUMN \"Type\" INTEGER NOT NULL DEFAULT 0;");
     }
+}
+
+static async Task EnsureFavoritesCompositeKeyAsync(ApplicationDbContext db)
+{
+    await using var connection = new SqliteConnection(db.Database.GetConnectionString());
+    await connection.OpenAsync();
+
+    await using var command = connection.CreateCommand();
+    command.CommandText = "PRAGMA table_info('Favorites');";
+
+    var primaryKeyColumns = new List<(string Name, int Order)>();
+    await using (var reader = await command.ExecuteReaderAsync())
+    {
+        while (await reader.ReadAsync())
+        {
+            var columnName = reader.GetString(1);
+            var pkOrder = reader.GetInt32(5);
+            if (pkOrder > 0)
+            {
+                primaryKeyColumns.Add((columnName, pkOrder));
+            }
+        }
+    }
+
+    var keyColumns = primaryKeyColumns
+        .OrderBy(c => c.Order)
+        .Select(c => c.Name)
+        .ToArray();
+
+    if (keyColumns.SequenceEqual(new[] { "UserId", "AccommodationId", "Type" }))
+    {
+        return;
+    }
+
+    Log.Warning("DIAGNOSTIC: Favorites primary key is missing Type. Rebuilding Favorites table.");
+    await db.Database.ExecuteSqlRawAsync(@"
+PRAGMA foreign_keys=OFF;
+
+CREATE TABLE ""Favorites_new"" (
+    ""UserId"" TEXT NOT NULL,
+    ""AccommodationId"" INTEGER NOT NULL,
+    ""Type"" INTEGER NOT NULL DEFAULT 0,
+    ""CreatedAt"" TEXT NOT NULL,
+    CONSTRAINT ""PK_Favorites"" PRIMARY KEY (""UserId"", ""AccommodationId"", ""Type""),
+    CONSTRAINT ""FK_Favorites_Accommodations_AccommodationId"" FOREIGN KEY (""AccommodationId"") REFERENCES ""Accommodations"" (""Id"") ON DELETE CASCADE,
+    CONSTRAINT ""FK_Favorites_AspNetUsers_UserId"" FOREIGN KEY (""UserId"") REFERENCES ""AspNetUsers"" (""Id"") ON DELETE CASCADE
+);
+
+INSERT OR IGNORE INTO ""Favorites_new"" (""UserId"", ""AccommodationId"", ""Type"", ""CreatedAt"")
+SELECT ""UserId"", ""AccommodationId"", COALESCE(""Type"", 0), ""CreatedAt""
+FROM ""Favorites"";
+
+DROP TABLE ""Favorites"";
+ALTER TABLE ""Favorites_new"" RENAME TO ""Favorites"";
+CREATE INDEX IF NOT EXISTS ""IX_Favorites_AccommodationId"" ON ""Favorites"" (""AccommodationId"");
+
+PRAGMA foreign_keys=ON;
+");
+}
+
+static async Task EnsureLegacyHostFavoritesBackfilledAsync(ApplicationDbContext db)
+{
+    await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE IF NOT EXISTS ""__RentlySchemaFixes"" (
+    ""Id"" TEXT NOT NULL CONSTRAINT ""PK___RentlySchemaFixes"" PRIMARY KEY,
+    ""AppliedAt"" TEXT NOT NULL
+);
+");
+
+    await using var connection = new SqliteConnection(db.Database.GetConnectionString());
+    await connection.OpenAsync();
+
+    await using var command = connection.CreateCommand();
+    command.CommandText = "SELECT 1 FROM \"__RentlySchemaFixes\" WHERE \"Id\" = 'LegacyHostFavoritesBackfilled' LIMIT 1;";
+    var alreadyApplied = await command.ExecuteScalarAsync() != null;
+    if (alreadyApplied)
+    {
+        return;
+    }
+
+    await db.Database.ExecuteSqlRawAsync(@"
+INSERT OR IGNORE INTO ""Favorites"" (""UserId"", ""AccommodationId"", ""Type"", ""CreatedAt"")
+SELECT ""UserId"", ""AccommodationId"", 1, ""CreatedAt""
+FROM ""Favorites""
+WHERE ""Type"" = 0;
+
+INSERT INTO ""__RentlySchemaFixes"" (""Id"", ""AppliedAt"")
+VALUES ('LegacyHostFavoritesBackfilled', datetime('now'));
+");
 }
 
 static async Task EnsureReviewReplyColumnsAsync(ApplicationDbContext db)

@@ -337,7 +337,7 @@ namespace Rently.Persistence.Migrations
                     b.Property<int>("Type")
                         .HasColumnType("INTEGER");
 
-                    b.HasKey("UserId", "AccommodationId");
+                    b.HasKey("UserId", "AccommodationId", "Type");
 
                     b.HasIndex("AccommodationId");
 

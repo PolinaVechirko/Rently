@@ -87,6 +87,46 @@ function applyCachedHeaderAvatar() {
   setHeaderUserIconSource(icon, getCachedAvatarUrl() || defaultUserIconUrl());
 }
 
+function rememberProfileReturnUrl(profileHref) {
+  const href = String(profileHref || "");
+  if (!/profile\.html(?:[?#]|$)/i.test(href)) return;
+  if (/profile\.html(?:[?#]|$)/i.test(window.location.pathname)) return;
+
+  try {
+    sessionStorage.setItem("rently_profile_return_url", window.location.href);
+  } catch {
+    /* sessionStorage can be unavailable in private contexts */
+  }
+}
+
+function getProfileReturnUrl(fallbackPath) {
+  const fallback = new URL(fallbackPath, window.location.href).href;
+
+  const isUsableReturnUrl = (value) => {
+    if (!value) return false;
+    try {
+      const url = new URL(value, window.location.href);
+      if (url.origin !== window.location.origin) return false;
+      if (/profile\.html(?:[?#]|$)/i.test(url.pathname)) return false;
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  let stored = "";
+  try {
+    stored = sessionStorage.getItem("rently_profile_return_url") || "";
+    sessionStorage.removeItem("rently_profile_return_url");
+  } catch {
+    stored = "";
+  }
+
+  if (isUsableReturnUrl(stored)) return stored;
+  if (isUsableReturnUrl(document.referrer)) return document.referrer;
+  return fallback;
+}
+
 /** Before initAuth: if token exists, show user slot immediately (avoid SIGN IN flash) */
 function applyLoggedInHeaderShell() {
   const path = window.location.pathname || "";
@@ -643,6 +683,7 @@ function attachListeners() {
     // Also close dropdown when any link is clicked
     dropdown.querySelectorAll("a").forEach((link) => {
       link.addEventListener("click", () => {
+        rememberProfileReturnUrl(link.getAttribute("href"));
         dropdown.classList.remove("show");
       });
     });

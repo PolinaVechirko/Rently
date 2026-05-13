@@ -88,7 +88,7 @@ namespace Rently.Persistence
 
             builder.Entity<Favorite>(b =>
             {
-                b.HasKey(f => new { f.UserId, f.AccommodationId });
+                b.HasKey(f => new { f.UserId, f.AccommodationId, f.Type });
 
                 b.HasOne<ApplicationUser>()
                  .WithMany(u => u.Favorites)

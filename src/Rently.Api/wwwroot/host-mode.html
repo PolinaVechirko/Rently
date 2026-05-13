@@ -306,11 +306,11 @@
       </div>
     </footer>
 
-    <script src="./js/renderers.js?v=3"></script>
+    <script src="./js/renderers.js?v=20260513_host_favorite_paths"></script>
     <script src="./js/ui-utils.js"></script>
-    <script src="./js/auth.js?v=20260513_avatar_cache"></script>
+    <script src="./js/auth.js?v=20260513_profile_return"></script>
     <script src="./js/search-logic.js"></script>
-    <script src="./js/main.js"></script>
+    <script src="./js/main.js?v=20260513_host_favorite_paths"></script>
     <script>
       document.addEventListener("DOMContentLoaded", async () => {
         const token = localStorage.getItem("auth_token") || "";
@@ -452,6 +452,9 @@
         // 3. Execution
         await renderHostSections();
         await loadHostSummary();
+        if (typeof stabilizeHashScroll === "function") {
+          stabilizeHashScroll();
+        }
 
         // Avatar upload
         const avatarInput = document.getElementById("host-photo-input");
