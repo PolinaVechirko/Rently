@@ -65,9 +65,9 @@ namespace Rently.Api.Services
         public async Task<IEnumerable<BookingDto>> GetMyBookingsAsync(string guestId)
         {
             var bookings = await _context.Bookings
-                .Include(b => b.Accommodation)
+                .Include(b => b.Accommodation!)
                     .ThenInclude(a => a.Address)
-                .Include(b => b.Accommodation)
+                .Include(b => b.Accommodation!)
                     .ThenInclude(a => a.Photos)
                 .Where(b => b.GuestId == guestId)
                 .ToListAsync();
@@ -78,9 +78,9 @@ namespace Rently.Api.Services
         public async Task<IEnumerable<BookingDto>> GetHostBookingsAsync(string hostId, int? accommodationId = null)
         {
             var query = _context.Bookings
-                .Include(b => b.Accommodation)
+                .Include(b => b.Accommodation!)
                     .ThenInclude(a => a.Address)
-                .Include(b => b.Accommodation)
+                .Include(b => b.Accommodation!)
                     .ThenInclude(a => a.Photos)
                 .Where(b => b.Accommodation != null && b.Accommodation.HostId == hostId);
 
@@ -106,9 +106,9 @@ namespace Rently.Api.Services
         public async Task<BookingDto?> CancelPendingBookingAsync(string guestId, int bookingId)
         {
             var booking = await _context.Bookings
-                .Include(b => b.Accommodation)
+                .Include(b => b.Accommodation!)
                     .ThenInclude(a => a.Address)
-                .Include(b => b.Accommodation)
+                .Include(b => b.Accommodation!)
                     .ThenInclude(a => a.Photos)
                 .FirstOrDefaultAsync(b => b.Id == bookingId && b.GuestId == guestId);
 
@@ -127,9 +127,9 @@ namespace Rently.Api.Services
         public async Task<BookingDto?> ConfirmPendingBookingAsync(string hostId, int bookingId)
         {
             var booking = await _context.Bookings
-                .Include(b => b.Accommodation)
+                .Include(b => b.Accommodation!)
                     .ThenInclude(a => a.Address)
-                .Include(b => b.Accommodation)
+                .Include(b => b.Accommodation!)
                     .ThenInclude(a => a.Photos)
                 .FirstOrDefaultAsync(b =>
                     b.Id == bookingId &&
@@ -173,9 +173,9 @@ namespace Rently.Api.Services
         public async Task<BookingDto?> DeclinePendingBookingAsync(string hostId, int bookingId)
         {
             var booking = await _context.Bookings
-                .Include(b => b.Accommodation)
+                .Include(b => b.Accommodation!)
                     .ThenInclude(a => a.Address)
-                .Include(b => b.Accommodation)
+                .Include(b => b.Accommodation!)
                     .ThenInclude(a => a.Photos)
                 .FirstOrDefaultAsync(b =>
                     b.Id == bookingId &&

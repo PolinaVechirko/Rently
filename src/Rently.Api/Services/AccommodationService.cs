@@ -23,58 +23,48 @@ namespace Rently.Api.Services
             _cache = cache;
         }
 
-        public async Task<IEnumerable<AccommodationDto>> GetAllAccommodationsAsync(
-            string? sortBy = null, 
-            int limit = 100, 
-            int skip = 0,
-            string? location = null,
-            string? type = null,
-            decimal? minPrice = null,
-            decimal? maxPrice = null,
-            int? rooms = null,
-            int? beds = null,
-            int? amenityId = null,
-            DateTime? checkIn = null,
-            DateTime? checkOut = null)
+        public async Task<IEnumerable<AccommodationDto>> GetAllAccommodationsAsync(AccommodationListQueryDto queryDto)
         {
-            var query = _context.Accommodations
+            var filters = queryDto ?? new AccommodationListQueryDto();
+            var today = DateTime.UtcNow.Date;
+            var accommodationsQuery = _context.Accommodations
                 .Include(a => a.Address)
                 .Include(a => a.AccommodationAmenities!)
                     .ThenInclude(aa => aa.Amenity)
                 .Include(a => a.Photos)
                 .Include(a => a.Reviews)
                 .Include(a => a.Bookings)
-                .Where(a => a.IsActive) // Only active properties
+                .Where(IsVisibleOnDate(today))
                 .AsQueryable();
 
             // Filters
-            if (!string.IsNullOrEmpty(location))
+            if (!string.IsNullOrEmpty(filters.Location))
             {
-                var lowerLoc = location.ToLower();
-                query = query.Where(a => a.Address != null && (a.Address.City.ToLower().Contains(lowerLoc) || a.Address.Country.ToLower().Contains(lowerLoc)));
+                var lowerLoc = filters.Location.ToLower();
+                accommodationsQuery = accommodationsQuery.Where(a => a.Address != null && (a.Address.City.ToLower().Contains(lowerLoc) || a.Address.Country.ToLower().Contains(lowerLoc)));
             }
 
-            if (!string.IsNullOrEmpty(type) && Enum.TryParse<PropertyType>(type, true, out var pType))
+            if (!string.IsNullOrEmpty(filters.Type) && Enum.TryParse<PropertyType>(filters.Type, true, out var pType))
             {
-                query = query.Where(a => a.PropertyType == pType);
+                accommodationsQuery = accommodationsQuery.Where(a => a.PropertyType == pType);
             }
 
-            if (minPrice.HasValue) query = query.Where(a => a.PricePerNight >= minPrice.Value);
-            if (maxPrice.HasValue) query = query.Where(a => a.PricePerNight <= maxPrice.Value);
-            if (rooms.HasValue) query = query.Where(a => a.RoomsCount >= rooms.Value);
-            if (beds.HasValue) query = query.Where(a => a.BedsCount >= beds.Value);
+            if (filters.MinPrice.HasValue) accommodationsQuery = accommodationsQuery.Where(a => a.PricePerNight >= filters.MinPrice.Value);
+            if (filters.MaxPrice.HasValue) accommodationsQuery = accommodationsQuery.Where(a => a.PricePerNight <= filters.MaxPrice.Value);
+            if (filters.Rooms.HasValue) accommodationsQuery = accommodationsQuery.Where(a => a.RoomsCount >= filters.Rooms.Value);
+            if (filters.Beds.HasValue) accommodationsQuery = accommodationsQuery.Where(a => a.BedsCount >= filters.Beds.Value);
 
-            if (amenityId.HasValue)
+            if (filters.AmenityId.HasValue)
             {
-                query = query.Where(a => a.AccommodationAmenities!.Any(aa => aa.AmenityId == amenityId.Value));
+                accommodationsQuery = accommodationsQuery.Where(a => a.AccommodationAmenities!.Any(aa => aa.AmenityId == filters.AmenityId.Value));
             }
 
-            if (checkIn.HasValue && checkOut.HasValue)
+            if (filters.CheckIn.HasValue && filters.CheckOut.HasValue)
             {
-                var normalizedCheckIn = checkIn.Value.Date;
-                var normalizedCheckOut = checkOut.Value.Date;
+                var normalizedCheckIn = filters.CheckIn.Value.Date;
+                var normalizedCheckOut = filters.CheckOut.Value.Date;
 
-                query = query.Where(a =>
+                accommodationsQuery = accommodationsQuery.Where(a =>
                     !a.Bookings!.Any(b =>
                         b.Status != BookingStatus.Cancelled &&
                         b.CheckInDate < normalizedCheckOut &&
@@ -85,73 +75,62 @@ namespace Rently.Api.Services
                         normalizedCheckOut > block.StartDate));
             }
 
-            var accommodations = await query.ToListAsync();
+            var accommodations = await accommodationsQuery.ToListAsync();
 
             // Sorting
-            if (sortBy == "highest_rated")
+            if (filters.SortBy == "highest_rated")
             {
                 accommodations = accommodations.OrderByDescending(a => a.Reviews != null && a.Reviews.Any() ? a.Reviews.Average(r => r.Rating) : 0).ToList();
             }
-            else if (sortBy == "most_visited")
+            else if (filters.SortBy == "most_visited")
             {
                 accommodations = accommodations.OrderByDescending(a => a.Bookings?.Count ?? 0).ToList();
             }
-            else if (sortBy == "price_asc")
+            else if (filters.SortBy == "price_asc")
             {
                 accommodations = accommodations.OrderBy(a => a.PricePerNight).ToList();
             }
-            else if (sortBy == "price_desc")
+            else if (filters.SortBy == "price_desc")
             {
                 accommodations = accommodations.OrderByDescending(a => a.PricePerNight).ToList();
             }
 
-            return accommodations.Skip(skip).Take(limit).Select(a => MapToDto(a));
+            return accommodations.Skip(filters.Skip).Take(filters.Limit).Select(a => MapToDto(a));
         }
 
-        public async Task<PagedResultDto<AccommodationDto>> SearchAccommodationsAsync(
-            string? sortBy = null,
-            int limit = 48,
-            int skip = 0,
-            string? location = null,
-            string? typesCsv = null,
-            decimal? minPrice = null,
-            decimal? maxPrice = null,
-            int? rooms = null,
-            int? beds = null,
-            int? guests = null,
-            string? amenitiesCsv = null,
-            DateTime? checkIn = null,
-            DateTime? checkOut = null)
+        public async Task<PagedResultDto<AccommodationDto>> SearchAccommodationsAsync(AccommodationSearchQueryDto queryDto)
         {
-            limit = Math.Clamp(limit, 1, 200);
-            skip = Math.Max(0, skip);
+            var filters = queryDto ?? new AccommodationSearchQueryDto();
+            filters.Limit = Math.Clamp(filters.Limit, 1, 200);
+            filters.Skip = Math.Max(0, filters.Skip);
 
-            var effectiveCheckIn = checkIn?.Date;
-            var effectiveCheckOut = checkOut?.Date;
+            var effectiveCheckIn = filters.CheckIn?.Date;
+            var effectiveCheckOut = filters.CheckOut?.Date;
             if (!effectiveCheckIn.HasValue && !effectiveCheckOut.HasValue)
             {
                 effectiveCheckIn = DateTime.UtcNow.Date;
                 effectiveCheckOut = effectiveCheckIn.Value.AddDays(1);
             }
 
-            var query = _context.Accommodations
+            var today = DateTime.UtcNow.Date;
+            var accommodationsQuery = _context.Accommodations
                 .AsNoTracking()
-                .Where(a => a.IsActive)
+                .Where(IsVisibleOnDate(today))
                 .AsQueryable();
 
             // Location filter (city/country)
-            if (!string.IsNullOrWhiteSpace(location))
+            if (!string.IsNullOrWhiteSpace(filters.Location))
             {
-                var lowerLoc = location.Trim().ToLower();
-                query = query.Where(a => a.Address != null &&
+                var lowerLoc = filters.Location.Trim().ToLower();
+                accommodationsQuery = accommodationsQuery.Where(a => a.Address != null &&
                                          (a.Address.City.ToLower().Contains(lowerLoc) ||
                                           a.Address.Country.ToLower().Contains(lowerLoc)));
             }
 
             // Property types filter (CSV, matches enum names)
-            if (!string.IsNullOrWhiteSpace(typesCsv))
+            if (!string.IsNullOrWhiteSpace(filters.TypesCsv))
             {
-                var types = typesCsv
+                var types = filters.TypesCsv
                     .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                     .Select(t => Enum.TryParse<PropertyType>(t.Replace(" ", ""), true, out var parsed) ? (PropertyType?)parsed : null)
                     .Where(t => t.HasValue)
@@ -161,25 +140,25 @@ namespace Rently.Api.Services
 
                 if (types.Count > 0)
                 {
-                    query = query.Where(a => types.Contains(a.PropertyType));
+                    accommodationsQuery = accommodationsQuery.Where(a => types.Contains(a.PropertyType));
                 }
             }
 
-            if (minPrice.HasValue) query = query.Where(a => a.PricePerNight >= minPrice.Value);
-            if (maxPrice.HasValue) query = query.Where(a => a.PricePerNight <= maxPrice.Value);
-            if (rooms.HasValue) query = query.Where(a => a.RoomsCount >= rooms.Value);
-            if (beds.HasValue) query = query.Where(a => a.BedsCount >= beds.Value);
+            if (filters.MinPrice.HasValue) accommodationsQuery = accommodationsQuery.Where(a => a.PricePerNight >= filters.MinPrice.Value);
+            if (filters.MaxPrice.HasValue) accommodationsQuery = accommodationsQuery.Where(a => a.PricePerNight <= filters.MaxPrice.Value);
+            if (filters.Rooms.HasValue) accommodationsQuery = accommodationsQuery.Where(a => a.RoomsCount >= filters.Rooms.Value);
+            if (filters.Beds.HasValue) accommodationsQuery = accommodationsQuery.Where(a => a.BedsCount >= filters.Beds.Value);
 
             // Guests: we don't have explicit capacity field; approximate by beds >= guests
-            if (guests.HasValue && guests.Value > 0)
+            if (filters.Guests.HasValue && filters.Guests.Value > 0)
             {
-                query = query.Where(a => (a.BedsCount ?? 0) >= guests.Value);
+                accommodationsQuery = accommodationsQuery.Where(a => (a.BedsCount ?? 0) >= filters.Guests.Value);
             }
 
             // Amenities filter by names (any match)
-            if (!string.IsNullOrWhiteSpace(amenitiesCsv))
+            if (!string.IsNullOrWhiteSpace(filters.AmenitiesCsv))
             {
-                var amenityNames = amenitiesCsv
+                var amenityNames = filters.AmenitiesCsv
                     .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                     .Where(n => !string.IsNullOrWhiteSpace(n))
                     .Select(n => n.ToLower())
@@ -188,7 +167,7 @@ namespace Rently.Api.Services
 
                 if (amenityNames.Count > 0)
                 {
-                    query = query.Where(a => a.AccommodationAmenities != null &&
+                    accommodationsQuery = accommodationsQuery.Where(a => a.AccommodationAmenities != null &&
                                              a.AccommodationAmenities.Any(aa => aa.Amenity != null && amenityNames.Contains(aa.Amenity.Name.ToLower())));
                 }
             }
@@ -199,7 +178,7 @@ namespace Rently.Api.Services
                 var normalizedCheckIn = effectiveCheckIn.Value;
                 var normalizedCheckOut = effectiveCheckOut.Value;
 
-                query = query.Where(a =>
+                accommodationsQuery = accommodationsQuery.Where(a =>
                     (a.Bookings == null || !a.Bookings.Any(b =>
                         b.Status != BookingStatus.Cancelled &&
                         b.CheckInDate < normalizedCheckOut &&
@@ -210,12 +189,12 @@ namespace Rently.Api.Services
                         normalizedCheckOut > block.StartDate));
             }
 
-            var total = await query.CountAsync();
+            var total = await accommodationsQuery.CountAsync();
 
             try
             {
                 // Fetch filtered items with Includes (in-memory for robust sorting)
-                var allFilteredItems = await query
+                var allFilteredItems = await accommodationsQuery
                     .Include(a => a.Address)
                     .Include(a => a.Photos)
                     .Include(a => a.Reviews)
@@ -224,7 +203,7 @@ namespace Rently.Api.Services
                     .ToListAsync();
 
                 // Sort in-memory to avoid SQLite translation issues
-                IEnumerable<Accommodation> sortedItems = sortBy?.ToLower() switch
+                IEnumerable<Accommodation> sortedItems = filters.SortBy?.ToLower() switch
                 {
                     "highest_rated" or "top rated" => allFilteredItems
                         .OrderByDescending(a => a.Reviews != null && a.Reviews.Any()
@@ -239,16 +218,16 @@ namespace Rently.Api.Services
                 };
 
                 var items = sortedItems
-                    .Skip(skip)
-                    .Take(limit)
+                    .Skip(filters.Skip)
+                    .Take(filters.Limit)
                     .ToList();
 
                 return new PagedResultDto<AccommodationDto>
                 {
                     Items = items.Select(MapToListDto).ToList(),
                     Total = total,
-                    Limit = limit,
-                    Skip = skip
+                    Limit = filters.Limit,
+                    Skip = filters.Skip
                 };
             }
             catch (Exception ex)
@@ -273,10 +252,11 @@ namespace Rently.Api.Services
             var C = reviewsTotal == 0
                 ? 0.0
                 : await _context.Reviews.AsNoTracking().AverageAsync(r => (double)r.Rating);
+            var today = DateTime.UtcNow.Date;
 
             var rows = await _context.Accommodations
                 .AsNoTracking()
-                .Where(a => a.IsActive)
+                .Where(IsVisibleOnDate(today))
                 .Select(a => new
                 {
                     a.Id,
@@ -289,6 +269,7 @@ namespace Rently.Api.Services
                     a.Title,
                     a.CreatedAt,
                     a.IsActive,
+                    a.VisibleFrom,
                     Country = a.Address != null ? a.Address.Country : "",
                     City = a.Address != null ? a.Address.City : "",
                     Street = a.Address != null ? a.Address.Street : null,
@@ -319,14 +300,10 @@ namespace Rently.Api.Services
                 RoomsCount = x.RoomsCount,
                 BedsCount = x.BedsCount,
                 Description = x.Description,
-                Title = !string.IsNullOrWhiteSpace(x.Title) ? x.Title : 
-                        (!string.IsNullOrWhiteSpace(x.Description) ? 
-                            (x.Description.Split(new[] { '.', '!', '?' }, StringSplitOptions.RemoveEmptyEntries)[0].Trim().Length > 60 ? 
-                                x.Description.Split(new[] { '.', '!', '?' }, StringSplitOptions.RemoveEmptyEntries)[0].Trim().Substring(0, 57) + "..." : 
-                                x.Description.Split(new[] { '.', '!', '?' }, StringSplitOptions.RemoveEmptyEntries)[0].Trim()) : 
-                            "Property"),
+                Title = BuildAccommodationTitle(x.Title, x.Description, "Property"),
                 CreatedAt = x.CreatedAt,
                 IsActive = x.IsActive,
+                VisibleFrom = x.VisibleFrom,
                 AverageRating = x.AvgRating,
                 ReviewsCount = x.ReviewsCount,
                 Country = x.Country,
@@ -354,9 +331,10 @@ namespace Rently.Api.Services
             if (_cache.TryGetValue(cacheKey, out List<AccommodationDto>? cached) && cached != null)
                 return cached;
 
+            var today = DateTime.UtcNow.Date;
             var rows = await _context.Accommodations
                 .AsNoTracking()
-                .Where(a => a.IsActive)
+                .Where(IsVisibleOnDate(today))
                 .Select(a => new
                 {
                     a.Id,
@@ -369,6 +347,7 @@ namespace Rently.Api.Services
                     a.Title,
                     a.CreatedAt,
                     a.IsActive,
+                    a.VisibleFrom,
                     Country = a.Address != null ? a.Address.Country : "",
                     City = a.Address != null ? a.Address.City : "",
                     Street = a.Address != null ? a.Address.Street : null,
@@ -396,14 +375,10 @@ namespace Rently.Api.Services
                 RoomsCount = x.RoomsCount,
                 BedsCount = x.BedsCount,
                 Description = x.Description,
-                Title = !string.IsNullOrWhiteSpace(x.Title) ? x.Title : 
-                        (!string.IsNullOrWhiteSpace(x.Description) ? 
-                            (x.Description.Split(new[] { '.', '!', '?' }, StringSplitOptions.RemoveEmptyEntries)[0].Trim().Length > 60 ? 
-                                x.Description.Split(new[] { '.', '!', '?' }, StringSplitOptions.RemoveEmptyEntries)[0].Trim().Substring(0, 57) + "..." : 
-                                x.Description.Split(new[] { '.', '!', '?' }, StringSplitOptions.RemoveEmptyEntries)[0].Trim()) : 
-                            "Property"),
+                Title = BuildAccommodationTitle(x.Title, x.Description, "Property"),
                 CreatedAt = x.CreatedAt,
                 IsActive = x.IsActive,
+                VisibleFrom = x.VisibleFrom,
                 AverageRating = x.AvgRating,
                 ReviewsCount = x.ReviewsCount,
                 Country = x.Country,
@@ -463,8 +438,9 @@ namespace Rently.Api.Services
                 RoomsCount = dto.RoomsCount,
                 BedsCount = dto.BedsCount,
                 Description = dto.Description,
-                Title = !string.IsNullOrWhiteSpace(dto.Title) ? dto.Title : (dto.Description != null ? dto.Description.Split('.', '!', '?')[0].Trim() : "Property"),
-                IsActive = true,
+                Title = BuildAccommodationTitle(dto.Title, dto.Description, "Property"),
+                IsActive = dto.IsActive,
+                VisibleFrom = dto.VisibleFrom?.Date,
                 CreatedAt = DateTime.UtcNow,
                 Address = new Address
                 {
@@ -490,6 +466,7 @@ namespace Rently.Api.Services
 
             _context.Accommodations.Add(accommodation);
             await _context.SaveChangesAsync();
+            ClearHomepageCache();
 
             return await GetAccommodationByIdAsync(accommodation.Id) ?? MapToDto(accommodation, null, null);
         }
@@ -501,15 +478,18 @@ namespace Rently.Api.Services
 
             _context.Accommodations.Remove(accommodation);
             await _context.SaveChangesAsync();
+            ClearHomepageCache();
             return true;
         }
 
         public async Task<IEnumerable<string>> GetUniqueLocationsAsync()
         {
+            var today = DateTime.UtcNow.Date;
             return await _context.Accommodations
                 .Include(a => a.Address)
-                .Where(a => a.IsActive && a.Address != null)
-                .Select(a => $"{a.Address.City}, {a.Address.Country}")
+                .Where(a => a.Address != null)
+                .Where(IsVisibleOnDate(today))
+                .Select(a => $"{a.Address!.City}, {a.Address.Country}")
                 .Distinct()
                 .ToListAsync();
         }
@@ -556,13 +536,10 @@ namespace Rently.Api.Services
             // If somehow it ends up empty after assignment, provide a fallback
             if (string.IsNullOrWhiteSpace(accommodation.Title))
             {
-                accommodation.Title = !string.IsNullOrWhiteSpace(dto.Description) ? 
-                    (dto.Description.Split(new[] { '.', '!', '?' }, StringSplitOptions.RemoveEmptyEntries)[0].Trim().Length > 60 ? 
-                        dto.Description.Split(new[] { '.', '!', '?' }, StringSplitOptions.RemoveEmptyEntries)[0].Trim().Substring(0, 57) + "..." : 
-                        dto.Description.Split(new[] { '.', '!', '?' }, StringSplitOptions.RemoveEmptyEntries)[0].Trim()) : 
-                    "Beautiful Property";
+                accommodation.Title = BuildAccommodationTitle(null, dto.Description, "Beautiful Property");
             }
             accommodation.IsActive = dto.IsActive;
+            accommodation.VisibleFrom = dto.VisibleFrom?.Date;
 
             if (accommodation.Address != null)
             {
@@ -595,9 +572,7 @@ namespace Rently.Api.Services
 
             await _context.SaveChangesAsync();
 
-            // Invalidate cache
-            _cache.Remove($"homepage:highest-rated:v2:16");
-            _cache.Remove($"homepage:most-visited:v2:16:0");
+            ClearHomepageCache();
 
             return await GetAccommodationByIdAsync(id);
         }
@@ -677,14 +652,10 @@ namespace Rently.Api.Services
                 RoomsCount = entity.RoomsCount,
                 BedsCount = entity.BedsCount,
                 Description = entity.Description,
-                Title = !string.IsNullOrWhiteSpace(entity.Title) ? entity.Title : 
-                        (!string.IsNullOrWhiteSpace(entity.Description) ? 
-                            (entity.Description.Split(new[] { '.', '!', '?' }, StringSplitOptions.RemoveEmptyEntries)[0].Trim().Length > 60 ? 
-                                entity.Description.Split(new[] { '.', '!', '?' }, StringSplitOptions.RemoveEmptyEntries)[0].Trim().Substring(0, 57) + "..." : 
-                                entity.Description.Split(new[] { '.', '!', '?' }, StringSplitOptions.RemoveEmptyEntries)[0].Trim()) : 
-                            entity.PropertyType.ToString()),
+                Title = BuildAccommodationTitle(entity.Title, entity.Description, entity.PropertyType.ToString()),
                 CreatedAt = entity.CreatedAt,
                 IsActive = entity.IsActive,
+                VisibleFrom = entity.VisibleFrom?.Date,
                 AverageRating = (entity.Reviews != null && entity.Reviews.Any()) ? entity.Reviews.Average(r => r.Rating) : 0,
                 ReviewsCount = entity.Reviews?.Count ?? 0,
                 FavoritesCount = entity.FavoritedBy?.Count ?? 0,
@@ -721,14 +692,10 @@ namespace Rently.Api.Services
                 RoomsCount = entity.RoomsCount,
                 BedsCount = entity.BedsCount,
                 Description = entity.Description,
-                Title = !string.IsNullOrWhiteSpace(entity.Title) ? entity.Title : 
-                        (!string.IsNullOrWhiteSpace(entity.Description) ? 
-                            (entity.Description.Split(new[] { '.', '!', '?' }, StringSplitOptions.RemoveEmptyEntries)[0].Trim().Length > 60 ? 
-                                entity.Description.Split(new[] { '.', '!', '?' }, StringSplitOptions.RemoveEmptyEntries)[0].Trim().Substring(0, 57) + "..." : 
-                                entity.Description.Split(new[] { '.', '!', '?' }, StringSplitOptions.RemoveEmptyEntries)[0].Trim()) : 
-                            entity.PropertyType.ToString()),
+                Title = BuildAccommodationTitle(entity.Title, entity.Description, entity.PropertyType.ToString()),
                 CreatedAt = entity.CreatedAt,
                 IsActive = entity.IsActive,
+                VisibleFrom = entity.VisibleFrom?.Date,
                 AverageRating = (entity.Reviews != null && entity.Reviews.Any()) ? entity.Reviews.Average(r => r.Rating) : 0,
                 ReviewsCount = entity.Reviews?.Count ?? 0,
                 FavoritesCount = entity.FavoritedBy?.Count ?? 0,
@@ -754,6 +721,46 @@ namespace Rently.Api.Services
         private static int CountGuestFavorites(Accommodation entity)
         {
             return entity.FavoritedBy?.Count(f => f.Type == FavoriteType.Guest) ?? 0;
+        }
+
+        private static string BuildAccommodationTitle(string? explicitTitle, string? description, string fallbackTitle)
+        {
+            if (!string.IsNullOrWhiteSpace(explicitTitle))
+            {
+                return explicitTitle;
+            }
+
+            if (string.IsNullOrWhiteSpace(description))
+            {
+                return fallbackTitle;
+            }
+
+            var firstSentence = description
+                .Split(new[] { '.', '!', '?' }, StringSplitOptions.RemoveEmptyEntries)
+                .FirstOrDefault()?
+                .Trim();
+
+            if (string.IsNullOrWhiteSpace(firstSentence))
+            {
+                return fallbackTitle;
+            }
+
+            return firstSentence.Length > 60
+                ? $"{firstSentence.Substring(0, 57)}..."
+                : firstSentence;
+        }
+
+        private static System.Linq.Expressions.Expression<Func<Accommodation, bool>> IsVisibleOnDate(DateTime date)
+        {
+            return accommodation =>
+                accommodation.IsActive &&
+                (!accommodation.VisibleFrom.HasValue || accommodation.VisibleFrom.Value.Date <= date);
+        }
+
+        private void ClearHomepageCache()
+        {
+            _cache.Remove("homepage:highest-rated:v2:16");
+            _cache.Remove("homepage:most-visited:v2:16:0");
         }
     }
 }

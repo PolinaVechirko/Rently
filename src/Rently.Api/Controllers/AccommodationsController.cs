@@ -1,10 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using Rently.Api.Models.Accommodations;
 using Rently.Application.DTOs;
 using Rently.Application.Interfaces;
 
@@ -22,49 +21,16 @@ namespace Rently.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<AccommodationDto>>> GetAll(
-            [FromQuery] string? sortBy = null, 
-            [FromQuery] int limit = 100, 
-            [FromQuery] int skip = 0,
-            [FromQuery] string? location = null,
-            [FromQuery] string? type = null,
-            [FromQuery] decimal? minPrice = null,
-            [FromQuery] decimal? maxPrice = null,
-            [FromQuery] int? rooms = null,
-            [FromQuery] int? beds = null,
-            [FromQuery] int? amenityId = null,
-            [FromQuery] string? checkIn = null,
-            [FromQuery] string? checkOut = null)
+        public async Task<ActionResult<IEnumerable<AccommodationDto>>> GetAll([FromQuery] GetAccommodationsRequest request)
         {
-            var parsedCheckIn = ParseDateOrNull(checkIn);
-            var parsedCheckOut = ParseDateOrNull(checkOut);
-
-            var result = await _service.GetAllAccommodationsAsync(
-                sortBy, limit, skip, location, type, minPrice, maxPrice, rooms, beds, amenityId, parsedCheckIn, parsedCheckOut);
+            var result = await _service.GetAllAccommodationsAsync(request.ToQueryDto());
             return Ok(result);
         }
 
         [HttpGet("search")]
-        public async Task<ActionResult<PagedResultDto<AccommodationDto>>> Search(
-            [FromQuery] string? sortBy = null,
-            [FromQuery] int limit = 48,
-            [FromQuery] int skip = 0,
-            [FromQuery] string? location = null,
-            [FromQuery(Name = "types")] string? typesCsv = null,
-            [FromQuery] decimal? minPrice = null,
-            [FromQuery] decimal? maxPrice = null,
-            [FromQuery] int? rooms = null,
-            [FromQuery] int? beds = null,
-            [FromQuery] int? guests = null,
-            [FromQuery(Name = "amenities")] string? amenitiesCsv = null,
-            [FromQuery] string? checkIn = null,
-            [FromQuery] string? checkOut = null)
+        public async Task<ActionResult<PagedResultDto<AccommodationDto>>> Search([FromQuery] SearchAccommodationsRequest request)
         {
-            var parsedCheckIn = ParseDateOrNull(checkIn);
-            var parsedCheckOut = ParseDateOrNull(checkOut);
-
-            var result = await _service.SearchAccommodationsAsync(
-                sortBy, limit, skip, location, typesCsv, minPrice, maxPrice, rooms, beds, guests, amenitiesCsv, parsedCheckIn, parsedCheckOut);
+            var result = await _service.SearchAccommodationsAsync(request.ToQueryDto());
             return Ok(result);
         }
 
@@ -145,26 +111,6 @@ namespace Rently.Api.Controllers
             if (result == null) return NotFound("Accommodation not found or you are not the owner.");
 
             return Ok(result);
-        }
-
-        private static DateTime? ParseDateOrNull(string? value)
-        {
-            if (string.IsNullOrWhiteSpace(value)) return null;
-
-            var v = value.Trim();
-            var formats = new[] { "yyyy-MM-dd", "dd.MM.yyyy", "d.M.yyyy", "dd/MM/yyyy", "d/M/yyyy" };
-
-            if (DateTime.TryParseExact(v, formats, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var exact))
-            {
-                return exact.Date;
-            }
-
-            if (DateTime.TryParse(v, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var parsed))
-            {
-                return parsed.Date;
-            }
-
-            return null;
         }
     }
 }
