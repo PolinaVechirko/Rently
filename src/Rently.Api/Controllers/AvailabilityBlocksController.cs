@@ -50,13 +50,42 @@ namespace Rently.Api.Controllers
             var accommodation = await _db.Accommodations.FirstOrDefaultAsync(a => a.Id == accommodationId && a.HostId == userId);
             if (accommodation == null) return NotFound();
 
-            if (dto.EndDate <= dto.StartDate) return BadRequest(new { message = "End date must be after start date." });
+            var startDate = dto.StartDate.Date;
+            var endDate = dto.EndDate.Date;
+            if (endDate <= startDate) return BadRequest(new { message = "End date must be after start date." });
+
+            var today = DateTime.UtcNow.Date;
+
+            var overlapsWithBookings = await _db.Bookings.AnyAsync(b =>
+                b.AccommodationId == accommodationId &&
+                b.Status == BookingStatus.Confirmed &&
+                b.CheckOutDate > today &&
+                startDate < b.CheckOutDate &&
+                endDate > b.CheckInDate);
+
+            if (overlapsWithBookings)
+            {
+                return BadRequest(new { message = "You cannot block dates that overlap with confirmed upcoming bookings." });
+            }
+
+            var overlappingPendingBookings = await _db.Bookings
+                .Where(b =>
+                    b.AccommodationId == accommodationId &&
+                    b.Status == BookingStatus.Pending &&
+                    startDate < b.CheckOutDate &&
+                    endDate > b.CheckInDate)
+                .ToListAsync();
+
+            foreach (var booking in overlappingPendingBookings)
+            {
+                booking.Status = BookingStatus.Cancelled;
+            }
 
             var block = new AvailabilityBlock
             {
                 AccommodationId = accommodationId,
-                StartDate = dto.StartDate.Date,
-                EndDate = dto.EndDate.Date,
+                StartDate = startDate,
+                EndDate = endDate,
                 Note = dto.Note,
                 CreatedAt = DateTime.UtcNow
             };
@@ -64,6 +93,25 @@ namespace Rently.Api.Controllers
             _db.AvailabilityBlocks.Add(block);
             await _db.SaveChangesAsync();
             return Ok(block);
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<ActionResult> Delete(int id, [FromQuery] int accommodationId)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId == null) return Unauthorized();
+
+            var accommodation = await _db.Accommodations.AsNoTracking()
+                .FirstOrDefaultAsync(a => a.Id == accommodationId && a.HostId == userId);
+            if (accommodation == null) return NotFound();
+
+            var block = await _db.AvailabilityBlocks
+                .FirstOrDefaultAsync(b => b.Id == id && b.AccommodationId == accommodationId);
+            if (block == null) return NotFound();
+
+            _db.AvailabilityBlocks.Remove(block);
+            await _db.SaveChangesAsync();
+            return NoContent();
         }
     }
 }

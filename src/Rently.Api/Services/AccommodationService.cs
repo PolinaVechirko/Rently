@@ -71,11 +71,18 @@ namespace Rently.Api.Services
 
             if (checkIn.HasValue && checkOut.HasValue)
             {
-                // Availability: No overlapping confirmed bookings
-                query = query.Where(a => !a.Bookings!.Any(b => 
-                    b.Status == BookingStatus.Confirmed && 
-                    b.CheckInDate < checkOut.Value && 
-                    b.CheckOutDate > checkIn.Value));
+                var normalizedCheckIn = checkIn.Value.Date;
+                var normalizedCheckOut = checkOut.Value.Date;
+
+                query = query.Where(a =>
+                    !a.Bookings!.Any(b =>
+                        b.Status != BookingStatus.Cancelled &&
+                        b.CheckInDate < normalizedCheckOut &&
+                        b.CheckOutDate > normalizedCheckIn) &&
+                    !_context.AvailabilityBlocks.Any(block =>
+                        block.AccommodationId == a.Id &&
+                        normalizedCheckIn < block.EndDate &&
+                        normalizedCheckOut > block.StartDate));
             }
 
             var accommodations = await query.ToListAsync();
@@ -118,6 +125,14 @@ namespace Rently.Api.Services
         {
             limit = Math.Clamp(limit, 1, 200);
             skip = Math.Max(0, skip);
+
+            var effectiveCheckIn = checkIn?.Date;
+            var effectiveCheckOut = checkOut?.Date;
+            if (!effectiveCheckIn.HasValue && !effectiveCheckOut.HasValue)
+            {
+                effectiveCheckIn = DateTime.UtcNow.Date;
+                effectiveCheckOut = effectiveCheckIn.Value.AddDays(1);
+            }
 
             var query = _context.Accommodations
                 .AsNoTracking()
@@ -179,12 +194,20 @@ namespace Rently.Api.Services
             }
 
             // Availability
-            if (checkIn.HasValue && checkOut.HasValue)
+            if (effectiveCheckIn.HasValue && effectiveCheckOut.HasValue)
             {
-                query = query.Where(a => a.Bookings == null || !a.Bookings.Any(b =>
-                    b.Status == BookingStatus.Confirmed &&
-                    b.CheckInDate < checkOut.Value &&
-                    b.CheckOutDate > checkIn.Value));
+                var normalizedCheckIn = effectiveCheckIn.Value;
+                var normalizedCheckOut = effectiveCheckOut.Value;
+
+                query = query.Where(a =>
+                    (a.Bookings == null || !a.Bookings.Any(b =>
+                        b.Status != BookingStatus.Cancelled &&
+                        b.CheckInDate < normalizedCheckOut &&
+                        b.CheckOutDate > normalizedCheckIn)) &&
+                    !_context.AvailabilityBlocks.Any(block =>
+                        block.AccommodationId == a.Id &&
+                        normalizedCheckIn < block.EndDate &&
+                        normalizedCheckOut > block.StartDate));
             }
 
             var total = await query.CountAsync();
@@ -420,8 +443,12 @@ namespace Rently.Api.Services
             var reviewerIds = accommodation.Reviews?.Select(r => r.GuestId).Distinct().ToList() ?? new List<string>();
             var reviewersList = await _context.Users.Where(u => reviewerIds.Contains(u.Id)).ToListAsync();
             var reviewersDict = reviewersList.ToDictionary(u => u.Id);
+            var availabilityBlocks = await _context.AvailabilityBlocks
+                .AsNoTracking()
+                .Where(block => block.AccommodationId == id)
+                .ToListAsync();
 
-            var dto = MapToDto(accommodation, host, reviewersDict);
+            var dto = MapToDto(accommodation, host, reviewersDict, availabilityBlocks);
             dto.FavoritesCount = CountGuestFavorites(accommodation);
             return dto;
         }
@@ -575,9 +602,33 @@ namespace Rently.Api.Services
             return await GetAccommodationByIdAsync(id);
         }
 
-        private AccommodationDto MapToDto(Accommodation entity, ApplicationUser? host = null, Dictionary<string, ApplicationUser>? reviewers = null)
+        private AccommodationDto MapToDto(
+            Accommodation entity,
+            ApplicationUser? host = null,
+            Dictionary<string, ApplicationUser>? reviewers = null,
+            List<AvailabilityBlock>? availabilityBlocks = null)
         {
             var confirmedBookings = entity.Bookings?.Where(b => b.Status == BookingStatus.Confirmed).ToList() ?? new List<Booking>();
+            var unavailableDateRanges = confirmedBookings
+                .Where(b => b.CheckOutDate.Date > DateTime.UtcNow.Date)
+                .Select(b => new UnavailableDateRangeDto
+                {
+                    StartDate = b.CheckInDate.Date,
+                    EndDate = b.CheckOutDate.Date
+                })
+                .ToList();
+
+            if (availabilityBlocks != null && availabilityBlocks.Count > 0)
+            {
+                unavailableDateRanges.AddRange(
+                    availabilityBlocks
+                        .Where(block => block.EndDate.Date > DateTime.UtcNow.Date)
+                        .Select(block => new UnavailableDateRangeDto
+                        {
+                            StartDate = block.StartDate.Date,
+                            EndDate = block.EndDate.Date
+                        }));
+            }
             
             // Calculate Total Earnings (Confirmed past bookings)
             decimal totalEarnings = 0;
@@ -650,6 +701,7 @@ namespace Rently.Api.Services
                     b.CheckOutDate >= DateTime.UtcNow),
                 TotalEarnings = totalEarnings,
                 NextAvailableDate = nextAvailable,
+                UnavailableDateRanges = unavailableDateRanges,
                 Reviews = reviews,
                 HostName = host?.FullName,
                 HostAvatarUrl = host?.ProfilePhotoUrl ?? "/icons/user.svg",

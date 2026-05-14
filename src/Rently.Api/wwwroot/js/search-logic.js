@@ -3,6 +3,7 @@
  */
 
 function initSearchPage() {
+    const params = new URLSearchParams(window.location.search);
     const resultsContainer = document.getElementById("search-results-container");
     if (resultsContainer && typeof renderSearchResultsRows === 'function') {
         renderSearchResultsRows("search-results-container", 8, 6);
@@ -57,28 +58,127 @@ function initSearchPage() {
         maxPriceInput.style.borderColor = minVal > maxVal ? "red" : "#ddd";
     }
 
-    if (typeof flatpickr !== "undefined" && document.getElementById("search-checkin")) {
-        const config = {
-            dateFormat: "d.m.Y", minDate: "today", allowInput: true, locale: { firstDayOfWeek: 1 },
-            onChange: function (d, str) {
-                if (this.element.id === "search-checkin") {
-                    const out = document.querySelector("#search-checkout")._flatpickr;
-                    if (out) out.set("minDate", str);
-                }
-            }
-        };
-        flatpickr("#search-checkin", config);
-        flatpickr("#search-checkout", config);
+    function addDays(date, days) {
+        const next = new Date(date);
+        next.setDate(next.getDate() + days);
+        return next;
     }
 
-    const params = new URLSearchParams(window.location.search);
+    function isValidDate(date) {
+        return date instanceof Date && !Number.isNaN(date.getTime());
+    }
+
+    function parseSearchDateValue(value) {
+        const raw = String(value || "").trim();
+        if (!raw) return null;
+
+        const dottedMatch = raw.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+        if (dottedMatch) {
+            const [, day, month, year] = dottedMatch;
+            const parsed = new Date(
+                Number(year),
+                Number(month) - 1,
+                Number(day),
+            );
+            return isValidDate(parsed) ? parsed : null;
+        }
+
+        const isoMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (isoMatch) {
+            const [, year, month, day] = isoMatch;
+            const parsed = new Date(
+                Number(year),
+                Number(month) - 1,
+                Number(day),
+            );
+            return isValidDate(parsed) ? parsed : null;
+        }
+
+        const parsed = new Date(raw);
+        return isValidDate(parsed) ? parsed : null;
+    }
+
+    function formatDateForQuery(date) {
+        if (!isValidDate(date)) return "";
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+    }
+
+    if (typeof flatpickr !== "undefined" && document.getElementById("search-checkin")) {
+        const checkinInput = document.getElementById("search-checkin");
+        const checkoutInput = document.getElementById("search-checkout");
+        const baseConfig = {
+            dateFormat: "d.m.Y",
+            minDate: "today",
+            allowInput: true,
+            locale: { firstDayOfWeek: 1 },
+        };
+
+        let checkinPicker;
+        let checkoutPicker;
+
+        function syncDateConstraints() {
+            const selectedCheckin = checkinPicker?.selectedDates?.[0];
+            const selectedCheckout = checkoutPicker?.selectedDates?.[0];
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            checkinPicker?.set("minDate", today);
+            checkinPicker?.set("maxDate", null);
+            checkoutPicker?.set("minDate", today);
+
+            if (isValidDate(selectedCheckin)) {
+                checkoutPicker?.set("minDate", addDays(selectedCheckin, 1));
+            }
+
+            if (isValidDate(selectedCheckout)) {
+                checkinPicker?.set("maxDate", addDays(selectedCheckout, -1));
+            }
+
+            if (
+                isValidDate(selectedCheckin) &&
+                isValidDate(selectedCheckout) &&
+                selectedCheckout <= selectedCheckin
+            ) {
+                if (document.activeElement === checkinInput) {
+                    checkoutPicker.clear();
+                    checkoutPicker.set("minDate", addDays(selectedCheckin, 1));
+                } else {
+                    checkinPicker.clear();
+                    checkinPicker.set("maxDate", addDays(selectedCheckout, -1));
+                }
+            }
+        }
+
+        checkinPicker = flatpickr(checkinInput, {
+            ...baseConfig,
+            onChange: syncDateConstraints,
+        });
+
+        checkoutPicker = flatpickr(checkoutInput, {
+            ...baseConfig,
+            onChange: syncDateConstraints,
+        });
+
+        const initialCheckin = parseSearchDateValue(params.get("checkin"));
+        const initialCheckout = parseSearchDateValue(params.get("checkout"));
+        if (initialCheckin) {
+            checkinPicker.setDate(initialCheckin, false);
+            checkinInput.value = checkinPicker.formatDate(initialCheckin, "d.m.Y");
+        }
+        if (initialCheckout) {
+            checkoutPicker.setDate(initialCheckout, false);
+            checkoutInput.value = checkoutPicker.formatDate(initialCheckout, "d.m.Y");
+        }
+
+        syncDateConstraints();
+    }
+
     if (params.has("location")) document.getElementById("search-loc").value = params.get("location");
-    if (params.has("checkin") && document.getElementById("search-checkin")._flatpickr) {
-        document.getElementById("search-checkin")._flatpickr.setDate(params.get("checkin"));
-    }
-    if (params.has("checkout") && document.getElementById("search-checkout")._flatpickr) {
-        document.getElementById("search-checkout")._flatpickr.setDate(params.get("checkout"));
-    }
+    const checkinPicker = document.getElementById("search-checkin")._flatpickr;
+    const checkoutPicker = document.getElementById("search-checkout")._flatpickr;
     if (params.has("sort")) {
         let sortVal = params.get("sort") || "";
         const norm = sortVal.toLowerCase().replace(/\+/g, " ").trim();
@@ -110,15 +210,34 @@ function initSearchPage() {
 
     const searchApplyBtn = document.getElementById("search-apply-btn");
     if (searchApplyBtn) {
-        searchApplyBtn.addEventListener("click", () => {
+        searchApplyBtn.addEventListener("click", (event) => {
+            event.preventDefault();
             const loc = document.getElementById("search-loc").value;
-            const checkinPicker = document.getElementById("search-checkin")._flatpickr;
-            const checkoutPicker = document.getElementById("search-checkout")._flatpickr;
-            const cin = checkinPicker && checkinPicker.selectedDates && checkinPicker.selectedDates[0]
-                ? checkinPicker.formatDate(checkinPicker.selectedDates[0], "Y-m-d")
+            const selectedCheckin =
+                parseSearchDateValue(document.getElementById("search-checkin").value) ||
+                (checkinPicker && checkinPicker.selectedDates && checkinPicker.selectedDates[0]
+                    ? checkinPicker.selectedDates[0]
+                    : null);
+            const selectedCheckout =
+                parseSearchDateValue(document.getElementById("search-checkout").value) ||
+                (checkoutPicker && checkoutPicker.selectedDates && checkoutPicker.selectedDates[0]
+                    ? checkoutPicker.selectedDates[0]
+                    : null);
+
+            if (
+                selectedCheckin &&
+                selectedCheckout &&
+                selectedCheckout <= selectedCheckin
+            ) {
+                alert("Check-out date must be at least one night after check-in.");
+                return;
+            }
+
+            const cin = selectedCheckin
+                ? formatDateForQuery(selectedCheckin)
                 : "";
-            const cout = checkoutPicker && checkoutPicker.selectedDates && checkoutPicker.selectedDates[0]
-                ? checkoutPicker.formatDate(checkoutPicker.selectedDates[0], "Y-m-d")
+            const cout = selectedCheckout
+                ? formatDateForQuery(selectedCheckout)
                 : "";
             const sort = document.getElementById("search-sort").value;
             const minP = document.getElementById("min-price").value;

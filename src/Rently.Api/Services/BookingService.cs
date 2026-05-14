@@ -25,18 +25,24 @@ namespace Rently.Api.Services
             var accommodation = await _context.Accommodations.FindAsync(dto.AccommodationId);
             if (accommodation == null) throw new ArgumentException("Accommodation not found.");
 
-            // Check for overlaps (simplified)
-            bool overlaps = await _context.Bookings.AnyAsync(b => 
+            var normalizedCheckIn = dto.CheckInDate.Date;
+            var normalizedCheckOut = dto.CheckOutDate.Date;
+            if (normalizedCheckOut <= normalizedCheckIn)
+            {
+                throw new InvalidOperationException("Check-out date must be after check-in date.");
+            }
+
+            bool overlaps = await _context.Bookings.AnyAsync(b =>
                 b.AccommodationId == dto.AccommodationId && 
                 b.Status != BookingStatus.Cancelled &&
-                (dto.CheckInDate < b.CheckOutDate && dto.CheckOutDate > b.CheckInDate));
+                (normalizedCheckIn < b.CheckOutDate && normalizedCheckOut > b.CheckInDate));
 
             if (overlaps) throw new InvalidOperationException("Accommodation is not available for these dates.");
 
             var blocked = await _context.AvailabilityBlocks.AnyAsync(b =>
                 b.AccommodationId == dto.AccommodationId &&
-                dto.CheckInDate < b.EndDate &&
-                dto.CheckOutDate > b.StartDate);
+                normalizedCheckIn < b.EndDate &&
+                normalizedCheckOut > b.StartDate);
 
             if (blocked) throw new InvalidOperationException("Accommodation is blocked for these dates.");
 
@@ -44,8 +50,8 @@ namespace Rently.Api.Services
             {
                 AccommodationId = dto.AccommodationId,
                 GuestId = guestId,
-                CheckInDate = dto.CheckInDate,
-                CheckOutDate = dto.CheckOutDate,
+                CheckInDate = normalizedCheckIn,
+                CheckOutDate = normalizedCheckOut,
                 Status = BookingStatus.Pending,
                 CreatedAt = DateTime.UtcNow
             };
@@ -134,6 +140,28 @@ namespace Rently.Api.Services
             if (booking.Status != BookingStatus.Pending)
             {
                 throw new InvalidOperationException("Only pending bookings can be accepted.");
+            }
+
+            var overlaps = await _context.Bookings.AnyAsync(b =>
+                b.Id != booking.Id &&
+                b.AccommodationId == booking.AccommodationId &&
+                b.Status != BookingStatus.Cancelled &&
+                booking.CheckInDate < b.CheckOutDate &&
+                booking.CheckOutDate > b.CheckInDate);
+
+            if (overlaps)
+            {
+                throw new InvalidOperationException("Accommodation is not available for these dates.");
+            }
+
+            var blocked = await _context.AvailabilityBlocks.AnyAsync(b =>
+                b.AccommodationId == booking.AccommodationId &&
+                booking.CheckInDate < b.EndDate &&
+                booking.CheckOutDate > b.StartDate);
+
+            if (blocked)
+            {
+                throw new InvalidOperationException("Accommodation is blocked for these dates.");
             }
 
             booking.Status = BookingStatus.Confirmed;

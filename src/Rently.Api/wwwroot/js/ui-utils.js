@@ -288,6 +288,8 @@ async function initPropertyPage() {
     console.log("[Property] API response:", response.status);
     if (!response.ok) throw new Error("Property not found");
     const property = await response.json();
+    window.__rentlyPropertyUnavailableRanges =
+      property.unavailableDateRanges || [];
     console.log("[Property] Data loaded:", {
       type: property.propertyType,
       country: property.country,
@@ -717,6 +719,69 @@ function initPropertyBooking() {
   const checkoutInput = document.getElementById("prop-checkout");
   const calendarTrigger = document.getElementById("calendar-trigger");
   const availabilityHint = document.getElementById("availability-hint");
+  const unavailableRanges = Array.isArray(window.__rentlyPropertyUnavailableRanges)
+    ? window.__rentlyPropertyUnavailableRanges
+    : [];
+
+  function parseDateOnlyAsLocal(value) {
+    const raw = String(value || "").trim();
+    if (!raw) return null;
+    const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (match) {
+      const [, year, month, day] = match;
+      return new Date(Number(year), Number(month) - 1, Number(day));
+    }
+    const parsed = new Date(raw);
+    if (Number.isNaN(parsed.getTime())) return null;
+    return parsed;
+  }
+
+  const normalizedUnavailableRanges = unavailableRanges
+    .map((range) => {
+      const startDate = parseDateOnlyAsLocal(range.startDate || range.StartDate);
+      const endDate = parseDateOnlyAsLocal(range.endDate || range.EndDate);
+      if (!startDate || !endDate) return null;
+      return { startDate, endDate };
+    })
+    .filter(Boolean);
+
+  const disabledDates = normalizedUnavailableRanges
+    .map((range) => {
+      const lastUnavailableDate = new Date(range.endDate);
+      lastUnavailableDate.setDate(lastUnavailableDate.getDate() - 1);
+      if (lastUnavailableDate < range.startDate) return null;
+      return { from: range.startDate, to: lastUnavailableDate };
+    })
+    .filter(Boolean);
+
+  const checkinDisabledDates = normalizedUnavailableRanges
+    .map((range) => {
+      const firstUnavailableCheckInDate = new Date(range.startDate);
+      firstUnavailableCheckInDate.setDate(
+        firstUnavailableCheckInDate.getDate() - 1,
+      );
+      const lastUnavailableCheckInDate = new Date(range.endDate);
+      lastUnavailableCheckInDate.setDate(
+        lastUnavailableCheckInDate.getDate() - 1,
+      );
+      if (lastUnavailableCheckInDate < firstUnavailableCheckInDate) return null;
+      return {
+        from: firstUnavailableCheckInDate,
+        to: lastUnavailableCheckInDate,
+      };
+    })
+    .filter(Boolean);
+
+  function rangeOverlapsUnavailable(checkInDate, checkOutDate) {
+    if (!(checkInDate instanceof Date) || !(checkOutDate instanceof Date)) {
+      return false;
+    }
+
+    return normalizedUnavailableRanges.some(
+      (range) =>
+        checkInDate < range.endDate && checkOutDate > range.startDate,
+    );
+  }
 
   if (typeof flatpickr !== "undefined" && checkinInput && checkoutInput) {
     const fpConfig = {
@@ -726,6 +791,7 @@ function initPropertyBooking() {
     };
     const fpCheckin = flatpickr(checkinInput, {
       ...fpConfig,
+      disable: checkinDisabledDates,
       onChange: (d, str) => {
         fpCheckout.set("minDate", str);
         updateAvailabilityHint();
@@ -733,7 +799,21 @@ function initPropertyBooking() {
     });
     const fpCheckout = flatpickr(checkoutInput, {
       ...fpConfig,
-      onChange: updateAvailabilityHint,
+      disable: disabledDates,
+      onChange: (selectedDates) => {
+        const selectedCheckInDate = parseBookingDate(checkinInput.value);
+        if (
+          selectedCheckInDate &&
+          selectedDates[0] &&
+          rangeOverlapsUnavailable(selectedCheckInDate, selectedDates[0])
+        ) {
+          fpCheckout.clear();
+          alert("These dates overlap with unavailable dates.");
+          updateAvailabilityHint();
+          return;
+        }
+        updateAvailabilityHint();
+      },
     });
     calendarTrigger?.addEventListener("click", () => fpCheckin.open());
 
@@ -806,6 +886,9 @@ function initPropertyBooking() {
     if (!checkInDate || !checkOutDate) {
       throw new Error("Please select valid booking dates.");
     }
+    if (rangeOverlapsUnavailable(checkInDate, checkOutDate)) {
+      throw new Error("These dates overlap with unavailable dates.");
+    }
     if (!bookingPropertyId) {
       throw new Error("Property id is missing.");
     }
@@ -856,9 +939,24 @@ function initPropertyBooking() {
     };
     modalFpCheckin = flatpickr(modalCheckin, {
       ...mConfig,
+      disable: checkinDisabledDates,
       onChange: (d, str) => modalFpCheckout.set("minDate", str),
     });
-    modalFpCheckout = flatpickr(modalCheckout, mConfig);
+    modalFpCheckout = flatpickr(modalCheckout, {
+      ...mConfig,
+      disable: disabledDates,
+      onChange: (selectedDates) => {
+        const selectedCheckInDate = parseBookingDate(modalCheckin.value);
+        if (
+          selectedCheckInDate &&
+          selectedDates[0] &&
+          rangeOverlapsUnavailable(selectedCheckInDate, selectedDates[0])
+        ) {
+          modalFpCheckout.clear();
+          alert("These dates overlap with unavailable dates.");
+        }
+      },
+    });
   }
 
   const showDateModal = () => {

@@ -41,5 +41,12 @@ namespace Rently.Application.DTOs
 
         public decimal TotalEarnings { get; set; }
         public DateTime? NextAvailableDate { get; set; }
+        public List<UnavailableDateRangeDto> UnavailableDateRanges { get; set; } = new();
+    }
+
+    public class UnavailableDateRangeDto
+    {
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
     }
 }

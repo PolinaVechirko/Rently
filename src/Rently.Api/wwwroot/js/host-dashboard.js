@@ -54,6 +54,59 @@
     return { start, end };
   }
 
+  function formatDateOnlyForApi(date) {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+
+  function parseDateOnlyAsLocal(value) {
+    const raw = String(value || "").trim();
+    if (!raw) return null;
+    const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (match) {
+      const [, year, month, day] = match;
+      return new Date(Number(year), Number(month) - 1, Number(day));
+    }
+    const parsed = new Date(raw);
+    if (Number.isNaN(parsed.getTime())) return null;
+    return parsed;
+  }
+
+  function buildAvailabilityDisabledRanges(bookings, blocks) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const bookingRanges = (Array.isArray(bookings) ? bookings : [])
+      .filter((booking) => (booking.status || booking.Status) === "Confirmed")
+      .map((booking) => {
+        const from = parseDateOnlyAsLocal(
+          booking.checkInDate || booking.CheckInDate,
+        );
+        const to = parseDateOnlyAsLocal(
+          booking.checkOutDate || booking.CheckOutDate,
+        );
+        if (!from || !to) return null;
+        if (to < today) return null;
+        return { from, to };
+      })
+      .filter(Boolean);
+
+    const blockRanges = (Array.isArray(blocks) ? blocks : [])
+      .map((block) => {
+        const from = parseDateOnlyAsLocal(block.startDate || block.StartDate);
+        const to = parseDateOnlyAsLocal(block.endDate || block.EndDate);
+        if (!from || !to) return null;
+        if (to < today) return null;
+        return { from, to };
+      })
+      .filter(Boolean);
+
+    return [...bookingRanges, ...blockRanges];
+  }
+
   function formatStayNights(checkIn, checkOut) {
     const oneDay = 24 * 60 * 60 * 1000;
     const nights = Math.max(
@@ -98,10 +151,14 @@
       throw new Error("Unauthorized");
     }
     if (!response.ok) {
+      const payload = await response.json().catch(() => null);
       const fallback = await response.text().catch(() => "");
-      throw new Error(fallback || `Request failed: ${response.status}`);
+      throw new Error(
+        payload?.message || fallback || `Request failed: ${response.status}`,
+      );
     }
-    return response.json();
+    if (response.status === 204) return null;
+    return response.json().catch(() => null);
   }
 
   function computeStats(selected, bookings) {
@@ -408,12 +465,39 @@
     }
     container.innerHTML = blocks
       .map((block) => {
+        const blockId = block.id || block.Id;
         const start = block.startDate || block.StartDate;
         const end = block.endDate || block.EndDate;
         const note = block.note || block.Note || "";
-        return `<div class="d-flex justify-content-between align-items-center py-2 border-top"><div><strong>${dateFormatter.format(new Date(start))}</strong> to <strong>${dateFormatter.format(new Date(end))}</strong>${note ? `<div class="text-muted small">${note}</div>` : ""}</div></div>`;
+        const startDate = parseDateOnlyAsLocal(start);
+        const endDate = parseDateOnlyAsLocal(end);
+        const formattedStart = startDate ? dateFormatter.format(startDate) : start;
+        const formattedEnd = endDate ? dateFormatter.format(endDate) : end;
+        return `<div class="d-flex justify-content-between align-items-center py-2 border-top gap-3"><div><strong>${formattedStart}</strong> to <strong>${formattedEnd}</strong>${note ? `<div class="text-muted small">${note}</div>` : ""}</div><button class="btn btn-link p-0 text-decoration-none text-danger availability-block-delete-btn d-inline-flex align-items-center justify-content-center" type="button" data-block-id="${blockId}" aria-label="Remove blocked dates" style="width: 32px; height: 32px; font-size: 28px; line-height: 1;">×</button></div>`;
       })
       .join("");
+
+    container
+      .querySelectorAll(".availability-block-delete-btn")
+      .forEach((button) => {
+        button.addEventListener("click", async () => {
+          const blockId = button.getAttribute("data-block-id");
+          const accommodationId = getAccommodationId();
+          if (!blockId || !accommodationId) return;
+
+          button.disabled = true;
+          try {
+            await fetchJson(
+              `/api/AvailabilityBlocks/${encodeURIComponent(blockId)}?accommodationId=${encodeURIComponent(accommodationId)}`,
+              { method: "DELETE" },
+            );
+            await loadDashboard();
+          } catch (error) {
+            alert(error.message || "Failed to remove blocked dates.");
+            button.disabled = false;
+          }
+        });
+      });
   }
 
   async function loadDashboard() {
@@ -476,7 +560,7 @@
       blocks = [];
     }
     renderAvailabilityBlocks(blocks);
-    initAvailabilityPicker(selected.id || selected.Id);
+    initAvailabilityPicker(selected.id || selected.Id, hostBookings, blocks);
 
     const hostName = selected.hostName || selected.HostName || "";
     renderReviews(selected, hostName);
@@ -496,17 +580,24 @@
     }
   }
 
-  function initAvailabilityPicker(selectedAccommodationId) {
+  function initAvailabilityPicker(selectedAccommodationId, hostBookings, blocks) {
     const input = document.getElementById("availability-range");
     const button = document.getElementById("availability-block-btn");
     const noteInput = document.getElementById("availability-note");
     if (!input || !button || typeof flatpickr !== "function") return;
+
+    if (input._flatpickr) {
+      input._flatpickr.destroy();
+    }
+
+    const disabledRanges = buildAvailabilityDisabledRanges(hostBookings, blocks);
 
     const picker = flatpickr(input, {
       mode: "range",
       dateFormat: "Y-m-d",
       minDate: "today",
       allowInput: true,
+      disable: disabledRanges,
     });
 
     button.onclick = async () => {
@@ -523,8 +614,8 @@
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              startDate: parsed.start.toISOString(),
-              endDate: parsed.end.toISOString(),
+              startDate: formatDateOnlyForApi(parsed.start),
+              endDate: formatDateOnlyForApi(parsed.end),
               note: noteInput ? noteInput.value.trim() : "",
             }),
           },
