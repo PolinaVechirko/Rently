@@ -68,7 +68,9 @@
 </head>
 
 <body>
-  <header class="header sticky-top bg-white border-bottom">
+  <div style="height: 20px"></div>
+
+  <header class="header sticky-top bg-white">
     <nav class="navbar navbar-expand-md">
       <div class="container">
         <a class="navbar-brand rently-logo" href="../host-mode.html">Rently</a>
@@ -96,7 +98,7 @@
               <img src="../icons/user.svg" alt="User" class="user-profile-icon" id="header-user-icon" />
               <div class="user-dropdown-menu" id="user-dropdown">
                 <a href="./profile.html" class="dropdown-item-custom">Profile</a>
-                <a href="../host-mode.html#your-apartments-title" class="dropdown-item-custom">Your Apartments</a>
+                <a href="../host-mode.html#your-apartments-title" class="dropdown-item-custom">My Accommodations</a>
                 <a href="./favorites.html" class="dropdown-item-custom">Favorites</a>
                 <a href="../index.html" class="dropdown-item-custom">Guest Mode</a>
                 <a href="#" class="dropdown-item-custom">Help Center</a>
@@ -124,9 +126,34 @@
         <button class="btn btn-outline-primary" id="guest-view-btn">
           Guest View
         </button>
+        <button class="btn btn-outline-dark" id="listing-visibility-btn" type="button">
+          Hide Listing
+        </button>
         <button class="btn btn-primary" id="edit-listing-btn">
           Edit Listing
         </button>
+      </div>
+    </div>
+
+    <div class="bg-white border rounded-4 p-3 mb-4 shadow-sm d-none" id="listing-visibility-panel">
+      <div class="d-flex flex-column flex-lg-row align-items-lg-end gap-3">
+        <div class="flex-grow-1">
+          <label class="form-label fw-semibold mb-1" for="listing-hide-until">
+            Hide from guests until
+          </label>
+          <input type="text" id="listing-hide-until" class="form-control" placeholder="Select date" />
+          <div class="form-text">
+            The listing will stay in Hidden Listings until this date, then become visible again automatically.
+          </div>
+        </div>
+        <div class="d-flex gap-2">
+          <button class="btn btn-outline-secondary" id="listing-hide-cancel-btn" type="button">
+            Cancel
+          </button>
+          <button class="btn btn-dark" id="listing-hide-apply-btn" type="button">
+            Hide Now
+          </button>
+        </div>
       </div>
     </div>
 
@@ -145,6 +172,9 @@
           </h3>
           <p class="text-muted mb-0" id="dashboard-property-subline">
             Loading property details...
+          </p>
+          <p class="text-muted small mb-0 mt-2" id="dashboard-property-status-note">
+            Loading listing status...
           </p>
         </div>
       </div>
@@ -207,8 +237,8 @@
       <div class="col-lg-7">
         <div class="bg-white border rounded-4 p-4 mb-4 shadow-sm">
           <h4 class="section-title">Upcoming Bookings</h4>
-          <div id="bookings-empty" class="text-muted d-none">
-            There are no bookings yet.
+          <div id="upcoming-bookings-empty" class="text-muted d-none">
+            There are no pending or upcoming bookings for this property.
           </div>
           <div class="table-responsive">
             <table class="table align-middle mb-0">
@@ -221,12 +251,12 @@
                   <th class="text-end">ACTIONS</th>
                 </tr>
               </thead>
-              <tbody id="bookings-list"></tbody>
+              <tbody id="upcoming-bookings-list"></tbody>
             </table>
           </div>
         </div>
 
-        <div class="bg-white border rounded-4 p-4 shadow-sm">
+        <div class="bg-white border rounded-4 p-4 shadow-sm mb-4">
           <h4 class="section-title">Modify Availability</h4>
           <p class="text-muted">
             Select a range to block those dates from new bookings.
@@ -246,11 +276,39 @@
           </div>
           <div id="availability-blocks-list" class="small text-muted"></div>
         </div>
+
+        <div class="bg-light border rounded-4 p-4 shadow-sm">
+          <h4 class="section-title">Booking History</h4>
+          <div id="booking-history-empty" class="text-muted d-none">
+            There is no booking history for this property yet.
+          </div>
+          <div class="table-responsive">
+            <table class="table align-middle mb-0">
+              <thead>
+                <tr class="text-muted small">
+                  <th>GUEST</th>
+                  <th>CHECK-IN</th>
+                  <th>STAY</th>
+                  <th>STATUS</th>
+                </tr>
+              </thead>
+              <tbody id="booking-history-list"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       <div class="col-lg-5">
         <div class="bg-white border rounded-4 p-4 shadow-sm mb-4">
-          <h4 class="section-title">Recent Reviews</h4>
+          <h4 class="section-title">Current Stay</h4>
+          <div id="current-stay-empty" class="text-muted">
+            This property is not rented right now.
+          </div>
+          <div id="current-stay-content" class="d-none"></div>
+        </div>
+
+        <div class="bg-white border rounded-4 p-4 shadow-sm mb-4">
+          <h4 class="section-title">Comments & Reviews</h4>
           <div id="reviews-empty" class="text-muted d-none">
             There are no reviews yet.
           </div>
@@ -332,8 +390,8 @@
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="../js/auth.js?v=20260513_profile_return"></script>
   <script src="../js/ui-utils.js"></script>
-  <script src="../js/renderers.js?v=20260513_host_favorite_paths"></script>
-  <script src="../js/host-dashboard.js?v=5"></script>
+  <script src="../js/renderers.js?v=20260514_host_listing_visibility_fix"></script>
+  <script src="../js/host-dashboard.js?v=20260514_host_hide_controls_reviews"></script>
 </body>
 
 </html>

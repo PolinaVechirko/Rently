@@ -31,6 +31,11 @@ function getHostModeHref(path, query = "") {
   return query ? `${base}${query}` : base;
 }
 
+function getSearchPageHref(query = "") {
+  const base = isInHostModeFolder() ? "../search.html" : "./search.html";
+  return query ? `${base}${query}` : base;
+}
+
 function rememberFavoriteChange(id, type, isActive) {
   if (!id || !type) return;
   try {
@@ -441,144 +446,141 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Search button on home page
+  const homeSearchManaged = !!window.__rentlyHomeSearchManaged;
   const searchBtn = document.getElementById("search-main-btn");
   const locInput = document.getElementById("location-input");
   const checkinInput = document.getElementById("checkin-input");
   const checkoutInput = document.getElementById("checkout-input");
 
-  if (searchBtn) {
-    searchBtn.addEventListener("click", () => {
-      const errorMsg = document.getElementById("search-error-msg");
-      let isValid = true;
+  if (!homeSearchManaged) {
+    if (searchBtn) {
+      searchBtn.addEventListener("click", () => {
+        const errorMsg = document.getElementById("search-error-msg");
+        let isValid = true;
 
-      [locInput, checkinInput, checkoutInput].forEach((inp) => {
-        if (inp) {
-          const group = inp.closest(".search-input-group");
-          if (!inp.value.trim()) {
-            if (group) {
-              group.style.boxShadow =
-                "0 0 10px 3px #D5D5D6, inset 0 0 10px rgba(255, 0, 0, 0.3), inset 0 0 0 1px rgba(255, 0, 0, 0.7)";
-            }
-            isValid = false;
-          } else {
-            if (group) {
-              group.style.boxShadow = "0 0 10px 3px #D5D5D6";
+        [locInput, checkinInput, checkoutInput].forEach((inp) => {
+          if (inp) {
+            const group = inp.closest(".search-input-group");
+            if (!inp.value.trim()) {
+              if (group) {
+                group.style.boxShadow =
+                  "0 0 10px 3px #D5D5D6, inset 0 0 10px rgba(255, 0, 0, 0.3), inset 0 0 0 1px rgba(255, 0, 0, 0.7)";
+              }
+              isValid = false;
+            } else {
+              if (group) {
+                group.style.boxShadow = "0 0 10px 3px #D5D5D6";
+              }
             }
           }
-        }
-      });
+        });
 
-      if (!isValid) {
+        if (!isValid) {
+          if (errorMsg) {
+            errorMsg.classList.add("visible");
+            errorMsg.style.display = "block";
+          }
+          return;
+        }
+
         if (errorMsg) {
-          errorMsg.classList.add("visible");
-          errorMsg.style.display = "block";
+          errorMsg.classList.remove("visible");
+          errorMsg.style.display = "none";
         }
-        return;
-      }
+        window.location.href = `./search.html?location=${encodeURIComponent(locInput.value)}&checkin=${checkinInput.value}&checkout=${checkoutInput.value}`;
+      });
+    }
 
-      if (errorMsg) {
-        errorMsg.classList.remove("visible");
-        errorMsg.style.display = "none";
-      }
-      window.location.href = `./search.html?location=${encodeURIComponent(locInput.value)}&checkin=${checkinInput.value}&checkout=${checkoutInput.value}`;
-    });
-  }
+    if (locInput) {
+      let dbLocations = [];
+      fetch("/api/Accommodations/locations")
+        .then((r) => (r.ok ? r.json() : []))
+        .then((data) => {
+          dbLocations = data;
+        })
+        .catch((e) => console.error("Failed to load local locations:", e));
 
-  // --- ADDRESS AUTOCOMPLETE (DB + Nominatim) ---
-  if (locInput) {
-    let dbLocations = [];
-    // Fetch DB locations on load
-    fetch("/api/Accommodations/locations")
-      .then((r) => (r.ok ? r.json() : []))
-      .then((data) => {
-        dbLocations = data;
-      })
-      .catch((e) => console.error("Failed to load local locations:", e));
+      let debounceTimer;
+      locInput.addEventListener("input", function () {
+        clearTimeout(debounceTimer);
+        const query = this.value.trim().toLowerCase();
+        const datalist = document.getElementById("city-suggestions");
+        if (!datalist) return;
 
-    let debounceTimer;
-    locInput.addEventListener("input", function () {
-      clearTimeout(debounceTimer);
-      const query = this.value.trim().toLowerCase();
-      const datalist = document.getElementById("city-suggestions");
-      if (!datalist) return;
-
-      if (query.length < 2) {
-        datalist.innerHTML = "";
-        return;
-      }
-
-      // 1. Show local DB matches immediately (or as base)
-      const localMatches = dbLocations.filter((loc) =>
-        loc.toLowerCase().includes(query),
-      );
-      let optionsHtml = localMatches
-        .map((loc) => `<option value="${loc}">`)
-        .join("");
-
-      debounceTimer = setTimeout(async () => {
-        try {
-          // 2. Fetch global matches from Nominatim with address details and force English
-          const resp = await fetch(
-            `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&accept-language=en&q=${encodeURIComponent(query)}&limit=10`,
-          );
-          const results = await resp.json();
-
-          const globalOptions = results
-            .map((r) => {
-              const addr = r.address;
-              const city =
-                addr.city ||
-                addr.town ||
-                addr.village ||
-                addr.hamlet ||
-                addr.suburb ||
-                "";
-              const country = addr.country || "";
-              if (city && country) return `${city}, ${country}`;
-              if (country) return country;
-              return r.display_name;
-            })
-            .filter((val, index, self) => val && self.indexOf(val) === index) // Unique formatted strings
-            .filter(
-              (formatted) => !localMatches.some((lm) => formatted.includes(lm)),
-            ) // Avoid duplicates with local
-            .map((formatted) => `<option value="${formatted}">`)
-            .join("");
-
-          datalist.innerHTML = optionsHtml + globalOptions;
-        } catch (e) {
-          console.error("Autocomplete error:", e);
-          datalist.innerHTML = optionsHtml;
+        if (query.length < 2) {
+          datalist.innerHTML = "";
+          return;
         }
-      }, 500);
-    });
-  }
 
-  // Clear outline on input
-  [locInput, checkinInput, checkoutInput].forEach((inp) => {
-    if (inp) {
-      const handler = function () {
-        const group = this.closest(".search-input-group");
-        if (this.value.trim() && group) {
-          group.style.boxShadow = "0 0 10px 3px #D5D5D6";
+        const localMatches = dbLocations.filter((loc) =>
+          loc.toLowerCase().includes(query),
+        );
+        let optionsHtml = localMatches
+          .map((loc) => `<option value="${loc}">`)
+          .join("");
 
-          const allFilled = [locInput, checkinInput, checkoutInput].every((i) =>
-            i.value.trim(),
-          );
-          if (allFilled) {
-            const errorMsg = document.getElementById("search-error-msg");
-            if (errorMsg) {
-              errorMsg.classList.remove("visible");
-              errorMsg.style.display = "none";
+        debounceTimer = setTimeout(async () => {
+          try {
+            const resp = await fetch(
+              `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&accept-language=en&q=${encodeURIComponent(query)}&limit=10`,
+            );
+            const results = await resp.json();
+
+            const globalOptions = results
+              .map((r) => {
+                const addr = r.address;
+                const city =
+                  addr.city ||
+                  addr.town ||
+                  addr.village ||
+                  addr.hamlet ||
+                  addr.suburb ||
+                  "";
+                const country = addr.country || "";
+                if (city && country) return `${city}, ${country}`;
+                if (country) return country;
+                return r.display_name;
+              })
+              .filter((val, index, self) => val && self.indexOf(val) === index)
+              .filter(
+                (formatted) => !localMatches.some((lm) => formatted.includes(lm)),
+              )
+              .map((formatted) => `<option value="${formatted}">`)
+              .join("");
+
+            datalist.innerHTML = optionsHtml + globalOptions;
+          } catch (e) {
+            console.error("Autocomplete error:", e);
+            datalist.innerHTML = optionsHtml;
+          }
+        }, 500);
+      });
+    }
+
+    [locInput, checkinInput, checkoutInput].forEach((inp) => {
+      if (inp) {
+        const handler = function () {
+          const group = this.closest(".search-input-group");
+          if (this.value.trim() && group) {
+            group.style.boxShadow = "0 0 10px 3px #D5D5D6";
+
+            const allFilled = [locInput, checkinInput, checkoutInput].every((i) =>
+              i.value.trim(),
+            );
+            if (allFilled) {
+              const errorMsg = document.getElementById("search-error-msg");
+              if (errorMsg) {
+                errorMsg.classList.remove("visible");
+                errorMsg.style.display = "none";
+              }
             }
           }
-        }
-      };
-      inp.addEventListener("input", handler);
-      inp.addEventListener("change", handler);
-    }
-  });
+        };
+        inp.addEventListener("input", handler);
+        inp.addEventListener("change", handler);
+      }
+    });
+  }
 
   // Become a host redirect helper
   const becomeHostHref = window.location.pathname.includes("/host-mode/")
@@ -609,24 +611,53 @@ document.addEventListener("DOMContentLoaded", () => {
   // Initial check for search page results if needed
   // (Managed by search-logic.js now)
 
-  if (
-    typeof flatpickr !== "undefined" &&
-    document.getElementById("checkin-input")
-  ) {
-    const config = {
-      dateFormat: "d.m.Y",
-      minDate: "today",
-      allowInput: true,
-      locale: { firstDayOfWeek: 1 },
-      onChange: function (d, str) {
-        if (this.element.id === "checkin-input") {
-          const out = document.querySelector("#checkout-input")._flatpickr;
-          if (out) out.set("minDate", str);
+  if (!homeSearchManaged) {
+    const homeCheckinInput = document.getElementById("checkin-input");
+    const homeCheckoutInput = document.getElementById("checkout-input");
+
+    if (typeof flatpickr !== "undefined" && homeCheckinInput && homeCheckoutInput) {
+      const config = {
+        dateFormat: "d.m.Y",
+        minDate: "today",
+        allowInput: true,
+        locale: { firstDayOfWeek: 1 },
+        onChange: function (d, str) {
+          if (this.element.id === "checkin-input") {
+            const out = document.querySelector("#checkout-input")._flatpickr;
+            if (out) out.set("minDate", str);
+          }
+        },
+      };
+      flatpickr("#checkin-input", config);
+      flatpickr("#checkout-input", config);
+    } else if (homeCheckinInput && homeCheckoutInput) {
+      const today = new Date();
+      const todayIso = today.toISOString().slice(0, 10);
+
+      const enableNativeDatePicker = (input) => {
+        input.type = "date";
+        input.readOnly = false;
+        input.min = todayIso;
+        input.placeholder = "";
+      };
+
+      enableNativeDatePicker(homeCheckinInput);
+      enableNativeDatePicker(homeCheckoutInput);
+
+      homeCheckinInput.addEventListener("change", () => {
+        if (homeCheckinInput.value) {
+          homeCheckoutInput.min = homeCheckinInput.value;
+          if (
+            homeCheckoutInput.value &&
+            homeCheckoutInput.value < homeCheckinInput.value
+          ) {
+            homeCheckoutInput.value = "";
+          }
+        } else {
+          homeCheckoutInput.min = todayIso;
         }
-      },
-    };
-    flatpickr("#checkin-input", config);
-    flatpickr("#checkout-input", config);
+      });
+    }
   }
 
   document.addEventListener("click", (e) => {
@@ -641,7 +672,9 @@ document.addEventListener("DOMContentLoaded", () => {
       const name =
         amenityBtn.dataset.amenityName ||
         amenityBtn.querySelector(".amenity-label").innerText;
-      window.location.href = `./search.html?amenities=${encodeURIComponent(name.trim())}`;
+      window.location.href = getSearchPageHref(
+        `?amenities=${encodeURIComponent(name.trim())}&page=1`,
+      );
     }
   });
 });

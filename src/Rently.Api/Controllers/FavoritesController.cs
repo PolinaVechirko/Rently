@@ -1,12 +1,11 @@
 using System.Collections.Generic;
-using System.Linq;
+using System;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Rently.Application.Interfaces;
-using Rently.Domain.Entities;
-using Rently.Persistence;
+using Rently.Application.DTOs;
 
 namespace Rently.Api.Controllers
 {
@@ -15,125 +14,84 @@ namespace Rently.Api.Controllers
     [Authorize]
     public class FavoritesController : ControllerBase
     {
-        private readonly ApplicationDbContext _db;
-        private readonly IAccommodationService _accommodationService;
+        private readonly IFavoriteService _service;
 
-        public FavoritesController(ApplicationDbContext db, IAccommodationService accommodationService)
+        public FavoritesController(IFavoriteService service)
         {
-            _db = db;
-            _accommodationService = accommodationService;
+            _service = service;
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<object>>> GetMyFavorites()
+        public async Task<ActionResult<IEnumerable<FavoriteItemDto>>> GetMyFavorites()
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userId = GetCurrentUserId();
             if (userId == null) return Unauthorized();
 
-            var favs = _db.Favorites.Where(f => f.UserId == userId).ToList();
-            var grouped = favs.GroupBy(f => f.AccommodationId).ToList();
-            
-            var results = new List<object>();
-            foreach (var group in grouped)
-            {
-                var dto = await _accommodationService.GetAccommodationByIdAsync(group.Key);
-                if (dto != null)
-                {
-                    var types = group.Select(f => f.Type).ToList();
-                    results.Add(new
-                    {
-                        accommodation = dto,
-                        types = types,
-                        isGuestFavorite = types.Contains(FavoriteType.Guest),
-                        isHostFavorite = types.Contains(FavoriteType.Host)
-                    });
-                }
-            }
-
+            var results = await _service.GetFavoritesAsync(userId);
             return Ok(results);
         }
 
         [HttpGet("{accommodationId}")]
-        public ActionResult<object> IsFavorited(int accommodationId)
+        public async Task<ActionResult<FavoriteStatusDto>> IsFavorited(int accommodationId)
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userId = GetCurrentUserId();
             if (userId == null) return Unauthorized();
 
-            var guestFav = _db.Favorites.FirstOrDefault(f => f.UserId == userId && f.AccommodationId == accommodationId && f.Type == FavoriteType.Guest);
-            var hostFav = _db.Favorites.FirstOrDefault(f => f.UserId == userId && f.AccommodationId == accommodationId && f.Type == FavoriteType.Host);
-
-            return Ok(new { 
-                guestFavorited = guestFav != null,
-                hostFavorited = hostFav != null
-            });
+            var result = await _service.GetFavoriteStatusAsync(userId, accommodationId);
+            return Ok(result);
         }
 
         [HttpPost("{accommodationId}")]
         public async Task<ActionResult> AddFavorite(int accommodationId, [FromQuery] string type = "Guest")
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (userId == null) return Unauthorized();
-
-            // Parse type parameter
-            FavoriteType favoriteType = FavoriteType.Guest;
-            if (Enum.TryParse<FavoriteType>(type, ignoreCase: true, out var parsedType))
+            try
             {
-                favoriteType = parsedType;
+                var userId = GetCurrentUserId();
+                if (userId == null) return Unauthorized();
+
+                var result = await _service.AddFavoriteAsync(userId, accommodationId, type);
+                if (result == null)
+                {
+                    return Conflict(new { message = "Already favorited" });
+                }
+
+                return Ok(result);
             }
-
-            var exists = _db.Favorites.FirstOrDefault(f => 
-                f.UserId == userId && 
-                f.AccommodationId == accommodationId && 
-                f.Type == favoriteType);
-            
-            if (exists != null) return Conflict(new { message = "Already favorited" });
-
-            _db.Favorites.Add(new Favorite { 
-                UserId = userId, 
-                AccommodationId = accommodationId,
-                Type = favoriteType
-            });
-            await _db.SaveChangesAsync();
-            return Ok(new { type = favoriteType });
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
         }
 
         [HttpDelete("{accommodationId}")]
         public async Task<ActionResult> RemoveFavorite(int accommodationId, [FromQuery] string? type = null)
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (userId == null) return Unauthorized();
-
-            FavoriteType? favoriteType = null;
-            if (!string.IsNullOrEmpty(type) && Enum.TryParse<FavoriteType>(type, ignoreCase: true, out var parsedType))
+            try
             {
-                favoriteType = parsedType;
-            }
+                var userId = GetCurrentUserId();
+                if (userId == null) return Unauthorized();
 
-            if (favoriteType == null)
-            {
-                // Remove both types if type not specified
-                var favs = _db.Favorites.Where(f => 
-                    f.UserId == userId && 
-                    f.AccommodationId == accommodationId);
-                
-                if (!favs.Any()) return NotFound();
-                
-                _db.Favorites.RemoveRange(favs);
-            }
-            else
-            {
-                var fav = _db.Favorites.FirstOrDefault(f => 
-                    f.UserId == userId && 
-                    f.AccommodationId == accommodationId && 
-                    f.Type == favoriteType);
-                
-                if (fav == null) return NotFound();
-                
-                _db.Favorites.Remove(fav);
-            }
+                var removed = await _service.RemoveFavoriteAsync(userId, accommodationId, type);
+                if (!removed)
+                {
+                    return NotFound();
+                }
 
-            await _db.SaveChangesAsync();
-            return NoContent();
+                return NoContent();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        private string? GetCurrentUserId()
+        {
+            return User.FindFirstValue(ClaimTypes.NameIdentifier);
         }
     }
 }

@@ -9,6 +9,15 @@ function initSearchPage() {
         renderSearchResultsRows("search-results-container", 8, 6);
     }
 
+    const locationInput = document.getElementById("search-loc");
+    const checkinInput = document.getElementById("search-checkin");
+    const checkoutInput = document.getElementById("search-checkout");
+    const sortSelect = document.getElementById("search-sort");
+
+    if (!locationInput || !checkinInput || !checkoutInput || !sortSelect) {
+        return;
+    }
+
     const moreFiltersBtn = document.getElementById("more-filters-btn");
     const advFilters = document.getElementById("advanced-filters");
     const filtersArrow = document.getElementById("filters-arrow");
@@ -106,18 +115,16 @@ function initSearchPage() {
         return `${year}-${month}-${day}`;
     }
 
-    if (typeof flatpickr !== "undefined" && document.getElementById("search-checkin")) {
-        const checkinInput = document.getElementById("search-checkin");
-        const checkoutInput = document.getElementById("search-checkout");
+    let checkinPicker = checkinInput._flatpickr || null;
+    let checkoutPicker = checkoutInput._flatpickr || null;
+
+    if (typeof flatpickr !== "undefined") {
         const baseConfig = {
             dateFormat: "d.m.Y",
             minDate: "today",
             allowInput: true,
             locale: { firstDayOfWeek: 1 },
         };
-
-        let checkinPicker;
-        let checkoutPicker;
 
         function syncDateConstraints() {
             const selectedCheckin = checkinPicker?.selectedDates?.[0];
@@ -176,19 +183,14 @@ function initSearchPage() {
         syncDateConstraints();
     }
 
-    if (params.has("location")) document.getElementById("search-loc").value = params.get("location");
-    const checkinPicker = document.getElementById("search-checkin")._flatpickr;
-    const checkoutPicker = document.getElementById("search-checkout")._flatpickr;
+    if (params.has("location")) locationInput.value = params.get("location");
     if (params.has("sort")) {
         let sortVal = params.get("sort") || "";
         const norm = sortVal.toLowerCase().replace(/\+/g, " ").trim();
         if (norm === "top rated") sortVal = "highest_rated";
         else if (norm === "popularity" || norm === "most visited") sortVal = "most_visited";
 
-        const sortSelect = document.getElementById("search-sort");
-        if (sortSelect) {
-            sortSelect.value = sortVal;
-        }
+        sortSelect.value = sortVal;
     }
 
     // Restore property type selections (types CSV)
@@ -212,14 +214,14 @@ function initSearchPage() {
     if (searchApplyBtn) {
         searchApplyBtn.addEventListener("click", (event) => {
             event.preventDefault();
-            const loc = document.getElementById("search-loc").value;
+            const loc = locationInput.value;
             const selectedCheckin =
-                parseSearchDateValue(document.getElementById("search-checkin").value) ||
+                parseSearchDateValue(checkinInput.value) ||
                 (checkinPicker && checkinPicker.selectedDates && checkinPicker.selectedDates[0]
                     ? checkinPicker.selectedDates[0]
                     : null);
             const selectedCheckout =
-                parseSearchDateValue(document.getElementById("search-checkout").value) ||
+                parseSearchDateValue(checkoutInput.value) ||
                 (checkoutPicker && checkoutPicker.selectedDates && checkoutPicker.selectedDates[0]
                     ? checkoutPicker.selectedDates[0]
                     : null);
@@ -239,7 +241,7 @@ function initSearchPage() {
             const cout = selectedCheckout
                 ? formatDateForQuery(selectedCheckout)
                 : "";
-            const sort = document.getElementById("search-sort").value;
+            const sort = sortSelect.value;
             const minP = document.getElementById("min-price").value;
             const maxP = document.getElementById("max-price").value;
             const rooms = document.getElementById("cnt-bedrooms").value;

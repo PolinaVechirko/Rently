@@ -103,7 +103,7 @@
                     >Profile</a
                   >
                   <a href="#your-apartments-title" class="dropdown-item-custom"
-                    >Your Apartments</a
+                    >My Accommodations</a
                   >
                   <a
                     href="./favorites.html"
@@ -135,7 +135,7 @@
       <section class="host-mode-hero mt-4">
         <div
           class="host-info-card"
-          onclick="window.location.href = './host-mode/profile.html'"
+          data-nav-href="./host-mode/profile.html"
           style="cursor: pointer"
         >
           <div class="host-photo-wrapper" id="dashboard-host-photo-wrapper">
@@ -199,7 +199,7 @@
               </p>
               <button
                 class="btn-add-new-cta"
-                onclick="window.location.href = 'adding-accommodation.html'"
+                data-nav-href="adding-accommodation.html"
               >
                 Add New Listing
               </button>
@@ -212,9 +212,6 @@
 
           <h3 class="section-subheading mt-5">Active Listings</h3>
           <div class="host-listings-grid" id="active-track"></div>
-
-          <h3 class="section-subheading mt-5">Currently Rented</h3>
-          <div class="host-listings-grid" id="rented-track"></div>
 
           <h3 class="section-subheading mt-5">Hidden Listings</h3>
           <div class="host-listings-grid" id="hidden-track"></div>
@@ -306,175 +303,11 @@
       </div>
     </footer>
 
-    <script src="./js/renderers.js?v=20260513_host_favorite_paths"></script>
+    <script src="./js/renderers.js?v=20260514_host_listing_visibility_fix"></script>
     <script src="./js/ui-utils.js"></script>
     <script src="./js/auth.js?v=20260513_profile_return"></script>
-    <script src="./js/search-logic.js"></script>
-    <script src="./js/main.js?v=20260513_host_favorite_paths"></script>
-    <script>
-      document.addEventListener("DOMContentLoaded", async () => {
-        const token = localStorage.getItem("auth_token") || "";
-        const isLoggedIn =
-          localStorage.getItem("isLoggedIn") === "true" || !!token;
-        if (!isLoggedIn) {
-          // Immediately redirect unauthenticated visitors to login
-          window.location.href = "./login.html";
-          return;
-        }
-        const cachedSummary = JSON.parse(
-          localStorage.getItem("rently_host_summary") || "{}",
-        );
-
-        const formatMoney = (value) => {
-          const amount = Number(value || 0);
-          try {
-            return new Intl.NumberFormat("en-US", {
-              style: "currency",
-              currency: "USD",
-              maximumFractionDigits: 0,
-            }).format(amount);
-          } catch {
-            return `$${Math.round(amount)}`;
-          }
-        };
-
-        const getAvatarFallback = () => {
-          try {
-            return (
-              localStorage.getItem("rently_header_avatar_thumb") ||
-              localStorage.getItem("rently_host_avatar") || "./icons/user.svg"
-            );
-          } catch {
-            return "./icons/user.svg";
-          }
-        };
-
-        const applySummary = (summary) => {
-          if (!summary) return;
-
-          const nameEl = document.getElementById("dashboard-host-name");
-          const emailEl = document.getElementById("dashboard-host-email");
-          const phoneEl = document.getElementById("dashboard-host-phone");
-          const avatarEl = document.getElementById("dashboard-host-avatar");
-          const ratingEl = document.getElementById("dashboard-host-rating");
-          const earningsEl = document.getElementById("dashboard-host-earnings");
-          const responseEl = document.getElementById("dashboard-host-response");
-          const reviewsEl = document.getElementById("dashboard-host-reviews");
-
-          if (nameEl)
-            nameEl.textContent =
-              summary.hostName || nameEl.textContent || "Host";
-          if (emailEl)
-            emailEl.textContent = summary.email || emailEl.textContent || "—";
-          if (phoneEl)
-            phoneEl.textContent =
-              summary.phoneNumber || phoneEl.textContent || "—";
-          if (avatarEl) {
-            // Avatar handled by auth.js syncAllUserData
-          }
-
-          if (ratingEl) {
-            const rating = Number(summary.averageRating || 0);
-            ratingEl.textContent = rating > 0 ? `${rating.toFixed(1)}★` : "—";
-          }
-          if (earningsEl)
-            earningsEl.textContent = formatMoney(summary.earnings);
-          if (responseEl) {
-            const response = Number(summary.responseRate || 0);
-            responseEl.textContent = `${Math.round(response)}%`;
-          }
-          if (reviewsEl)
-            reviewsEl.textContent = String(summary.reviewsCount || 0);
-
-          localStorage.setItem("rently_host_summary", JSON.stringify(summary));
-        };
-
-        if (cachedSummary) {
-          applySummary(cachedSummary);
-        }
-
-        const loadHostSummary = async () => {
-          const token = localStorage.getItem("auth_token");
-          if (!token) return;
-          try {
-            const resp = await fetch("/api/Analytics/host-summary", {
-              headers: { Authorization: "Bearer " + token },
-            });
-            if (resp.ok) {
-              const summary = await resp.json();
-              applySummary(summary);
-            }
-          } catch (e) {
-            console.error("Failed to load host summary:", e);
-          }
-        };
-
-        const renderHostSections = async () => {
-          const tasks = [];
-          if (typeof renderHostListings === "function") {
-            tasks.push(
-              renderHostListings(
-                "active-track",
-                "rented-track",
-                "hidden-track",
-              ),
-            );
-          }
-
-          const inspirationContainer = document.querySelector(
-            "#inspiration .horizontal-scroll-container",
-          );
-          if (typeof renderAccommodations === "function") {
-            tasks.push(
-              renderAccommodations(
-                "inspiration-track",
-                true,
-                false,
-                false,
-                false,
-                16,
-              ),
-            );
-          }
-
-          await Promise.allSettled(tasks);
-          if (
-            inspirationContainer &&
-            typeof initScrollSnapping === "function"
-          ) {
-            initScrollSnapping(
-              inspirationContainer,
-              ".horizontal-scroll-track",
-            );
-          }
-        };
-
-        // 3. Execution
-        await renderHostSections();
-        await loadHostSummary();
-        if (typeof stabilizeHashScroll === "function") {
-          stabilizeHashScroll();
-        }
-
-        // Avatar upload
-        const avatarInput = document.getElementById("host-photo-input");
-        if (avatarInput) {
-          avatarInput.addEventListener("change", async (ev) => {
-            const file = ev.target.files && ev.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = () => {
-              const dataUrl = reader.result;
-              if (typeof setAllAvatars === "function") {
-                setAllAvatars(dataUrl);
-              }
-              localStorage.setItem("rently_host_avatar", dataUrl);
-              localStorage.setItem("rently_header_avatar_thumb", dataUrl);
-            };
-            reader.readAsDataURL(file);
-          });
-        }
-      });
-    </script>
+    <script src="./js/search-logic.js?v=20260514_4"></script>
+    <script src="./js/main.js?v=20260514_favorites_persist_fix"></script>
+    <script src="./js/host-dashboard-page.js?v=20260514_host_listing_states_2"></script>
   </body>
 </html>

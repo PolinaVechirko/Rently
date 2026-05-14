@@ -444,6 +444,60 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  function getListingVisibilityPayload() {
+    const isUpcoming = !!document.querySelector(
+      'input[name="listing-status"][value="Upcoming"]',
+    )?.checked;
+    const availableFromValue =
+      document.getElementById("available-from")?.value || "";
+
+    if (isUpcoming) {
+      return {
+        isActive: true,
+        visibleFrom: availableFromValue || null,
+      };
+    }
+
+    return {
+      isActive: true,
+      visibleFrom: null,
+    };
+  }
+
+  async function uploadInlinePhotos(token, photos) {
+    const normalizedPhotos = Array.isArray(photos) ? photos : [];
+    const uploaded = [];
+
+    for (const photo of normalizedPhotos) {
+      if (!photo) continue;
+      if (!String(photo).startsWith("data:")) {
+        uploaded.push(photo);
+        continue;
+      }
+
+      const response = await fetch("/api/Images/upload", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token,
+        },
+        body: JSON.stringify({ dataUrl: photo }),
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        throw new Error(payload?.message || "Failed to upload listing photo.");
+      }
+
+      const payload = await response.json();
+      if (payload?.url) {
+        uploaded.push(payload.url);
+      }
+    }
+
+    return uploaded;
+  }
+
   // Photo drag & drop placeholder logic
   const photoUpload = document.getElementById("photo-upload");
   const photoPreviewGrid = document.getElementById("photo-preview-grid");
@@ -487,9 +541,6 @@ document.addEventListener("DOMContentLoaded", () => {
         e.preventDefault();
         uploadedPhotos.splice(index, 1);
         updatePhotoGrid();
-        if (uploadedPhotos.length === 0) {
-          dropZone.classList.remove("d-none");
-        }
       });
       wrapper.appendChild(deleteBtn);
 
@@ -497,11 +548,16 @@ document.addEventListener("DOMContentLoaded", () => {
       photoPreviewGrid.appendChild(wrapper);
     });
 
-    // Show/hide drop zone based on photos
+    updatePhotoActionState();
+  };
+
+  const updatePhotoActionState = () => {
     if (uploadedPhotos.length > 0) {
       dropZone.classList.add("d-none");
+      addMorePhotosBtn.textContent = "Add More Photos";
     } else {
       dropZone.classList.remove("d-none");
+      addMorePhotosBtn.textContent = "Select Photos";
     }
   };
 
@@ -585,6 +641,7 @@ document.addEventListener("DOMContentLoaded", () => {
   photoUpload.addEventListener("change", async (e) => {
     const files = e.target.files;
     await processFiles(files);
+    photoUpload.value = "";
   });
 
   // Drag and drop
@@ -617,23 +674,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const addMorePhotosBtn = document.createElement("button");
   addMorePhotosBtn.type = "button";
   addMorePhotosBtn.className = "btn btn-outline-primary mt-3";
-  addMorePhotosBtn.textContent = "Add More Photos";
-  addMorePhotosBtn.style.display = "none";
+  addMorePhotosBtn.textContent = "Select Photos";
   addMorePhotosBtn.addEventListener("click", () => {
     photoUpload.value = ""; // Reset to allow selecting same files again
     photoUpload.click();
   });
   photoPreviewGrid.parentElement.appendChild(addMorePhotosBtn);
-
-  // Update "Add More Photos" button visibility
-  const observer = new MutationObserver(() => {
-    if (uploadedPhotos.length > 0) {
-      addMorePhotosBtn.style.display = "block";
-    } else {
-      addMorePhotosBtn.style.display = "none";
-    }
-  });
-  observer.observe(photoPreviewGrid, { childList: true });
+  updatePhotoActionState();
 
   // Final Review Step
   const reviewBtn = document.getElementById("to-preview-btn");
@@ -912,6 +959,16 @@ document.addEventListener("DOMContentLoaded", () => {
       const price = parseFloat(
         document.getElementById("price-night").value || "0",
       );
+      const visibility = getListingVisibilityPayload();
+
+      if (
+        document.querySelector('input[name="listing-status"][value="Upcoming"]')
+          ?.checked &&
+        !visibility.visibleFrom
+      ) {
+        alert("Choose the date when this listing should become visible.");
+        return;
+      }
 
       const token = localStorage.getItem("auth_token") || "";
 
@@ -945,29 +1002,14 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
 
-      // Map photos - filter out base64 data URIs and use only valid image URLs
-      const photoUrls = [];
-      if (uploadedPhotos.length > 0) {
-        // Filter base64 data URIs (starting with "data:") - we only accept valid URLs
-        const validPhotos = uploadedPhotos.filter(
-          (photo) => !photo.startsWith("data:"),
-        );
-        if (validPhotos.length > 0) {
-          photoUrls.push(...validPhotos);
-        } else {
-          // If all uploaded photos are base64 (which shouldn't happen), use placeholders
+      try {
+        const photoUrls = await uploadInlinePhotos(token, uploadedPhotos);
+        if (photoUrls.length === 0) {
           photoUrls.push("./images/hero1.png");
           photoUrls.push("./images/hero2.png");
           photoUrls.push("./images/hero3.png");
         }
-      } else {
-        // Fallback to demo images if no photos uploaded
-        photoUrls.push("./images/hero1.png");
-        photoUrls.push("./images/hero2.png");
-        photoUrls.push("./images/hero3.png");
-      }
 
-      try {
         const isEditMode = Boolean(editAccommodationId);
         const res = await fetch(
           isEditMode
@@ -989,6 +1031,8 @@ document.addEventListener("DOMContentLoaded", () => {
               country: country,
               city: city,
               street: street,
+              isActive: visibility.isActive,
+              visibleFrom: visibility.visibleFrom,
               photoUrls: photoUrls,
               amenityIds: selectedAmenityIds,
             }),

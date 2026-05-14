@@ -4,11 +4,11 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Rently.Api.Mappers;
 using Rently.Application.DTOs;
 using Rently.Application.Interfaces;
 using Rently.Domain.Entities;
 using Rently.Persistence;
-using ApplicationUser = Rently.Persistence.ApplicationUser;
 
 namespace Rently.Api.Services
 {
@@ -27,75 +27,13 @@ namespace Rently.Api.Services
         {
             var filters = queryDto ?? new AccommodationListQueryDto();
             var today = DateTime.UtcNow.Date;
-            var accommodationsQuery = _context.Accommodations
-                .Include(a => a.Address)
-                .Include(a => a.AccommodationAmenities!)
-                    .ThenInclude(aa => aa.Amenity)
-                .Include(a => a.Photos)
-                .Include(a => a.Reviews)
-                .Include(a => a.Bookings)
-                .Where(IsVisibleOnDate(today))
-                .AsQueryable();
-
-            // Filters
-            if (!string.IsNullOrEmpty(filters.Location))
-            {
-                var lowerLoc = filters.Location.ToLower();
-                accommodationsQuery = accommodationsQuery.Where(a => a.Address != null && (a.Address.City.ToLower().Contains(lowerLoc) || a.Address.Country.ToLower().Contains(lowerLoc)));
-            }
-
-            if (!string.IsNullOrEmpty(filters.Type) && Enum.TryParse<PropertyType>(filters.Type, true, out var pType))
-            {
-                accommodationsQuery = accommodationsQuery.Where(a => a.PropertyType == pType);
-            }
-
-            if (filters.MinPrice.HasValue) accommodationsQuery = accommodationsQuery.Where(a => a.PricePerNight >= filters.MinPrice.Value);
-            if (filters.MaxPrice.HasValue) accommodationsQuery = accommodationsQuery.Where(a => a.PricePerNight <= filters.MaxPrice.Value);
-            if (filters.Rooms.HasValue) accommodationsQuery = accommodationsQuery.Where(a => a.RoomsCount >= filters.Rooms.Value);
-            if (filters.Beds.HasValue) accommodationsQuery = accommodationsQuery.Where(a => a.BedsCount >= filters.Beds.Value);
-
-            if (filters.AmenityId.HasValue)
-            {
-                accommodationsQuery = accommodationsQuery.Where(a => a.AccommodationAmenities!.Any(aa => aa.AmenityId == filters.AmenityId.Value));
-            }
-
-            if (filters.CheckIn.HasValue && filters.CheckOut.HasValue)
-            {
-                var normalizedCheckIn = filters.CheckIn.Value.Date;
-                var normalizedCheckOut = filters.CheckOut.Value.Date;
-
-                accommodationsQuery = accommodationsQuery.Where(a =>
-                    !a.Bookings!.Any(b =>
-                        b.Status != BookingStatus.Cancelled &&
-                        b.CheckInDate < normalizedCheckOut &&
-                        b.CheckOutDate > normalizedCheckIn) &&
-                    !_context.AvailabilityBlocks.Any(block =>
-                        block.AccommodationId == a.Id &&
-                        normalizedCheckIn < block.EndDate &&
-                        normalizedCheckOut > block.StartDate));
-            }
+            var accommodationsQuery = BuildAccommodationListQuery(today);
+            accommodationsQuery = ApplyListFilters(accommodationsQuery, filters);
 
             var accommodations = await accommodationsQuery.ToListAsync();
+            accommodations = ApplyListSorting(accommodations, filters.SortBy);
 
-            // Sorting
-            if (filters.SortBy == "highest_rated")
-            {
-                accommodations = accommodations.OrderByDescending(a => a.Reviews != null && a.Reviews.Any() ? a.Reviews.Average(r => r.Rating) : 0).ToList();
-            }
-            else if (filters.SortBy == "most_visited")
-            {
-                accommodations = accommodations.OrderByDescending(a => a.Bookings?.Count ?? 0).ToList();
-            }
-            else if (filters.SortBy == "price_asc")
-            {
-                accommodations = accommodations.OrderBy(a => a.PricePerNight).ToList();
-            }
-            else if (filters.SortBy == "price_desc")
-            {
-                accommodations = accommodations.OrderByDescending(a => a.PricePerNight).ToList();
-            }
-
-            return accommodations.Skip(filters.Skip).Take(filters.Limit).Select(a => MapToDto(a));
+            return accommodations.Skip(filters.Skip).Take(filters.Limit).Select(accommodation => AccommodationMapper.ToDto(accommodation));
         }
 
         public async Task<PagedResultDto<AccommodationDto>> SearchAccommodationsAsync(AccommodationSearchQueryDto queryDto)
@@ -113,109 +51,15 @@ namespace Rently.Api.Services
             }
 
             var today = DateTime.UtcNow.Date;
-            var accommodationsQuery = _context.Accommodations
-                .AsNoTracking()
-                .Where(IsVisibleOnDate(today))
-                .AsQueryable();
-
-            // Location filter (city/country)
-            if (!string.IsNullOrWhiteSpace(filters.Location))
-            {
-                var lowerLoc = filters.Location.Trim().ToLower();
-                accommodationsQuery = accommodationsQuery.Where(a => a.Address != null &&
-                                         (a.Address.City.ToLower().Contains(lowerLoc) ||
-                                          a.Address.Country.ToLower().Contains(lowerLoc)));
-            }
-
-            // Property types filter (CSV, matches enum names)
-            if (!string.IsNullOrWhiteSpace(filters.TypesCsv))
-            {
-                var types = filters.TypesCsv
-                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                    .Select(t => Enum.TryParse<PropertyType>(t.Replace(" ", ""), true, out var parsed) ? (PropertyType?)parsed : null)
-                    .Where(t => t.HasValue)
-                    .Select(t => t!.Value)
-                    .Distinct()
-                    .ToList();
-
-                if (types.Count > 0)
-                {
-                    accommodationsQuery = accommodationsQuery.Where(a => types.Contains(a.PropertyType));
-                }
-            }
-
-            if (filters.MinPrice.HasValue) accommodationsQuery = accommodationsQuery.Where(a => a.PricePerNight >= filters.MinPrice.Value);
-            if (filters.MaxPrice.HasValue) accommodationsQuery = accommodationsQuery.Where(a => a.PricePerNight <= filters.MaxPrice.Value);
-            if (filters.Rooms.HasValue) accommodationsQuery = accommodationsQuery.Where(a => a.RoomsCount >= filters.Rooms.Value);
-            if (filters.Beds.HasValue) accommodationsQuery = accommodationsQuery.Where(a => a.BedsCount >= filters.Beds.Value);
-
-            // Guests: we don't have explicit capacity field; approximate by beds >= guests
-            if (filters.Guests.HasValue && filters.Guests.Value > 0)
-            {
-                accommodationsQuery = accommodationsQuery.Where(a => (a.BedsCount ?? 0) >= filters.Guests.Value);
-            }
-
-            // Amenities filter by names (any match)
-            if (!string.IsNullOrWhiteSpace(filters.AmenitiesCsv))
-            {
-                var amenityNames = filters.AmenitiesCsv
-                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                    .Where(n => !string.IsNullOrWhiteSpace(n))
-                    .Select(n => n.ToLower())
-                    .Distinct()
-                    .ToList();
-
-                if (amenityNames.Count > 0)
-                {
-                    accommodationsQuery = accommodationsQuery.Where(a => a.AccommodationAmenities != null &&
-                                             a.AccommodationAmenities.Any(aa => aa.Amenity != null && amenityNames.Contains(aa.Amenity.Name.ToLower())));
-                }
-            }
-
-            // Availability
-            if (effectiveCheckIn.HasValue && effectiveCheckOut.HasValue)
-            {
-                var normalizedCheckIn = effectiveCheckIn.Value;
-                var normalizedCheckOut = effectiveCheckOut.Value;
-
-                accommodationsQuery = accommodationsQuery.Where(a =>
-                    (a.Bookings == null || !a.Bookings.Any(b =>
-                        b.Status != BookingStatus.Cancelled &&
-                        b.CheckInDate < normalizedCheckOut &&
-                        b.CheckOutDate > normalizedCheckIn)) &&
-                    !_context.AvailabilityBlocks.Any(block =>
-                        block.AccommodationId == a.Id &&
-                        normalizedCheckIn < block.EndDate &&
-                        normalizedCheckOut > block.StartDate));
-            }
+            var accommodationsQuery = BuildAccommodationSearchQuery(today);
+            accommodationsQuery = ApplySearchFilters(accommodationsQuery, filters, effectiveCheckIn, effectiveCheckOut);
 
             var total = await accommodationsQuery.CountAsync();
 
             try
             {
-                // Fetch filtered items with Includes (in-memory for robust sorting)
-                var allFilteredItems = await accommodationsQuery
-                    .Include(a => a.Address)
-                    .Include(a => a.Photos)
-                    .Include(a => a.Reviews)
-                    .Include(a => a.AccommodationAmenities!)
-                        .ThenInclude(aa => aa.Amenity)
-                    .ToListAsync();
-
-                // Sort in-memory to avoid SQLite translation issues
-                IEnumerable<Accommodation> sortedItems = filters.SortBy?.ToLower() switch
-                {
-                    "highest_rated" or "top rated" => allFilteredItems
-                        .OrderByDescending(a => a.Reviews != null && a.Reviews.Any()
-                            ? a.Reviews.Average(r => (double)r.Rating)
-                            : 0.0),
-                    "most_visited" or "popularity" or "most visited" => allFilteredItems
-                        .OrderByDescending(a => a.Bookings?.Count(b => b.Status == BookingStatus.Confirmed) ?? 0),
-                    "price_asc" or "price: low to high" or "price_low_high" => allFilteredItems.OrderBy(a => (double)a.PricePerNight),
-                    "price_desc" or "price: high to low" or "price_high_low" => allFilteredItems.OrderByDescending(a => (double)a.PricePerNight),
-                    "newest" => allFilteredItems.OrderByDescending(a => a.CreatedAt),
-                    _ => allFilteredItems.OrderByDescending(a => a.CreatedAt)
-                };
+                var allFilteredItems = await LoadSearchResultsAsync(accommodationsQuery);
+                var sortedItems = ApplySearchSorting(allFilteredItems, filters.SortBy);
 
                 var items = sortedItems
                     .Skip(filters.Skip)
@@ -224,7 +68,7 @@ namespace Rently.Api.Services
 
                 return new PagedResultDto<AccommodationDto>
                 {
-                    Items = items.Select(MapToListDto).ToList(),
+                    Items = items.Select(accommodation => AccommodationMapper.ToListDto(accommodation)).ToList(),
                     Total = total,
                     Limit = filters.Limit,
                     Skip = filters.Skip
@@ -300,7 +144,7 @@ namespace Rently.Api.Services
                 RoomsCount = x.RoomsCount,
                 BedsCount = x.BedsCount,
                 Description = x.Description,
-                Title = BuildAccommodationTitle(x.Title, x.Description, "Property"),
+                Title = AccommodationMapper.BuildTitle(x.Title, x.Description, "Property"),
                 CreatedAt = x.CreatedAt,
                 IsActive = x.IsActive,
                 VisibleFrom = x.VisibleFrom,
@@ -375,7 +219,7 @@ namespace Rently.Api.Services
                 RoomsCount = x.RoomsCount,
                 BedsCount = x.BedsCount,
                 Description = x.Description,
-                Title = BuildAccommodationTitle(x.Title, x.Description, "Property"),
+                Title = AccommodationMapper.BuildTitle(x.Title, x.Description, "Property"),
                 CreatedAt = x.CreatedAt,
                 IsActive = x.IsActive,
                 VisibleFrom = x.VisibleFrom,
@@ -423,7 +267,7 @@ namespace Rently.Api.Services
                 .Where(block => block.AccommodationId == id)
                 .ToListAsync();
 
-            var dto = MapToDto(accommodation, host, reviewersDict, availabilityBlocks);
+            var dto = AccommodationMapper.ToDto(accommodation, host, reviewersDict, availabilityBlocks);
             dto.FavoritesCount = CountGuestFavorites(accommodation);
             return dto;
         }
@@ -438,7 +282,7 @@ namespace Rently.Api.Services
                 RoomsCount = dto.RoomsCount,
                 BedsCount = dto.BedsCount,
                 Description = dto.Description,
-                Title = BuildAccommodationTitle(dto.Title, dto.Description, "Property"),
+                Title = AccommodationMapper.BuildTitle(dto.Title, dto.Description, "Property"),
                 IsActive = dto.IsActive,
                 VisibleFrom = dto.VisibleFrom?.Date,
                 CreatedAt = DateTime.UtcNow,
@@ -468,7 +312,7 @@ namespace Rently.Api.Services
             await _context.SaveChangesAsync();
             ClearHomepageCache();
 
-            return await GetAccommodationByIdAsync(accommodation.Id) ?? MapToDto(accommodation, null, null);
+            return await GetAccommodationByIdAsync(accommodation.Id) ?? AccommodationMapper.ToDto(accommodation);
         }
 
         public async Task<bool> DeleteAccommodationAsync(int id, string hostId)
@@ -510,7 +354,7 @@ namespace Rently.Api.Services
 
             return accommodations.Select(a =>
             {
-                var dto = MapToDto(a);
+                var dto = AccommodationMapper.ToDto(a);
                 dto.FavoritesCount = CountGuestFavorites(a);
                 return dto;
             });
@@ -536,7 +380,7 @@ namespace Rently.Api.Services
             // If somehow it ends up empty after assignment, provide a fallback
             if (string.IsNullOrWhiteSpace(accommodation.Title))
             {
-                accommodation.Title = BuildAccommodationTitle(null, dto.Description, "Beautiful Property");
+                accommodation.Title = AccommodationMapper.BuildTitle(null, dto.Description, "Beautiful Property");
             }
             accommodation.IsActive = dto.IsActive;
             accommodation.VisibleFrom = dto.VisibleFrom?.Date;
@@ -577,177 +421,230 @@ namespace Rently.Api.Services
             return await GetAccommodationByIdAsync(id);
         }
 
-        private AccommodationDto MapToDto(
-            Accommodation entity,
-            ApplicationUser? host = null,
-            Dictionary<string, ApplicationUser>? reviewers = null,
-            List<AvailabilityBlock>? availabilityBlocks = null)
-        {
-            var confirmedBookings = entity.Bookings?.Where(b => b.Status == BookingStatus.Confirmed).ToList() ?? new List<Booking>();
-            var unavailableDateRanges = confirmedBookings
-                .Where(b => b.CheckOutDate.Date > DateTime.UtcNow.Date)
-                .Select(b => new UnavailableDateRangeDto
-                {
-                    StartDate = b.CheckInDate.Date,
-                    EndDate = b.CheckOutDate.Date
-                })
-                .ToList();
-
-            if (availabilityBlocks != null && availabilityBlocks.Count > 0)
-            {
-                unavailableDateRanges.AddRange(
-                    availabilityBlocks
-                        .Where(block => block.EndDate.Date > DateTime.UtcNow.Date)
-                        .Select(block => new UnavailableDateRangeDto
-                        {
-                            StartDate = block.StartDate.Date,
-                            EndDate = block.EndDate.Date
-                        }));
-            }
-            
-            // Calculate Total Earnings (Confirmed past bookings)
-            decimal totalEarnings = 0;
-            foreach (var b in confirmedBookings)
-            {
-                if (b.CheckInDate < DateTime.UtcNow)
-                {
-                    var days = (decimal)(b.CheckOutDate - b.CheckInDate).TotalDays;
-                    totalEarnings += days * entity.PricePerNight;
-                }
-            }
-
-            // Calculate Next Available Date
-            DateTime nextAvailable = DateTime.UtcNow.Date;
-            var futureBookings = confirmedBookings.Where(b => b.CheckOutDate > DateTime.UtcNow).OrderBy(b => b.CheckInDate).ToList();
-            foreach (var b in futureBookings)
-            {
-                if (b.CheckInDate <= nextAvailable)
-                {
-                    nextAvailable = b.CheckOutDate.Date;
-                }
-                else
-                {
-                    break;
-                }
-            }
-
-            var reviews = entity.Reviews?.Select(r => new ReviewDto
-            {
-                Id = r.Id,
-                Comment = r.Comment,
-                HostReply = r.HostReply,
-                HostReplyCreatedAt = r.HostReplyCreatedAt,
-                Rating = r.Rating,
-                CreatedAt = r.CreatedAt,
-                ReviewerName = (reviewers != null && reviewers.TryGetValue(r.GuestId, out var g)) ? g.FullName : "Anonymous",
-                ReviewerAvatarUrl = (reviewers != null && reviewers.TryGetValue(r.GuestId, out var g2)) ? g2.ProfilePhotoUrl ?? "/icons/user.svg" : "/icons/user.svg"
-            }).ToList();
-
-            return new AccommodationDto
-            {
-                Id = entity.Id,
-                HostId = entity.HostId,
-                PropertyType = entity.PropertyType.ToString(),
-                PricePerNight = entity.PricePerNight,
-                RoomsCount = entity.RoomsCount,
-                BedsCount = entity.BedsCount,
-                Description = entity.Description,
-                Title = BuildAccommodationTitle(entity.Title, entity.Description, entity.PropertyType.ToString()),
-                CreatedAt = entity.CreatedAt,
-                IsActive = entity.IsActive,
-                VisibleFrom = entity.VisibleFrom?.Date,
-                AverageRating = (entity.Reviews != null && entity.Reviews.Any()) ? entity.Reviews.Average(r => r.Rating) : 0,
-                ReviewsCount = entity.Reviews?.Count ?? 0,
-                FavoritesCount = entity.FavoritedBy?.Count ?? 0,
-                Country = entity.Address?.Country ?? "",
-                City = entity.Address?.City ?? "",
-                Street = entity.Address?.Street,
-                Amenities = entity.AccommodationAmenities?
-                    .Where(aa => aa.Amenity != null && !string.IsNullOrEmpty(aa.Amenity.Name))
-                    .Select(aa => aa.Amenity!.Name)
-                    .ToList() ?? new List<string>(),
-                Photos = entity.Photos?.Select(p => p.Url).ToList() ?? new List<string>(),
-                IsRented = confirmedBookings.Any(b =>
-                    b.CheckInDate <= DateTime.UtcNow &&
-                    b.CheckOutDate >= DateTime.UtcNow),
-                TotalEarnings = totalEarnings,
-                NextAvailableDate = nextAvailable,
-                UnavailableDateRanges = unavailableDateRanges,
-                Reviews = reviews,
-                HostName = host?.FullName,
-                HostAvatarUrl = host?.ProfilePhotoUrl ?? "/icons/user.svg",
-                HostCreatedAt = host?.CreatedAt,
-                HostEmail = host?.Email
-            };
-        }
-
-        private AccommodationDto MapToListDto(Accommodation entity)
-        {
-            return new AccommodationDto
-            {
-                Id = entity.Id,
-                HostId = entity.HostId,
-                PropertyType = entity.PropertyType.ToString(),
-                PricePerNight = entity.PricePerNight,
-                RoomsCount = entity.RoomsCount,
-                BedsCount = entity.BedsCount,
-                Description = entity.Description,
-                Title = BuildAccommodationTitle(entity.Title, entity.Description, entity.PropertyType.ToString()),
-                CreatedAt = entity.CreatedAt,
-                IsActive = entity.IsActive,
-                VisibleFrom = entity.VisibleFrom?.Date,
-                AverageRating = (entity.Reviews != null && entity.Reviews.Any()) ? entity.Reviews.Average(r => r.Rating) : 0,
-                ReviewsCount = entity.Reviews?.Count ?? 0,
-                FavoritesCount = entity.FavoritedBy?.Count ?? 0,
-                Country = entity.Address?.Country ?? "",
-                City = entity.Address?.City ?? "",
-                Street = entity.Address?.Street,
-                Amenities = entity.AccommodationAmenities?
-                    .Where(aa => aa.Amenity != null)
-                    .Select(aa => aa.Amenity!.Name)
-                    .ToList() ?? new List<string>(),
-                Photos = entity.Photos?.Select(p => p.Url).ToList() ?? new List<string>(),
-                IsRented = false,
-                TotalEarnings = 0,
-                NextAvailableDate = DateTime.UtcNow.Date,
-                Reviews = null,
-                HostName = null,
-                HostAvatarUrl = "./icons/user.svg",
-                HostCreatedAt = null,
-                HostEmail = null
-            };
-        }
-
         private static int CountGuestFavorites(Accommodation entity)
         {
             return entity.FavoritedBy?.Count(f => f.Type == FavoriteType.Guest) ?? 0;
         }
 
-        private static string BuildAccommodationTitle(string? explicitTitle, string? description, string fallbackTitle)
+        private IQueryable<Accommodation> BuildAccommodationListQuery(DateTime today)
         {
-            if (!string.IsNullOrWhiteSpace(explicitTitle))
+            return _context.Accommodations
+                .Include(a => a.Address)
+                .Include(a => a.AccommodationAmenities!)
+                    .ThenInclude(aa => aa.Amenity)
+                .Include(a => a.Photos)
+                .Include(a => a.Reviews)
+                .Include(a => a.Bookings)
+                .Where(IsVisibleOnDate(today));
+        }
+
+        private IQueryable<Accommodation> BuildAccommodationSearchQuery(DateTime today)
+        {
+            return _context.Accommodations
+                .AsNoTracking()
+                .Where(IsVisibleOnDate(today));
+        }
+
+        private IQueryable<Accommodation> ApplyListFilters(
+            IQueryable<Accommodation> query,
+            AccommodationListQueryDto filters)
+        {
+            query = ApplyLocationFilter(query, filters.Location);
+            query = ApplyPropertyTypeFilter(query, filters.Type);
+            query = ApplyPriceAndCapacityFilters(query, filters.MinPrice, filters.MaxPrice, filters.Rooms, filters.Beds);
+            query = ApplyAmenityIdFilter(query, filters.AmenityId);
+            query = ApplyAvailabilityFilter(query, filters.CheckIn, filters.CheckOut);
+
+            return query;
+        }
+
+        private IQueryable<Accommodation> ApplySearchFilters(
+            IQueryable<Accommodation> query,
+            AccommodationSearchQueryDto filters,
+            DateTime? checkIn,
+            DateTime? checkOut)
+        {
+            query = ApplyLocationFilter(query, filters.Location);
+            query = ApplyPropertyTypesCsvFilter(query, filters.TypesCsv);
+            query = ApplyPriceAndCapacityFilters(query, filters.MinPrice, filters.MaxPrice, filters.Rooms, filters.Beds);
+            query = ApplyGuestsFilter(query, filters.Guests);
+            query = ApplyAmenitiesCsvFilter(query, filters.AmenitiesCsv);
+            query = ApplyAvailabilityFilter(query, checkIn, checkOut);
+
+            return query;
+        }
+
+        private static List<Accommodation> ApplyListSorting(List<Accommodation> accommodations, string? sortBy)
+        {
+            return sortBy switch
             {
-                return explicitTitle;
+                "highest_rated" => accommodations.OrderByDescending(a => a.Reviews != null && a.Reviews.Any() ? a.Reviews.Average(r => r.Rating) : 0).ToList(),
+                "most_visited" => accommodations.OrderByDescending(a => a.Bookings?.Count ?? 0).ToList(),
+                "price_asc" => accommodations.OrderBy(a => a.PricePerNight).ToList(),
+                "price_desc" => accommodations.OrderByDescending(a => a.PricePerNight).ToList(),
+                _ => accommodations
+            };
+        }
+
+        private static IEnumerable<Accommodation> ApplySearchSorting(
+            IEnumerable<Accommodation> accommodations,
+            string? sortBy)
+        {
+            return sortBy?.ToLower() switch
+            {
+                "highest_rated" or "top rated" => accommodations.OrderByDescending(a =>
+                    a.Reviews != null && a.Reviews.Any() ? a.Reviews.Average(r => (double)r.Rating) : 0.0),
+                "most_visited" or "popularity" or "most visited" => accommodations.OrderByDescending(a =>
+                    a.Bookings?.Count(b => b.Status == BookingStatus.Confirmed) ?? 0),
+                "price_asc" or "price: low to high" or "price_low_high" => accommodations.OrderBy(a => (double)a.PricePerNight),
+                "price_desc" or "price: high to low" or "price_high_low" => accommodations.OrderByDescending(a => (double)a.PricePerNight),
+                "newest" => accommodations.OrderByDescending(a => a.CreatedAt),
+                _ => accommodations.OrderByDescending(a => a.CreatedAt)
+            };
+        }
+
+        private static IQueryable<Accommodation> ApplyLocationFilter(IQueryable<Accommodation> query, string? location)
+        {
+            if (string.IsNullOrWhiteSpace(location))
+            {
+                return query;
             }
 
-            if (string.IsNullOrWhiteSpace(description))
+            var lowerLoc = location.Trim().ToLower();
+            return query.Where(a =>
+                a.Address != null &&
+                (a.Address.City.ToLower().Contains(lowerLoc) || a.Address.Country.ToLower().Contains(lowerLoc)));
+        }
+
+        private static IQueryable<Accommodation> ApplyPropertyTypeFilter(IQueryable<Accommodation> query, string? type)
+        {
+            if (string.IsNullOrWhiteSpace(type) || !Enum.TryParse<PropertyType>(type, true, out var propertyType))
             {
-                return fallbackTitle;
+                return query;
             }
 
-            var firstSentence = description
-                .Split(new[] { '.', '!', '?' }, StringSplitOptions.RemoveEmptyEntries)
-                .FirstOrDefault()?
-                .Trim();
+            return query.Where(a => a.PropertyType == propertyType);
+        }
 
-            if (string.IsNullOrWhiteSpace(firstSentence))
+        private static IQueryable<Accommodation> ApplyPropertyTypesCsvFilter(IQueryable<Accommodation> query, string? typesCsv)
+        {
+            if (string.IsNullOrWhiteSpace(typesCsv))
             {
-                return fallbackTitle;
+                return query;
             }
 
-            return firstSentence.Length > 60
-                ? $"{firstSentence.Substring(0, 57)}..."
-                : firstSentence;
+            var propertyTypes = typesCsv
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(value => Enum.TryParse<PropertyType>(value.Replace(" ", ""), true, out var parsed) ? (PropertyType?)parsed : null)
+                .Where(value => value.HasValue)
+                .Select(value => value!.Value)
+                .Distinct()
+                .ToList();
+
+            return propertyTypes.Count == 0
+                ? query
+                : query.Where(a => propertyTypes.Contains(a.PropertyType));
+        }
+
+        private static IQueryable<Accommodation> ApplyPriceAndCapacityFilters(
+            IQueryable<Accommodation> query,
+            decimal? minPrice,
+            decimal? maxPrice,
+            int? rooms,
+            int? beds)
+        {
+            if (minPrice.HasValue)
+            {
+                query = query.Where(a => a.PricePerNight >= minPrice.Value);
+            }
+
+            if (maxPrice.HasValue)
+            {
+                query = query.Where(a => a.PricePerNight <= maxPrice.Value);
+            }
+
+            if (rooms.HasValue)
+            {
+                query = query.Where(a => a.RoomsCount >= rooms.Value);
+            }
+
+            if (beds.HasValue)
+            {
+                query = query.Where(a => a.BedsCount >= beds.Value);
+            }
+
+            return query;
+        }
+
+        private static IQueryable<Accommodation> ApplyAmenityIdFilter(IQueryable<Accommodation> query, int? amenityId)
+        {
+            return amenityId.HasValue
+                ? query.Where(a => a.AccommodationAmenities!.Any(aa => aa.AmenityId == amenityId.Value))
+                : query;
+        }
+
+        private static IQueryable<Accommodation> ApplyGuestsFilter(IQueryable<Accommodation> query, int? guests)
+        {
+            return guests.HasValue && guests.Value > 0
+                ? query.Where(a => (a.BedsCount ?? 0) >= guests.Value)
+                : query;
+        }
+
+        private static IQueryable<Accommodation> ApplyAmenitiesCsvFilter(IQueryable<Accommodation> query, string? amenitiesCsv)
+        {
+            if (string.IsNullOrWhiteSpace(amenitiesCsv))
+            {
+                return query;
+            }
+
+            var amenityNames = amenitiesCsv
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Where(name => !string.IsNullOrWhiteSpace(name))
+                .Select(name => name.ToLower())
+                .Distinct()
+                .ToList();
+
+            return amenityNames.Count == 0
+                ? query
+                : query.Where(a =>
+                    a.AccommodationAmenities != null &&
+                    a.AccommodationAmenities.Any(aa =>
+                        aa.Amenity != null && amenityNames.Contains(aa.Amenity.Name.ToLower())));
+        }
+
+        private IQueryable<Accommodation> ApplyAvailabilityFilter(
+            IQueryable<Accommodation> query,
+            DateTime? checkIn,
+            DateTime? checkOut)
+        {
+            if (!checkIn.HasValue || !checkOut.HasValue)
+            {
+                return query;
+            }
+
+            var normalizedCheckIn = checkIn.Value.Date;
+            var normalizedCheckOut = checkOut.Value.Date;
+
+            return query.Where(a =>
+                (a.Bookings == null || !a.Bookings.Any(b =>
+                    b.Status != BookingStatus.Cancelled &&
+                    b.CheckInDate < normalizedCheckOut &&
+                    b.CheckOutDate > normalizedCheckIn)) &&
+                !_context.AvailabilityBlocks.Any(block =>
+                    block.AccommodationId == a.Id &&
+                    normalizedCheckIn < block.EndDate &&
+                    normalizedCheckOut > block.StartDate));
+        }
+
+        private static Task<List<Accommodation>> LoadSearchResultsAsync(IQueryable<Accommodation> query)
+        {
+            return query
+                .Include(a => a.Address)
+                .Include(a => a.Photos)
+                .Include(a => a.Reviews)
+                .Include(a => a.AccommodationAmenities!)
+                    .ThenInclude(aa => aa.Amenity)
+                .ToListAsync();
         }
 
         private static System.Linq.Expressions.Expression<Func<Accommodation, bool>> IsVisibleOnDate(DateTime date)

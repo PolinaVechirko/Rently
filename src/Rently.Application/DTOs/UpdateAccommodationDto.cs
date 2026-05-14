@@ -22,6 +22,7 @@ namespace Rently.Application.DTOs
         public double? Longitude { get; set; }
 
         public bool IsActive { get; set; } = true;
+        public DateTime? VisibleFrom { get; set; }
         public List<int>? AmenityIds { get; set; }
         public List<string>? PhotoUrls { get; set; }
     }

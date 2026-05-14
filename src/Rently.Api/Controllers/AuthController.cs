@@ -51,7 +51,7 @@ namespace Rently.Api.Controllers
         [Authorize]
         public async Task<ActionResult<UserInfoDto>> GetCurrentUser()
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userId = GetCurrentUserId();
             if (userId == null) return Unauthorized();
 
             var userInfo = await _authService.GetUserInfoAsync(userId);
@@ -64,7 +64,7 @@ namespace Rently.Api.Controllers
         [Authorize]
         public async Task<ActionResult<UserInfoDto>> UpdateCurrentUser([FromBody] UpdateProfileDto dto)
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userId = GetCurrentUserId();
             if (userId == null) return Unauthorized();
 
             try
@@ -80,6 +80,11 @@ namespace Rently.Api.Controllers
             {
                 return Unauthorized(new { message = ex.Message });
             }
+        }
+
+        private string? GetCurrentUserId()
+        {
+            return User.FindFirstValue(ClaimTypes.NameIdentifier);
         }
     }
 }

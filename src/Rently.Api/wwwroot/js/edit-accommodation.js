@@ -157,6 +157,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const _editUrlParams = new URLSearchParams(window.location.search);
   const _editAccomId = _editUrlParams.get("id");
   const _editToken = localStorage.getItem("auth_token") || "";
+  let _loadedVisibilityState = {
+    isActive: true,
+    visibleFrom: null,
+  };
 
   // Store existing photos globally for edit mode
   let existingPhotos = [];
@@ -239,6 +243,21 @@ document.addEventListener("DOMContentLoaded", () => {
         if (bedroomsEl) bedroomsEl.value = data.roomsCount || "";
         if (priceEl) priceEl.value = data.pricePerNight || "";
 
+        const visibleFrom = data.visibleFrom || data.VisibleFrom || "";
+        const isActive = (data.isActive ?? data.IsActive ?? true) === true;
+        _loadedVisibilityState = {
+          isActive,
+          visibleFrom,
+        };
+        if (visibleFrom) {
+          applyListingStatusSelection(
+            "Upcoming",
+            String(visibleFrom).slice(0, 10),
+          );
+        } else {
+          applyListingStatusSelection("Active");
+        }
+
         // Store existing photos for later use
         if (data.photos && data.photos.length > 0) {
           existingPhotos = data.photos;
@@ -280,18 +299,12 @@ document.addEventListener("DOMContentLoaded", () => {
   function displayExistingPhotos(photos) {
     console.log("[Edit] Displaying existing photos:", photos.length);
     const photoPreviewGrid = document.getElementById("photo-preview-grid");
-    const dropZoneEl = document.getElementById("drop-zone");
     
     if (!photoPreviewGrid) {
       console.error("[Edit] photo-preview-grid element not found");
       return;
     }
-    
-    // Hide drop zone if we have existing photos
-    if (dropZoneEl && photos.length > 0) {
-      dropZoneEl.classList.add("d-none");
-    }
-    
+
     // Clear existing previews first
     photoPreviewGrid.innerHTML = "";
     
@@ -363,18 +376,17 @@ document.addEventListener("DOMContentLoaded", () => {
         font-weight: bold;
       `;
       deleteBtn.onclick = () => {
-        photoContainer.remove();
         existingPhotos = existingPhotos.filter((_, i) => i !== index);
-        if (existingPhotos.length === 0) {
-          photosLoaded = false;
-          if (dropZoneEl) dropZoneEl.classList.remove("d-none");
-        }
+        photosLoaded = existingPhotos.length > 0;
+        displayExistingPhotos(existingPhotos);
       };
       photoContainer.appendChild(deleteBtn);
       
       // Add to grid
       photoPreviewGrid.appendChild(photoContainer);
     });
+
+    updateEditPhotoActionState();
   }
 
   // Stepper dots clickable bindings
@@ -454,18 +466,126 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  function applyListingStatusSelection(statusValue, availableFromValue = "") {
+    document
+      .querySelectorAll(".custom-radio-card")
+      .forEach((card) => card.classList.remove("active"));
+
+    Array.from(document.getElementsByName("listing-status")).forEach((radio) => {
+      const isSelected = radio.value === statusValue;
+      radio.checked = isSelected;
+      if (isSelected) {
+        radio.closest(".custom-radio-card")?.classList.add("active");
+      }
+    });
+
+    if (datePickerInput) {
+      datePickerInput.value = availableFromValue || "";
+    }
+
+    if (datePickerContainer) {
+      datePickerContainer.classList.toggle(
+        "d-none",
+        statusValue !== "Upcoming",
+      );
+    }
+  }
+
+  function getEditListingVisibilityPayload() {
+    const isUpcoming = !!document.querySelector(
+      'input[name="listing-status"][value="Upcoming"]',
+    )?.checked;
+    const availableFromValue =
+      document.getElementById("available-from")?.value || "";
+
+    if (isUpcoming) {
+      return {
+        isActive: true,
+        visibleFrom: availableFromValue || null,
+      };
+    }
+
+    if (_loadedVisibilityState.isActive === false) {
+      return {
+        isActive: false,
+        visibleFrom: null,
+      };
+    }
+
+    return {
+      isActive: true,
+      visibleFrom: null,
+    };
+  }
+
+  async function uploadInlinePhotos(token, photos) {
+    const normalizedPhotos = Array.isArray(photos) ? photos : [];
+    const uploaded = [];
+
+    for (const photo of normalizedPhotos) {
+      if (!photo) continue;
+      if (!String(photo).startsWith("data:")) {
+        uploaded.push(photo);
+        continue;
+      }
+
+      const response = await fetch("/api/Images/upload", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token,
+        },
+        body: JSON.stringify({ dataUrl: photo }),
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        throw new Error(payload?.message || "Failed to upload listing photo.");
+      }
+
+      const payload = await response.json();
+      if (payload?.url) {
+        uploaded.push(payload.url);
+      }
+    }
+
+    return uploaded;
+  }
+
   // Photo drag & drop placeholder logic
   const photoUpload = document.getElementById("photo-upload");
   const photoPreviewGrid = document.getElementById("photo-preview-grid");
+  const dropZoneEl = document.getElementById("drop-zone");
+  const addMorePhotosBtn = document.createElement("button");
+
+  const updateEditPhotoActionState = () => {
+    if (!dropZoneEl) return;
+
+    if (existingPhotos.length > 0) {
+      dropZoneEl.classList.add("d-none");
+      addMorePhotosBtn.textContent = "Add More Photos";
+    } else {
+      dropZoneEl.classList.remove("d-none");
+      addMorePhotosBtn.textContent = "Select Photos";
+    }
+  };
+
+  addMorePhotosBtn.type = "button";
+  addMorePhotosBtn.className = "btn btn-outline-primary mt-3";
+  addMorePhotosBtn.textContent = "Select Photos";
+  addMorePhotosBtn.addEventListener("click", () => {
+    if (!photoUpload) return;
+    photoUpload.value = "";
+    photoUpload.click();
+  });
+  photoPreviewGrid?.parentElement?.appendChild(addMorePhotosBtn);
+  updateEditPhotoActionState();
 
   // Simulate image selection
   if (photoUpload) {
     photoUpload.addEventListener("change", (e) => {
       const files = e.target.files;
-      if (files.length > 0) {
-        const dropZoneEl = document.getElementById("drop-zone");
-        if (dropZoneEl) dropZoneEl.classList.add("d-none");
-      }
+      if (!files?.length) return;
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const reader = new FileReader();
@@ -489,41 +609,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
           // Add to existing photos array as base64
           existingPhotos.push(event.target.result);
-
-          // First image uploaded becomes Cover if no existing cover
-          if (photoPreviewGrid && photoPreviewGrid.children.length === 0) {
-            const badge = document.createElement("span");
-            badge.className = "badge position-absolute top-0 start-0 m-2";
-            badge.style.backgroundColor = "#2986FE";
-            badge.textContent = "Cover";
-            wrapper.appendChild(badge);
-          }
-
-          // Add delete button for new photos
-          const deleteBtn = document.createElement("button");
-          deleteBtn.className = "btn btn-danger btn-sm position-absolute top-0 end-0 m-2";
-          deleteBtn.innerHTML = "×";
-          deleteBtn.style.width = "24px";
-          deleteBtn.style.height = "24px";
-          deleteBtn.style.padding = "0";
-          deleteBtn.style.borderRadius = "50%";
-          deleteBtn.onclick = () => {
-            wrapper.remove();
-            const index = existingPhotos.indexOf(event.target.result);
-            if (index > -1) {
-              existingPhotos.splice(index, 1);
-            }
-            if (existingPhotos.length === 0 && dropZoneEl) {
-              dropZoneEl.classList.remove("d-none");
-            }
-          };
-          wrapper.appendChild(deleteBtn);
-
-          if (photoPreviewGrid) photoPreviewGrid.appendChild(wrapper);
+          photosLoaded = true;
+          displayExistingPhotos(existingPhotos);
         };
         
         reader.readAsDataURL(file);
       }
+      photoUpload.value = "";
     });
   }
 
@@ -708,9 +800,17 @@ document.addEventListener("DOMContentLoaded", () => {
         const price = parseFloat(
           document.getElementById("price-night")?.value || "0",
         );
-        const isActive = !document.querySelector(
-          'input[name="listing-status"][value="Upcoming"]',
-        )?.checked;
+        const visibility = getEditListingVisibilityPayload();
+
+        if (
+          document.querySelector(
+            'input[name="listing-status"][value="Upcoming"]',
+          )?.checked &&
+          !visibility.visibleFrom
+        ) {
+          alert("Choose the date when this listing should become visible.");
+          return;
+        }
 
         // Collect selected amenity display names (map back to clean names via reverse lookup)
         const reverseMap = Object.fromEntries(
@@ -721,7 +821,32 @@ document.addEventListener("DOMContentLoaded", () => {
           const clean = reverseMap[cb.value] || cb.value.split(" — ")[0];
           selectedAmenityNames.push(clean);
         });
+        const amenityIdMap = {
+          TV: 1,
+          Kitchen: 2,
+          Heating: 3,
+          "Dedicated Workspace": 4,
+          Washer: 5,
+          "Pets Allowed": 6,
+          Balcony: 7,
+          "Self Check-in": 8,
+          Crib: 9,
+          Pool: 10,
+          Dryer: 11,
+          Iron: 12,
+          "Smoke Alarm": 13,
+          "First Aid Kit": 14,
+          "Wi-Fi": 15,
+          "Free Parking": 16,
+          "Air Conditioning": 17,
+          Gym: 18,
+          "Meal Service": 19,
+        };
+        const amenityIds = selectedAmenityNames
+          .map((name) => amenityIdMap[name])
+          .filter(Boolean);
 
+        const photoUrls = await uploadInlinePhotos(_editToken, existingPhotos);
         const dto = {
           propertyType: propType,
           pricePerNight: price,
@@ -732,8 +857,10 @@ document.addEventListener("DOMContentLoaded", () => {
           country: country,
           city: city,
           street: street,
-          isActive: isActive,
-          photos: existingPhotos, // Include existing and new photos
+          isActive: visibility.isActive,
+          visibleFrom: visibility.visibleFrom,
+          amenityIds: amenityIds,
+          photoUrls: photoUrls,
         };
 
         try {

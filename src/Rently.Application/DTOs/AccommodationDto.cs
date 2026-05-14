@@ -17,6 +17,7 @@ namespace Rently.Application.DTOs
         public string Title { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
         public bool IsActive { get; set; }
+        public DateTime? VisibleFrom { get; set; }
         
         public double AverageRating { get; set; }
         public int ReviewsCount { get; set; }

@@ -1309,6 +1309,38 @@ async function renderHostListings(activeTrackId, rentedTrackId, hiddenTrackId) {
   const assetBase = getAssetBase();
   const token = localStorage.getItem("auth_token") || "";
 
+  const parseLocalDate = (value) => {
+    const raw = String(value || "").trim();
+    if (!raw) return null;
+    const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (match) {
+      const [, year, month, day] = match;
+      return new Date(Number(year), Number(month) - 1, Number(day));
+    }
+    const parsed = new Date(raw);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  };
+
+  const getHostListingState = (item) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const isActive = item.isActive === true;
+    const visibleFrom = parseLocalDate(item.visibleFrom || item.VisibleFrom);
+    const isUpcoming = isActive && visibleFrom && visibleFrom > today;
+
+    if (!isActive) return { key: "hidden", label: "Hidden" };
+    if (isUpcoming) {
+      const dateLabel = visibleFrom.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+      return { key: "upcoming", label: `Upcoming · ${dateLabel}` };
+    }
+    return { key: "active", label: "Active" };
+  };
+
   const setLoading = (trackId) => {
     const el = document.getElementById(trackId);
     if (el)
@@ -1329,9 +1361,11 @@ async function renderHostListings(activeTrackId, rentedTrackId, hiddenTrackId) {
     if (!resp.ok) throw new Error("Failed to load listings");
 
     const all = await resp.json();
-    const active = all.filter((a) => a.isActive && !a.isRented);
-    const rented = all.filter((a) => a.isActive && a.isRented);
-    const hidden = all.filter((a) => !a.isActive);
+    const active = all.filter((a) => getHostListingState(a).key === "active");
+    const hidden = all.filter((a) => {
+      const state = getHostListingState(a);
+      return state.key === "hidden" || state.key === "upcoming";
+    });
 
     const buildCard = (item, index) => {
       const photo =
@@ -1393,10 +1427,9 @@ async function renderHostListings(activeTrackId, rentedTrackId, hiddenTrackId) {
     };
 
     renderTrack(activeTrackId, active);
-    renderTrack(rentedTrackId, rented);
     renderTrack(hiddenTrackId, hidden);
 
-    [activeTrackId, rentedTrackId, hiddenTrackId].forEach((id) => {
+    [activeTrackId, hiddenTrackId].forEach((id) => {
       const el = document.getElementById(id);
       if (el && typeof initScrollSnapping === "function")
         initScrollSnapping(el, null);
@@ -1463,8 +1496,8 @@ document.addEventListener("click", function (e) {
     if (isHostMode) {
       const inHostModeFolder = window.location.pathname.includes("/host-mode/");
       window.location.href = inHostModeFolder
-        ? "./highest-rated.html"
-        : "./host-mode/highest-rated.html";
+        ? "./inspiration.html?sort=highest_rated&page=1"
+        : "./host-mode/inspiration.html?sort=highest_rated&page=1";
     } else {
       const track = learnMoreHost.closest(".horizontal-scroll-track");
       if (track && track.id === "accommodations-track") {

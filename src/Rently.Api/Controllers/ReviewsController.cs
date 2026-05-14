@@ -1,45 +1,78 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Rently.Persistence;
-using System;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using Rently.Application.DTOs;
+using Rently.Application.Interfaces;
 
 namespace Rently.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "Host,Both")]
+    [Authorize]
     public class ReviewsController : ControllerBase
     {
-        private readonly ApplicationDbContext _db;
+        private readonly IReviewService _service;
 
-        public ReviewsController(ApplicationDbContext db)
+        public ReviewsController(IReviewService service)
         {
-            _db = db;
+            _service = service;
         }
 
-        public record ReplyDto(string Reply);
-
-        [HttpPut("{id}/reply")]
-        public async Task<ActionResult> Reply(int id, [FromBody] ReplyDto dto)
+        [HttpGet("eligibility")]
+        public async Task<ActionResult<ReviewEligibilityDto>> GetEligibility([FromQuery] int accommodationId)
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userId = GetCurrentUserId();
             if (userId == null) return Unauthorized();
 
-            var review = await _db.Reviews
-                .Include(r => r.Accommodation)
-                .FirstOrDefaultAsync(r => r.Id == id);
+            var result = await _service.GetEligibilityAsync(userId, accommodationId);
+            return Ok(result);
+        }
 
-            if (review == null) return NotFound();
-            if (review.Accommodation == null || review.Accommodation.HostId != userId) return Forbid();
+        [HttpPost]
+        public async Task<ActionResult<ReviewDto>> CreateOrUpdate([FromBody] CreateReviewDto dto)
+        {
+            var userId = GetCurrentUserId();
+            if (userId == null) return Unauthorized();
 
-            review.HostReply = dto.Reply?.Trim();
-            review.HostReplyCreatedAt = string.IsNullOrWhiteSpace(review.HostReply) ? null : DateTime.UtcNow;
-            await _db.SaveChangesAsync();
+            try
+            {
+                var result = await _service.UpsertReviewAsync(userId, dto);
+                return Ok(result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(403, new { message = ex.Message });
+            }
+        }
 
-            return Ok(new { id = review.Id, hostReply = review.HostReply, hostReplyCreatedAt = review.HostReplyCreatedAt });
+        [HttpPut("{id}/reply")]
+        [Authorize(Roles = "Host,Both")]
+        public async Task<ActionResult<ReviewReplyResultDto>> Reply(int id, [FromBody] ReviewReplyDto dto)
+        {
+            var userId = GetCurrentUserId();
+            if (userId == null) return Unauthorized();
+
+            try
+            {
+                var result = await _service.ReplyAsync(userId, id, dto);
+                if (result == null) return NotFound();
+
+                return Ok(result);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+        }
+
+        private string? GetCurrentUserId()
+        {
+            return User.FindFirstValue(ClaimTypes.NameIdentifier);
         }
     }
 }

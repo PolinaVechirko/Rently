@@ -26,7 +26,7 @@ namespace Rently.Api.Controllers
         {
             try
             {
-                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                var userId = GetCurrentUserId();
                 if (userId == null) return Unauthorized();
 
                 var result = await _service.CreateBookingAsync(userId, dto);
@@ -45,7 +45,7 @@ namespace Rently.Api.Controllers
         [HttpGet("my-bookings")]
         public async Task<ActionResult<IEnumerable<BookingDto>>> GetMyBookings()
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userId = GetCurrentUserId();
             if (userId == null) return Unauthorized();
 
             var results = await _service.GetMyBookingsAsync(userId);
@@ -56,7 +56,7 @@ namespace Rently.Api.Controllers
         [Authorize(Roles = "Host,Both")]
         public async Task<ActionResult<IEnumerable<BookingDto>>> GetHostBookings([FromQuery] int? accommodationId = null)
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userId = GetCurrentUserId();
             if (userId == null) return Unauthorized();
 
             var results = await _service.GetHostBookingsAsync(userId, accommodationId);
@@ -68,7 +68,7 @@ namespace Rently.Api.Controllers
         {
             try
             {
-                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                var userId = GetCurrentUserId();
                 if (userId == null) return Unauthorized();
 
                 var result = await _service.CancelPendingBookingAsync(userId, id);
@@ -88,7 +88,7 @@ namespace Rently.Api.Controllers
         {
             try
             {
-                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                var userId = GetCurrentUserId();
                 if (userId == null) return Unauthorized();
 
                 var result = await _service.ConfirmPendingBookingAsync(userId, id);
@@ -108,7 +108,7 @@ namespace Rently.Api.Controllers
         {
             try
             {
-                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                var userId = GetCurrentUserId();
                 if (userId == null) return Unauthorized();
 
                 var result = await _service.DeclinePendingBookingAsync(userId, id);
@@ -120,6 +120,11 @@ namespace Rently.Api.Controllers
             {
                 return BadRequest(new { message = ex.Message });
             }
+        }
+
+        private string? GetCurrentUserId()
+        {
+            return User.FindFirstValue(ClaimTypes.NameIdentifier);
         }
     }
 }

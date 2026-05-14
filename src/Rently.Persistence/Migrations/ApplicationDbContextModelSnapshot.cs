@@ -184,6 +184,9 @@ namespace Rently.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTime?>("VisibleFrom")
+                        .HasColumnType("TEXT");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AddressId");
@@ -331,11 +334,11 @@ namespace Rently.Persistence.Migrations
                     b.Property<int>("AccommodationId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
                     b.Property<int>("Type")
                         .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
 
                     b.HasKey("UserId", "AccommodationId", "Type");
 

@@ -35,6 +35,8 @@ namespace Rently.Domain.Entities
         [Required]
         public bool IsActive { get; set; } = true;
 
+        public DateTime? VisibleFrom { get; set; }
+
         // Navigation properties
         public ICollection<AccommodationAmenity>? AccommodationAmenities { get; set; }
         public ICollection<Photo>? Photos { get; set; }

@@ -50,7 +50,7 @@
                             <img src="../icons/user.svg" alt="User" class="user-profile-icon" id="header-user-icon">
                             <div class="user-dropdown-menu" id="user-dropdown">
                                 <a href="./profile.html" class="dropdown-item-custom">Profile</a>
-                                <a href="../host-mode.html#your-apartments-title" class="dropdown-item-custom">Your Apartments</a>
+                                <a href="../host-mode.html#your-apartments-title" class="dropdown-item-custom">My Accommodations</a>
                                 <a href="./favorites.html" class="dropdown-item-custom">Favorites</a>
                                 <a href="../index.html" class="dropdown-item-custom">Guest Mode</a>
                                 <a href="#" class="dropdown-item-custom">Help Center</a>
@@ -262,24 +262,7 @@
     <script src="../js/auth.js?v=20260513_profile_return"></script>
     <script src="../js/main.js?v=20260513_host_favorite_paths"></script>
     <script src="../js/inspiration-mode.js?v=20260513_host_filters_fix"></script>
-    <script>
-        document.addEventListener("DOMContentLoaded", async () => {
-            const token = localStorage.getItem("auth_token") || "";
-            const isLoggedIn =
-                localStorage.getItem("isLoggedIn") === "true" || !!token;
-            if (!isLoggedIn) {
-                // Immediately redirect unauthenticated visitors to login
-                window.location.href = "../login.html";
-                return;
-            }
-            if (window.rentlyAuthInitPromise) {
-                await window.rentlyAuthInitPromise;
-            }
-            if (typeof initInspirationMode === "function") {
-                initInspirationMode();
-            }
-        });
-    </script>
+    <script src="../js/host-inspiration-page.js"></script>
 </body>
 
 </html>

@@ -11,8 +11,12 @@ using System.Threading.Tasks;
 
 namespace Rently.Api.Services
 {
-    public class AnalyticsService : Rently.Application.Interfaces.IAnalyticsService
+    public class AnalyticsService : IAnalyticsService
     {
+        private const int DefaultTopAmenitiesCount = 10;
+        private const int MaxCityStatsCount = 50;
+        private static readonly TimeSpan CityStatsCacheDuration = TimeSpan.FromMinutes(5);
+
         private readonly ApplicationDbContext _context;
         private readonly IMemoryCache _cache;
 
@@ -22,12 +26,11 @@ namespace Rently.Api.Services
             _cache = cache;
         }
 
-        public async Task<IEnumerable<AmenityPopularityDto>> GetTopAmenitiesAsync(int count = 10)
+        public async Task<IEnumerable<AmenityPopularityDto>> GetTopAmenitiesAsync(int count = DefaultTopAmenitiesCount)
         {
-            // Calculate popularity based on confirmed bookings in the last 30 days
             var thirtyDaysAgo = DateTime.UtcNow.AddDays(-30);
 
-            var query = await _context.Bookings
+            return await _context.Bookings
                 .Where(b => b.Status == BookingStatus.Confirmed && b.CheckInDate >= thirtyDaysAgo)
                 .SelectMany(b => b.Accommodation!.AccommodationAmenities!)
                 .GroupBy(aa => aa.Amenity!.Name)
@@ -39,14 +42,12 @@ namespace Rently.Api.Services
                 .OrderByDescending(x => x.BookingCount)
                 .Take(count)
                 .ToListAsync();
-
-            return query;
         }
 
-        public async Task<IEnumerable<CityStatsDto>> GetCityStatsAsync(int count = 10)
+        public async Task<IEnumerable<CityStatsDto>> GetCityStatsAsync(int count = DefaultTopAmenitiesCount)
         {
-            count = Math.Clamp(count, 1, 50);
-            var cacheKey = $"analytics:city-stats:v1:{count}";
+            var normalizedCount = NormalizeCityStatsCount(count);
+            var cacheKey = BuildCityStatsCacheKey(normalizedCount);
 
             if (_cache.TryGetValue(cacheKey, out List<CityStatsDto>? cached) && cached != null)
             {
@@ -69,13 +70,10 @@ namespace Rently.Api.Services
                 })
                 .OrderByDescending(x => x.ActiveHomesCount)
                 .ThenByDescending(x => x.VisitorsCount)
-                .Take(count)
+                .Take(normalizedCount)
                 .ToListAsync();
 
-            _cache.Set(cacheKey, stats, new MemoryCacheEntryOptions
-            {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
-            });
+            CacheCityStats(cacheKey, stats);
 
             return stats;
         }
@@ -95,36 +93,76 @@ namespace Rently.Api.Services
                 .Include(a => a.Bookings)
                 .ToListAsync();
 
-            var listingsCount = accommodations.Count;
-            var activeListingsCount = accommodations.Count(a => a.IsActive);
+            var now = DateTime.UtcNow;
+            var reviews = GetAllReviews(accommodations);
+            var bookings = GetAllBookings(accommodations);
 
-            var rentedListingsCount = accommodations.Count(a =>
-                a.IsActive &&
-                (a.Bookings?.Any(b =>
-                    b.Status == BookingStatus.Confirmed &&
-                    b.CheckInDate <= DateTime.UtcNow &&
-                    b.CheckOutDate >= DateTime.UtcNow) ?? false));
+            return new HostDashboardStatsDto
+            {
+                HostName = host.FullName,
+                Email = host.Email ?? string.Empty,
+                PhoneNumber = host.PhoneNumber,
+                ProfilePhotoUrl = host.ProfilePhotoUrl,
+                AverageRating = CalculateAverageRating(reviews),
+                Earnings = CalculateEarnings(accommodations, now),
+                ResponseRate = CalculateResponseRate(bookings),
+                ReviewsCount = reviews.Count,
+                ListingsCount = accommodations.Count,
+                ActiveListingsCount = accommodations.Count(a => a.IsActive),
+                RentedListingsCount = accommodations.Count(a => IsCurrentlyRented(a, now)),
+                HiddenListingsCount = accommodations.Count(a => !a.IsActive)
+            };
+        }
 
-            var hiddenListingsCount = accommodations.Count(a => !a.IsActive);
+        private static int NormalizeCityStatsCount(int count) => Math.Clamp(count, 1, MaxCityStatsCount);
 
-            var allReviews = accommodations.SelectMany(a => a.Reviews ?? new List<Review>()).ToList();
-            var averageRating = allReviews.Count > 0
-                ? allReviews.Average(r => (double)r.Rating)
-                : 0;
+        private static string BuildCityStatsCacheKey(int count) => $"analytics:city-stats:v1:{count}";
 
-            var confirmedBookings = accommodations.SelectMany(a => a.Bookings ?? new List<Booking>())
-                .Count(b => b.Status == BookingStatus.Confirmed);
-            var allBookings = accommodations.SelectMany(a => a.Bookings ?? new List<Booking>()).Count();
-            var responseRate = allBookings > 0
-                ? (double)confirmedBookings / allBookings * 100.0
-                : 100.0;
+        private void CacheCityStats(string cacheKey, List<CityStatsDto> stats)
+        {
+            _cache.Set(cacheKey, stats, new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = CityStatsCacheDuration
+            });
+        }
 
+        private static List<Review> GetAllReviews(IEnumerable<Accommodation> accommodations) =>
+            accommodations.SelectMany(a => a.Reviews ?? []).ToList();
+
+        private static List<Booking> GetAllBookings(IEnumerable<Accommodation> accommodations) =>
+            accommodations.SelectMany(a => a.Bookings ?? []).ToList();
+
+        private static bool IsCurrentlyRented(Accommodation accommodation, DateTime now) =>
+            accommodation.IsActive &&
+            (accommodation.Bookings?.Any(b =>
+                b.Status == BookingStatus.Confirmed &&
+                b.CheckInDate <= now &&
+                b.CheckOutDate >= now) ?? false);
+
+        private static double CalculateAverageRating(IReadOnlyCollection<Review> reviews) =>
+            reviews.Count > 0 ? reviews.Average(r => (double)r.Rating) : 0;
+
+        private static double CalculateResponseRate(IReadOnlyCollection<Booking> bookings)
+        {
+            var allBookingsCount = bookings.Count;
+            if (allBookingsCount == 0)
+            {
+                return 100.0;
+            }
+
+            var confirmedBookingsCount = bookings.Count(b => b.Status == BookingStatus.Confirmed);
+            return (double)confirmedBookingsCount / allBookingsCount * 100.0;
+        }
+
+        private static decimal CalculateEarnings(IEnumerable<Accommodation> accommodations, DateTime now)
+        {
             decimal earnings = 0;
+
             foreach (var accommodation in accommodations)
             {
                 var confirmedPastBookings = accommodation.Bookings?
-                    .Where(b => b.Status == BookingStatus.Confirmed && b.CheckInDate < DateTime.UtcNow)
-                    .ToList() ?? new List<Booking>();
+                    .Where(b => b.Status == BookingStatus.Confirmed && b.CheckInDate < now)
+                    .ToList() ?? [];
 
                 foreach (var booking in confirmedPastBookings)
                 {
@@ -136,21 +174,7 @@ namespace Rently.Api.Services
                 }
             }
 
-            return new HostDashboardStatsDto
-            {
-                HostName = host.FullName,
-                Email = host.Email ?? string.Empty,
-                PhoneNumber = host.PhoneNumber,
-                ProfilePhotoUrl = host.ProfilePhotoUrl,
-                AverageRating = averageRating,
-                Earnings = earnings,
-                ResponseRate = responseRate,
-                ReviewsCount = allReviews.Count,
-                ListingsCount = listingsCount,
-                ActiveListingsCount = activeListingsCount,
-                RentedListingsCount = rentedListingsCount,
-                HiddenListingsCount = hiddenListingsCount
-            };
+            return earnings;
         }
     }
 }
