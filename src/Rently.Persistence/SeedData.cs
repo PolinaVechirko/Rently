@@ -25,8 +25,6 @@ namespace Rently.Persistence
 
             try
             {
-                await context.Database.MigrateAsync();
-
                 await EnsureDefaultLoginAccountsAsync(userManager);
 
                 await EnsureExistingUserProfilesAsync(context);

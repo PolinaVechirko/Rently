@@ -12,6 +12,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rently.Application", "src\R
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rently.Persistence", "src\Rently.Persistence\Rently.Persistence.csproj", "{CAB641C7-A7D1-4FD1-9EA0-897BA31B31F4}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{C32C3778-4FC7-4351-B277-1447E42AEACE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rently.Api.Tests", "tests\Rently.Api.Tests\Rently.Api.Tests.csproj", "{5CCD7F68-1D75-45B2-8F2F-6C8945B59B9A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -34,6 +38,10 @@ Global
 		{CAB641C7-A7D1-4FD1-9EA0-897BA31B31F4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CAB641C7-A7D1-4FD1-9EA0-897BA31B31F4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CAB641C7-A7D1-4FD1-9EA0-897BA31B31F4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5CCD7F68-1D75-45B2-8F2F-6C8945B59B9A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5CCD7F68-1D75-45B2-8F2F-6C8945B59B9A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5CCD7F68-1D75-45B2-8F2F-6C8945B59B9A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5CCD7F68-1D75-45B2-8F2F-6C8945B59B9A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -43,6 +51,7 @@ Global
 		{19022CF5-95A3-45D2-95BA-7EC678BBAA98} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{CBE98EA4-F624-4405-8F45-3C6698645CA4} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{CAB641C7-A7D1-4FD1-9EA0-897BA31B31F4} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{5CCD7F68-1D75-45B2-8F2F-6C8945B59B9A} = {C32C3778-4FC7-4351-B277-1447E42AEACE}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {5E931859-23AB-4962-8EA6-AA9B42441592}

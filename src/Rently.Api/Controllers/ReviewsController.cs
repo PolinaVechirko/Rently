@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
-using System.Threading.Tasks;
+using Rently.Api.Abstractions;
 using Rently.Application.DTOs;
 using Rently.Application.Interfaces;
 
@@ -13,31 +12,30 @@ namespace Rently.Api.Controllers
     public class ReviewsController : ControllerBase
     {
         private readonly IReviewService _service;
+        private readonly ICurrentUserService _currentUser;
 
-        public ReviewsController(IReviewService service)
+        public ReviewsController(IReviewService service, ICurrentUserService currentUser)
         {
             _service = service;
+            _currentUser = currentUser;
         }
 
         [HttpGet("eligibility")]
-        public async Task<ActionResult<ReviewEligibilityDto>> GetEligibility([FromQuery] int accommodationId)
+        public async Task<ActionResult<ReviewEligibilityDto>> GetEligibility([FromQuery] int accommodationId, CancellationToken cancellationToken)
         {
-            var userId = GetCurrentUserId();
-            if (userId == null) return Unauthorized();
-
-            var result = await _service.GetEligibilityAsync(userId, accommodationId);
+            var userId = _currentUser.GetRequiredUserId();
+            var result = await _service.GetEligibilityAsync(userId, accommodationId, cancellationToken);
             return Ok(result);
         }
 
         [HttpPost]
-        public async Task<ActionResult<ReviewDto>> CreateOrUpdate([FromBody] CreateReviewDto dto)
+        public async Task<ActionResult<ReviewDto>> CreateOrUpdate([FromBody] CreateReviewDto dto, CancellationToken cancellationToken)
         {
-            var userId = GetCurrentUserId();
-            if (userId == null) return Unauthorized();
+            var userId = _currentUser.GetRequiredUserId();
 
             try
             {
-                var result = await _service.UpsertReviewAsync(userId, dto);
+                var result = await _service.UpsertReviewAsync(userId, dto, cancellationToken);
                 return Ok(result);
             }
             catch (InvalidOperationException ex)
@@ -52,14 +50,13 @@ namespace Rently.Api.Controllers
 
         [HttpPut("{id}/reply")]
         [Authorize(Roles = "Host,Both")]
-        public async Task<ActionResult<ReviewReplyResultDto>> Reply(int id, [FromBody] ReviewReplyDto dto)
+        public async Task<ActionResult<ReviewReplyResultDto>> Reply(int id, [FromBody] ReviewReplyDto dto, CancellationToken cancellationToken)
         {
-            var userId = GetCurrentUserId();
-            if (userId == null) return Unauthorized();
+            var userId = _currentUser.GetRequiredUserId();
 
             try
             {
-                var result = await _service.ReplyAsync(userId, id, dto);
+                var result = await _service.ReplyAsync(userId, id, dto, cancellationToken);
                 if (result == null) return NotFound();
 
                 return Ok(result);
@@ -68,11 +65,6 @@ namespace Rently.Api.Controllers
             {
                 return Forbid();
             }
-        }
-
-        private string? GetCurrentUserId()
-        {
-            return User.FindFirstValue(ClaimTypes.NameIdentifier);
         }
     }
 }

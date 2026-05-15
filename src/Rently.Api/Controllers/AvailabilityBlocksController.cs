@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
-using System.Threading.Tasks;
+using Rently.Api.Abstractions;
 using Rently.Application.DTOs;
 using Rently.Application.Interfaces;
 
@@ -13,59 +12,42 @@ namespace Rently.Api.Controllers
     public class AvailabilityBlocksController : ControllerBase
     {
         private readonly IAvailabilityBlockService _service;
+        private readonly ICurrentUserService _currentUser;
 
-        public AvailabilityBlocksController(IAvailabilityBlockService service)
+        public AvailabilityBlocksController(IAvailabilityBlockService service, ICurrentUserService currentUser)
         {
             _service = service;
+            _currentUser = currentUser;
         }
 
         [HttpGet]
-        public async Task<ActionResult> Get([FromQuery] int accommodationId)
+        public async Task<ActionResult> Get([FromQuery] int accommodationId, CancellationToken cancellationToken)
         {
-            var userId = GetCurrentUserId();
-            if (userId == null) return Unauthorized();
-
-            var blocks = await _service.GetBlocksAsync(userId, accommodationId);
+            var userId = _currentUser.GetRequiredUserId();
+            var blocks = await _service.GetBlocksAsync(userId, accommodationId, cancellationToken);
             if (blocks == null) return NotFound();
 
             return Ok(blocks);
         }
 
         [HttpPost]
-        public async Task<ActionResult> Create([FromBody] CreateAvailabilityBlockDto dto, [FromQuery] int accommodationId)
+        public async Task<ActionResult> Create([FromBody] CreateAvailabilityBlockDto dto, [FromQuery] int accommodationId, CancellationToken cancellationToken)
         {
-            try
-            {
-                var userId = GetCurrentUserId();
-                if (userId == null) return Unauthorized();
+            var userId = _currentUser.GetRequiredUserId();
+            var block = await _service.CreateBlockAsync(userId, accommodationId, dto, cancellationToken);
+            if (block == null) return NotFound();
 
-                var block = await _service.CreateBlockAsync(userId, accommodationId, dto);
-                if (block == null) return NotFound();
-
-                return Ok(block);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            return Ok(block);
         }
 
         [HttpDelete("{id}")]
-        public async Task<ActionResult> Delete(int id, [FromQuery] int accommodationId)
+        public async Task<ActionResult> Delete(int id, [FromQuery] int accommodationId, CancellationToken cancellationToken)
         {
-            var userId = GetCurrentUserId();
-            if (userId == null) return Unauthorized();
-
-            var deleted = await _service.DeleteBlockAsync(userId, accommodationId, id);
-            if (deleted == null) return NotFound();
-            if (deleted == false) return NotFound();
+            var userId = _currentUser.GetRequiredUserId();
+            var deleted = await _service.DeleteBlockAsync(userId, accommodationId, id, cancellationToken);
+            if (deleted != true) return NotFound();
 
             return NoContent();
-        }
-
-        private string? GetCurrentUserId()
-        {
-            return User.FindFirstValue(ClaimTypes.NameIdentifier);
         }
     }
 }

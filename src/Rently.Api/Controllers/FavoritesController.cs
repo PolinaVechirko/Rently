@@ -1,9 +1,6 @@
-using System.Collections.Generic;
-using System;
-using System.Security.Claims;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Rently.Api.Abstractions;
 using Rently.Application.Interfaces;
 using Rently.Application.DTOs;
 
@@ -15,83 +12,54 @@ namespace Rently.Api.Controllers
     public class FavoritesController : ControllerBase
     {
         private readonly IFavoriteService _service;
+        private readonly ICurrentUserService _currentUser;
 
-        public FavoritesController(IFavoriteService service)
+        public FavoritesController(IFavoriteService service, ICurrentUserService currentUser)
         {
             _service = service;
+            _currentUser = currentUser;
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<FavoriteItemDto>>> GetMyFavorites()
+        public async Task<ActionResult<IEnumerable<FavoriteItemDto>>> GetMyFavorites(CancellationToken cancellationToken)
         {
-            var userId = GetCurrentUserId();
-            if (userId == null) return Unauthorized();
-
-            var results = await _service.GetFavoritesAsync(userId);
+            var userId = _currentUser.GetRequiredUserId();
+            var results = await _service.GetFavoritesAsync(userId, cancellationToken);
             return Ok(results);
         }
 
         [HttpGet("{accommodationId}")]
-        public async Task<ActionResult<FavoriteStatusDto>> IsFavorited(int accommodationId)
+        public async Task<ActionResult<FavoriteStatusDto>> IsFavorited(int accommodationId, CancellationToken cancellationToken)
         {
-            var userId = GetCurrentUserId();
-            if (userId == null) return Unauthorized();
-
-            var result = await _service.GetFavoriteStatusAsync(userId, accommodationId);
+            var userId = _currentUser.GetRequiredUserId();
+            var result = await _service.GetFavoriteStatusAsync(userId, accommodationId, cancellationToken);
             return Ok(result);
         }
 
         [HttpPost("{accommodationId}")]
-        public async Task<ActionResult> AddFavorite(int accommodationId, [FromQuery] string type = "Guest")
+        public async Task<ActionResult> AddFavorite(int accommodationId, [FromQuery] string type = "Guest", CancellationToken cancellationToken = default)
         {
-            try
+            var userId = _currentUser.GetRequiredUserId();
+            var result = await _service.AddFavoriteAsync(userId, accommodationId, type, cancellationToken);
+            if (result == null)
             {
-                var userId = GetCurrentUserId();
-                if (userId == null) return Unauthorized();
+                return Conflict(new { message = "Already favorited" });
+            }
 
-                var result = await _service.AddFavoriteAsync(userId, accommodationId, type);
-                if (result == null)
-                {
-                    return Conflict(new { message = "Already favorited" });
-                }
-
-                return Ok(result);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (ArgumentException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
+            return Ok(result);
         }
 
         [HttpDelete("{accommodationId}")]
-        public async Task<ActionResult> RemoveFavorite(int accommodationId, [FromQuery] string? type = null)
+        public async Task<ActionResult> RemoveFavorite(int accommodationId, [FromQuery] string? type = null, CancellationToken cancellationToken = default)
         {
-            try
+            var userId = _currentUser.GetRequiredUserId();
+            var removed = await _service.RemoveFavoriteAsync(userId, accommodationId, type, cancellationToken);
+            if (!removed)
             {
-                var userId = GetCurrentUserId();
-                if (userId == null) return Unauthorized();
-
-                var removed = await _service.RemoveFavoriteAsync(userId, accommodationId, type);
-                if (!removed)
-                {
-                    return NotFound();
-                }
-
-                return NoContent();
+                return NotFound();
             }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-        }
 
-        private string? GetCurrentUserId()
-        {
-            return User.FindFirstValue(ClaimTypes.NameIdentifier);
+            return NoContent();
         }
     }
 }

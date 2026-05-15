@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Rently.Api.Middleware;
 using Rently.Persistence;
 using Serilog;
 
@@ -18,9 +19,10 @@ public static class WebApplicationExtensions
         app.UseStaticFiles();
 
         app.UseSerilogRequestLogging();
+        app.UseMiddleware<ApiExceptionHandlingMiddleware>();
         app.UseRouting();
 
-        app.UseCors("AllowAll");
+        app.UseCors(ServiceCollectionExtensions.AppCorsPolicyName);
         app.UseAuthentication();
         app.UseAuthorization();
 
@@ -34,6 +36,13 @@ public static class WebApplicationExtensions
         using var scope = app.Services.CreateScope();
         var services = scope.ServiceProvider;
         var db = services.GetRequiredService<ApplicationDbContext>();
+
+        if (app.Environment.IsEnvironment("Testing"))
+        {
+            await db.Database.EnsureDeletedAsync();
+            await db.Database.EnsureCreatedAsync();
+            return;
+        }
 
         await db.Database.MigrateAsync();
         await LegacySqliteSchemaRepair.EnsureCompatibilityAsync(db);

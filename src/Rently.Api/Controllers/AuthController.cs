@@ -1,8 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Security.Claims;
-using System.Threading.Tasks;
+using Rently.Api.Abstractions;
 using Rently.Application.DTOs;
 using Rently.Application.Interfaces;
 
@@ -13,48 +11,34 @@ namespace Rently.Api.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
+        private readonly ICurrentUserService _currentUser;
 
-        public AuthController(IAuthService authService)
+        public AuthController(IAuthService authService, ICurrentUserService currentUser)
         {
             _authService = authService;
+            _currentUser = currentUser;
         }
 
         [HttpPost("register")]
-        public async Task<ActionResult<AuthResponseDto>> Register([FromBody] RegisterDto dto)
+        public async Task<ActionResult<AuthResponseDto>> Register([FromBody] RegisterDto dto, CancellationToken cancellationToken)
         {
-            try
-            {
-                var response = await _authService.RegisterAsync(dto);
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            var response = await _authService.RegisterAsync(dto, cancellationToken);
+            return Ok(response);
         }
 
         [HttpPost("login")]
-        public async Task<ActionResult<AuthResponseDto>> Login([FromBody] LoginDto dto)
+        public async Task<ActionResult<AuthResponseDto>> Login([FromBody] LoginDto dto, CancellationToken cancellationToken)
         {
-            try
-            {
-                var response = await _authService.LoginAsync(dto);
-                return Ok(response);
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                return Unauthorized(new { message = ex.Message });
-            }
+            var response = await _authService.LoginAsync(dto, cancellationToken);
+            return Ok(response);
         }
 
         [HttpGet("me")]
         [Authorize]
-        public async Task<ActionResult<UserInfoDto>> GetCurrentUser()
+        public async Task<ActionResult<UserInfoDto>> GetCurrentUser(CancellationToken cancellationToken)
         {
-            var userId = GetCurrentUserId();
-            if (userId == null) return Unauthorized();
-
-            var userInfo = await _authService.GetUserInfoAsync(userId);
+            var userId = _currentUser.GetRequiredUserId();
+            var userInfo = await _authService.GetUserInfoAsync(userId, cancellationToken);
             if (userInfo == null) return NotFound();
 
             return Ok(userInfo);
@@ -62,29 +46,11 @@ namespace Rently.Api.Controllers
 
         [HttpPut("me")]
         [Authorize]
-        public async Task<ActionResult<UserInfoDto>> UpdateCurrentUser([FromBody] UpdateProfileDto dto)
+        public async Task<ActionResult<UserInfoDto>> UpdateCurrentUser([FromBody] UpdateProfileDto dto, CancellationToken cancellationToken)
         {
-            var userId = GetCurrentUserId();
-            if (userId == null) return Unauthorized();
-
-            try
-            {
-                var userInfo = await _authService.UpdateProfileAsync(userId, dto);
-                return Ok(userInfo);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                return Unauthorized(new { message = ex.Message });
-            }
-        }
-
-        private string? GetCurrentUserId()
-        {
-            return User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userId = _currentUser.GetRequiredUserId();
+            var userInfo = await _authService.UpdateProfileAsync(userId, dto, cancellationToken);
+            return Ok(userInfo);
         }
     }
 }
