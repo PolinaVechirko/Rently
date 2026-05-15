@@ -3,291 +3,79 @@
  */
 
 async function renderCities() {
-  const grid = document.getElementById("cities-grid");
-  if (!grid) return;
-
-  const assetBase = getAssetBase();
-  const cityImages = {
-    Bangkok: `${assetBase}images/cities/Bangkok.png`,
-    Dubai: `${assetBase}images/cities/Dubai.png`,
-    Istanbul: `${assetBase}images/cities/Istanbul.png`,
-    London: `${assetBase}images/cities/London.png`,
-    Madrid: `${assetBase}images/cities/Madrid.png`,
-    Milan: `${assetBase}images/cities/Milan.png`,
-    Paris: `${assetBase}images/cities/Paris.png`,
-    Rome: `${assetBase}images/cities/Rome.png`,
-    Seoul: `${assetBase}images/cities/Seoul.png`,
-    Singapore: `${assetBase}images/cities/Singapore.png`,
-  };
-
-  const citiesOrder = Object.keys(cityImages);
-
-  // Lightweight placeholder while loading
-  grid.innerHTML = citiesOrder
-    .map(() => `<div class="city-card" style="background:#d3d3d3"></div>`)
-    .join("");
-
-  const formatCompact = (value) => {
-    const n = Number(value || 0);
-    try {
-      return new Intl.NumberFormat("en", {
-        notation: "compact",
-        maximumFractionDigits: 1,
-      }).format(n);
-    } catch {
-      if (n >= 1_000_000) return `${Math.round(n / 100_000) / 10}M`;
-      if (n >= 1_000) return `${Math.round(n / 100) / 10}k`;
-      return String(n);
-    }
-  };
-
-  let stats = [];
-  try {
-    const resp = await fetch(`/api/Analytics/city-stats?count=50`);
-    if (resp.ok) stats = await resp.json();
-  } catch (e) {
-    console.error("Failed to load city stats:", e);
+  if (window.RentlyHomeRenderers) {
+    return window.RentlyHomeRenderers.renderCities();
   }
-
-  const byCity = new Map((stats || []).map((s) => [s.city || s.City, s]));
-
-  let html = "";
-  citiesOrder.forEach((name) => {
-    const s = byCity.get(name) || {};
-    const homes = s.activeHomesCount ?? s.ActiveHomesCount ?? 0;
-    const visitors = s.visitorsCount ?? s.VisitorsCount ?? 0;
-
-    html += `
-            <div class="city-card" style="background-image: url('${cityImages[name]}')">
-                <h4 class="city-name">${name}</h4>
-                <div class="city-stat-home city-stat-group">
-                    <img src="${assetBase}icons/home.svg" alt="home" class="city-stat-icon">
-                    <span class="city-stat-value">${formatCompact(homes)}</span>
-                </div>
-                <div class="city-stat-users city-stat-group">
-                    <span class="city-stat-value">${formatCompact(visitors)}</span>
-                    <img src="${assetBase}icons/users.svg" alt="users" class="city-stat-icon">
-                </div>
-            </div>
-        `;
-  });
-  grid.innerHTML = html;
 }
 
 async function renderAmenities() {
-  const grid = document.querySelector(".amenities-grid");
-  if (!grid) return;
-
-  const assetBase = getAssetBase();
-
-  // Icon mapping based on amenity names from SeedData.cs
-  const iconMap = {
-    TV: "tv.svg",
-    Kitchen: "kitchen.svg",
-    Heating: "heating.svg",
-    "Dedicated Workspace": "workspace.svg",
-    Washer: "washer.svg",
-    "Pets Allowed": "pets.svg",
-    Balcony: "balcony.svg",
-    "Self Check-in": "selfcheckin.svg",
-    Crib: "crib.svg",
-    Pool: "pool.svg",
-    Dryer: "dryer.svg",
-    Iron: "iron.svg",
-    "Smoke Alarm": "smokealarm.svg",
-    "First Aid Kit": "firstaidkit.svg",
-    "Wi-Fi": "wifi.svg",
-    "Free Parking": "freeParking.svg",
-    "Air Conditioning": "airConditioning.svg",
-    Gym: "gym.svg",
-    "Meal Service": "mealService.svg",
-  };
-
-  try {
-    const response = await fetch("/api/Analytics/top-amenities?count=6");
-    if (!response.ok) throw new Error("API error");
-    const topAmenities = (await response.json()).slice(0, 6);
-
-    let html = "";
-    topAmenities.forEach((item) => {
-      const iconFile = iconMap[item.name] || "wifi.svg";
-      html += `
-                <button class="amenity-btn" data-amenity-name="${item.name}">
-                    <img src="${assetBase}icons/${iconFile}" alt="${item.name}" class="amenity-icon">
-                    <span class="amenity-label">${item.name}</span>
-                </button>
-            `;
-    });
-
-    if (html) {
-      grid.innerHTML = html;
-    }
-  } catch (err) {
-    console.error("Failed to fetch top amenities:", err);
-    // Fallback or handle error
+  if (window.RentlyHomeRenderers) {
+    return window.RentlyHomeRenderers.renderAmenities();
   }
 }
 
 function getAssetBase() {
-  const isSubfolder =
-    window.location.pathname.includes("/host-mode/") &&
-    !window.location.pathname.includes("host-mode.html");
-  return isSubfolder ? "../" : "./";
+  if (window.RentlyRenderHelpers) {
+    return window.RentlyRenderHelpers.getAssetBase();
+  }
+
+  return "./";
 }
 
 function isInHostMode() {
-  return (
-    window.location.pathname.includes("/host-mode/") ||
-    window.location.pathname.includes("host-mode.html")
-  );
+  if (window.RentlyRenderHelpers) {
+    return window.RentlyRenderHelpers.isInHostMode();
+  }
+
+  return false;
 }
 
 function isInHostModeFolder() {
-  return window.location.pathname.includes("/host-mode/");
+  if (window.RentlyRenderHelpers) {
+    return window.RentlyRenderHelpers.isInHostModeFolder();
+  }
+
+  return false;
 }
 
 function getHostModeHref(path, query = "") {
-  const cleanPath = String(path || "").replace(/^\/+/, "");
-  const base = isInHostModeFolder()
-    ? `./${cleanPath}`
-    : `./host-mode/${cleanPath}`;
-  return query ? `${base}${query}` : base;
+  if (window.RentlyRenderHelpers) {
+    return window.RentlyRenderHelpers.getHostModeHref(path, query);
+  }
+
+  return String(path || "");
 }
 
 function getHostPropertyViewHref(id) {
-  const query = id ? `?id=${encodeURIComponent(id)}` : "";
-  return getHostModeHref("property-view.html", query);
+  if (window.RentlyRenderHelpers) {
+    return window.RentlyRenderHelpers.getHostPropertyViewHref(id);
+  }
+
+  return id ? `./property-view.html?id=${encodeURIComponent(id)}` : "./property-view.html";
 }
 
 async function getFavoriteIds() {
-  try {
-    const token = localStorage.getItem("auth_token") || "";
-    if (!token) return [];
-
-    const resp = await fetch("/api/Favorites", {
-      headers: { Authorization: "Bearer " + token },
-    });
-    if (!resp.ok) return [];
-
-    const data = await resp.json();
-    if (!Array.isArray(data)) return [];
-
-    const inHostMode = isInHostMode();
-
-    // Filter favorites based on current mode
-    return data
-      .filter((fav) => {
-        // Support both old format (accommodation object) and new format (with types)
-        if (inHostMode) {
-          return (
-            fav.isHostFavorite === true || (fav.accommodation && !fav.types)
-          );
-        } else {
-          return (
-            fav.isGuestFavorite === true || (fav.accommodation && !fav.types)
-          );
-        }
-      })
-      .map((fav) => {
-        // Handle new format with nested accommodation
-        if (fav.accommodation) {
-          return fav.accommodation.id ?? fav.accommodation.Id;
-        }
-        // Handle old format
-        return fav.id ?? fav.Id;
-      })
-      .filter((value) => value !== null && value !== undefined);
-  } catch (error) {
-    console.debug("Could not load favorite ids:", error);
-    return [];
+  if (window.RentlyRenderHelpers) {
+    return window.RentlyRenderHelpers.getFavoriteIds();
   }
+
+  return [];
 }
 
 function getOptimizedImageUrl(url, width = 720) {
-  if (!url) return "";
-  if (
-    url.startsWith("data:") ||
-    /^https?:\/\//i.test(url) ||
-    url.includes("/api/Images")
-  )
-    return url;
-  return `/api/Images/resize?url=${encodeURIComponent(url)}&width=${width}`;
+  if (window.RentlyRenderHelpers) {
+    return window.RentlyRenderHelpers.getOptimizedImageUrl(url, width);
+  }
+
+  return url || "";
 }
 
-let _learnMoreCollageInFlight = null;
-
 async function getLearnMoreCollageImages(assetBase) {
-  const storageKey = "rently_learn_more_collage_v2";
-  try {
-    const cached = sessionStorage.getItem(storageKey);
-    if (cached) {
-      const images = JSON.parse(cached);
-      if (Array.isArray(images) && images.length === 4) {
-        return images.map((img) => getOptimizedImageUrl(img, 400));
-      }
-    }
-  } catch {
-    sessionStorage.removeItem(storageKey);
+  if (window.RentlyRenderHelpers) {
+    return window.RentlyRenderHelpers.getLearnMoreCollageImages(assetBase);
   }
 
-  const photosOf = (item) => {
-    const raw = item.photos || item.Photos || [];
-    return Array.isArray(raw) ? raw.filter(Boolean) : [];
-  };
-
-  const runFetch = async () => {
-    try {
-      const response = await fetch(
-        "/api/Accommodations/homepage/highest-rated?count=32",
-      );
-      if (!response.ok) throw new Error("collage api");
-      const data = await response.json();
-      const listings = (Array.isArray(data) ? data : []).filter(
-        (item) => photosOf(item).length > 0,
-      );
-
-      for (let i = listings.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [listings[i], listings[j]] = [listings[j], listings[i]];
-      }
-
-      const picked = [];
-      const seen = new Set();
-      for (const item of listings) {
-        for (const url of photosOf(item)) {
-          if (!seen.has(url)) {
-            seen.add(url);
-            picked.push(url);
-            if (picked.length >= 4) break;
-          }
-        }
-        if (picked.length >= 4) break;
-      }
-
-      while (picked.length < 4) {
-        picked.push(`${assetBase}images/hero${picked.length + 1}.png`);
-      }
-
-      const four = picked.slice(0, 4);
-      sessionStorage.setItem(storageKey, JSON.stringify(four));
-      return four.map((img) => getOptimizedImageUrl(img, 400));
-    } catch {
-      const fallbacks = [
-        `${assetBase}images/hero1.png`,
-        `${assetBase}images/hero2.png`,
-        `${assetBase}images/hero3.png`,
-        `${assetBase}images/hero4.png`,
-      ];
-      return fallbacks.map((img) => getOptimizedImageUrl(img, 400));
-    }
-  };
-
-  if (!_learnMoreCollageInFlight) {
-    _learnMoreCollageInFlight = runFetch().finally(() => {
-      _learnMoreCollageInFlight = null;
-    });
-  }
-  return _learnMoreCollageInFlight;
+  return [];
 }
 
 async function renderAccommodations(
@@ -469,95 +257,9 @@ async function renderAccommodations(
 
     track.innerHTML = html;
     
-    // Add direct event listeners to favorite buttons with small delay to ensure DOM is ready
-    setTimeout(() => {
-      track.querySelectorAll(".favorite-btn").forEach(btn => {
-      btn.addEventListener("click", async (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        console.log("Direct favorite button click", btn);
-        
-        const isLoggedIn = localStorage.getItem("isLoggedIn") === "true" || !!localStorage.getItem("auth_token");
-        if (!isLoggedIn) {
-          const loginPath = window.location.pathname.includes("/host-mode/")
-            ? "../login.html"
-            : "./login.html";
-          window.location.href = loginPath;
-          return;
-        }
-
-        const id = btn.dataset.id || btn.getAttribute("data-id");
-        if (!id) {
-          btn.classList.toggle("active");
-          return;
-        }
-
-        const token = localStorage.getItem("auth_token") || "";
-        const isHostMode = window.location.pathname.includes("/host-mode/") || window.location.pathname.includes("host-mode.html");
-        const favoriteType = isHostMode ? "Host" : "Guest";
-        
-        try {
-          const isActive = btn.classList.contains("active");
-          console.log("Direct favorite toggle:", { id, isActive, favoriteType, pathname: window.location.pathname });
-          
-          if (isActive) {
-            const resp = await fetch(`/api/Favorites/${id}?type=${favoriteType}`, {
-              method: "DELETE",
-              headers: { 
-                "Authorization": "Bearer " + token
-              }
-            });
-            console.log("Direct remove response:", resp.status);
-            if (!resp.ok && resp.status !== 204 && resp.status !== 404) throw new Error("Failed to remove favorite");
-            btn.classList.remove("active");
-            const img = btn.querySelector("img");
-            if (img) img.src = getFavoriteIconSrc(false);
-            if (typeof window.rememberFavoriteChange === "function") {
-              window.rememberFavoriteChange(id, favoriteType, false);
-            }
-          } else {
-            const stateResp = await fetch(`/api/Favorites/${id}`, {
-              headers: {
-                "Authorization": "Bearer " + token
-              }
-            });
-            if (stateResp.ok) {
-              const stateData = await stateResp.json();
-              const alreadyActive = favoriteType === "Host"
-                ? stateData?.hostFavorited === true
-                : stateData?.guestFavorited === true;
-              if (alreadyActive) {
-                btn.classList.add("active");
-                const img = btn.querySelector("img");
-                if (img) img.src = getFavoriteIconSrc(true);
-                if (typeof window.rememberFavoriteChange === "function") {
-                  window.rememberFavoriteChange(id, favoriteType, true);
-                }
-                return;
-              }
-            }
-
-            const resp = await fetch(`/api/Favorites/${id}?type=${favoriteType}`, {
-              method: "POST",
-              headers: { 
-                "Authorization": "Bearer " + token
-              }
-            });
-            console.log("Direct add response:", resp.status);
-            if (!resp.ok && resp.status !== 409) throw new Error("Failed to add favorite");
-            btn.classList.add("active");
-            const img = btn.querySelector("img");
-            if (img) img.src = getFavoriteIconSrc(true);
-            if (typeof window.rememberFavoriteChange === "function") {
-              window.rememberFavoriteChange(id, favoriteType, true);
-            }
-          }
-        } catch (err) {
-          console.error("Direct favorite error:", err);
-        }
-      });
-      });
-    }, 100);
+    if (window.RentlyFavoriteInteractions) {
+      window.RentlyFavoriteInteractions.bindTrackFavoriteButtons(track);
+    }
   } catch (error) {
     console.error("Failed to render accommodations:", error);
   }
@@ -1490,27 +1192,10 @@ document.addEventListener("click", function (e) {
   if (learnMoreHost) {
     if (e.target.closest(".learn-more-btn")) return;
 
-    const isHostMode =
-      window.location.pathname.includes("host-mode.html") ||
-      window.location.pathname.includes("/host-mode/");
-    if (isHostMode) {
-      const inHostModeFolder = window.location.pathname.includes("/host-mode/");
-      window.location.href = inHostModeFolder
-        ? "./inspiration.html?sort=highest_rated&page=1"
-        : "./host-mode/inspiration.html?sort=highest_rated&page=1";
+    if (window.RentlyLearnMore) {
+      window.RentlyLearnMore.handleCardClick(learnMoreHost);
     } else {
-      const track = learnMoreHost.closest(".horizontal-scroll-track");
-      if (track && track.id === "accommodations-track") {
-        window.location.href = "./search.html?sort=highest_rated&page=1";
-      } else if (
-        track &&
-        (track.id === "most-visited-track-1" ||
-          track.id === "most-visited-track-2")
-      ) {
-        window.location.href = "./search.html?sort=most_visited&page=1";
-      } else {
-        window.location.href = "./search.html?page=1";
-      }
+      window.location.href = "./search.html?page=1";
     }
     return;
   }

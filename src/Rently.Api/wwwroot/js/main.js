@@ -6,6 +6,10 @@
  * Helper function to determine if user is in host mode
  */
 function isInHostMode() {
+  if (window.RentlyAppContext) {
+    return window.RentlyAppContext.isInHostMode();
+  }
+
   return (
     window.location.pathname.includes("/host-mode/") ||
     window.location.pathname.includes("host-mode.html")
@@ -13,10 +17,18 @@ function isInHostMode() {
 }
 
 function isInHostModeFolder() {
+  if (window.RentlyAppContext) {
+    return window.RentlyAppContext.isInHostModeFolder();
+  }
+
   return window.location.pathname.includes("/host-mode/");
 }
 
 function getHostPropertyViewHref(id) {
+  if (window.RentlyAppContext) {
+    return window.RentlyAppContext.getHostPropertyViewHref(id);
+  }
+
   const base = isInHostModeFolder()
     ? "./property-view.html"
     : "./host-mode/property-view.html";
@@ -24,6 +36,10 @@ function getHostPropertyViewHref(id) {
 }
 
 function getHostModeHref(path, query = "") {
+  if (window.RentlyAppContext) {
+    return window.RentlyAppContext.getHostModeHref(path, query);
+  }
+
   const cleanPath = String(path || "").replace(/^\/+/, "");
   const base = isInHostModeFolder()
     ? `./${cleanPath}`
@@ -32,38 +48,25 @@ function getHostModeHref(path, query = "") {
 }
 
 function getSearchPageHref(query = "") {
+  if (window.RentlyAppContext) {
+    return window.RentlyAppContext.getSearchPageHref(query);
+  }
+
   const base = isInHostModeFolder() ? "../search.html" : "./search.html";
   return query ? `${base}${query}` : base;
 }
 
 function rememberFavoriteChange(id, type, isActive) {
-  if (!id || !type) return;
-  try {
-    localStorage.setItem(
-      "rently_favorites_changed",
-      JSON.stringify({
-        id: String(id),
-        type: String(type),
-        isActive: !!isActive,
-        changedAt: Date.now(),
-      }),
-    );
-  } catch {}
+  if (window.RentlyFavoriteInteractions) {
+    window.RentlyFavoriteInteractions.rememberFavoriteChange(id, type, isActive);
+  }
 }
 
 function getRememberedFavoriteState(id, type) {
-  if (!id || !type) return null;
-  try {
-    const raw = localStorage.getItem("rently_favorites_changed");
-    if (!raw) return null;
-    const data = JSON.parse(raw);
-    if (!data || String(data.id) !== String(id) || String(data.type) !== String(type)) {
-      return null;
-    }
-    return !!data.isActive;
-  } catch {
-    return null;
+  if (window.RentlyFavoriteInteractions) {
+    return window.RentlyFavoriteInteractions.getRememberedFavoriteState(id, type);
   }
+  return null;
 }
 
 window.rememberFavoriteChange = rememberFavoriteChange;
@@ -73,6 +76,9 @@ window.getRememberedFavoriteState = getRememberedFavoriteState;
  * Helper function to get favorite type based on current mode
  */
 function getFavoriteType() {
+  if (window.RentlyFavoriteInteractions) {
+    return window.RentlyFavoriteInteractions.getFavoriteType();
+  }
   return isInHostMode() ? "Host" : "Guest";
 }
 
@@ -80,221 +86,55 @@ function getFavoriteType() {
  * Helper function to get the appropriate favorite icon based on mode
  */
 function getFavoriteIconSrc(isActive) {
-  const assetBase = getAssetBase();
-  if (isInHostMode()) {
-    // In host mode, use red filled heart when active
-    return isActive
-      ? assetBase + "icons/favorite-filled.svg"
-      : assetBase + "icons/favorite.svg";
-  } else {
-    // In guest mode, use outline when inactive, filled when active
-    return isActive
-      ? assetBase + "icons/favorite-filled.svg"
-      : assetBase + "icons/favorite.svg";
+  if (window.RentlyFavoriteInteractions) {
+    return window.RentlyFavoriteInteractions.getFavoriteIconSrc(isActive);
   }
+  return isActive ? "./icons/favorite-filled.svg" : "./icons/favorite.svg";
 }
 
 function scrollToHashTarget(hash = window.location.hash, options = {}) {
-  const rawHash = String(hash || "").trim();
-  if (!rawHash || rawHash === "#") return;
-
-  const id = decodeURIComponent(rawHash.slice(1));
-  const target = document.getElementById(id);
-  if (!target) return;
-
-  const header = document.querySelector(".header");
-  const headerHeight = header ? header.getBoundingClientRect().height : 0;
-  const extraOffset = id === "about-us" ? 24 : 100;
-  const targetTop =
-    target.getBoundingClientRect().top +
-    window.pageYOffset -
-    headerHeight -
-    extraOffset;
-
-  window.scrollTo({
-    top: Math.max(0, targetTop),
-    behavior: options.behavior || "auto",
-  });
+  if (window.RentlyMainNavigation) {
+    window.RentlyMainNavigation.scrollToHashTarget(hash, options);
+  }
 }
 
 function stabilizeHashScroll() {
-  if (!window.location.hash) return;
-
-  const delays = [0, 80, 250, 600, 1000];
-  delays.forEach((delay) => {
-    window.setTimeout(() => scrollToHashTarget(), delay);
-  });
+  if (window.RentlyMainNavigation) {
+    window.RentlyMainNavigation.stabilizeHashScroll();
+  }
 }
 
 function navigateToHashUrl(href) {
-  const url = new URL(href, window.location.href);
-  const currentPath = window.location.pathname.replace(/\/$/, "");
-  const targetPath = url.pathname.replace(/\/$/, "");
-
-  if (currentPath === targetPath && url.hash) {
-    window.history.pushState(null, "", url.pathname + url.search + url.hash);
-    scrollToHashTarget(url.hash, { behavior: "smooth" });
-    window.setTimeout(() => scrollToHashTarget(url.hash), 350);
-    return;
+  if (window.RentlyMainNavigation) {
+    window.RentlyMainNavigation.navigateToHashUrl(href);
   }
-
-  window.location.href = url.href;
 }
 
 // Function to update all favorite icons with correct paths
 function updateAllFavoriteIcons() {
-  document.querySelectorAll(".favorite-btn").forEach(btn => {
-    const isActive = btn.classList.contains("active");
-    const img = btn.querySelector("img");
-    if (img) {
-      img.src = getFavoriteIconSrc(isActive);
-    }
-  });
+  if (window.RentlyFavoriteInteractions) {
+    window.RentlyFavoriteInteractions.updateAllFavoriteIcons();
+  }
 }
 
 function setFavoriteButtonState(btn, isActive) {
-  if (!btn) return;
-  btn.classList.toggle("active", isActive);
-  btn.setAttribute(
-    "aria-label",
-    isActive ? "Remove from favorites" : "Add to favorites",
-  );
-  const img = btn.querySelector("img");
-  if (img) img.src = getFavoriteIconSrc(isActive);
+  if (window.RentlyFavoriteInteractions) {
+    window.RentlyFavoriteInteractions.setFavoriteButtonState(btn, isActive);
+  }
 }
 
 async function syncFavoriteButtons() {
-  const buttons = Array.from(document.querySelectorAll(".favorite-btn[data-id]"));
-  if (buttons.length === 0) return;
-
-  const favoriteType = getFavoriteType();
-  const rememberedStates = new Map();
-  buttons.forEach((btn) => {
-    const rememberedState = getRememberedFavoriteState(btn.dataset.id, favoriteType);
-    if (rememberedState !== null) {
-      rememberedStates.set(String(btn.dataset.id), rememberedState);
-      setFavoriteButtonState(btn, rememberedState);
-    }
-  });
-
-  const token = localStorage.getItem("auth_token") || "";
-  if (!token) return;
-
-  try {
-    const resp = await fetch(`/api/Favorites?_=${Date.now()}`, {
-      headers: {
-        Authorization: "Bearer " + token,
-        "Cache-Control": "no-cache",
-      },
-    });
-    if (!resp.ok) return;
-
-    const data = await resp.json();
-    if (!Array.isArray(data)) return;
-
-    const favoriteIds = new Set(
-      data
-        .filter((fav) =>
-          isInHostMode() ? fav.isHostFavorite === true : fav.isGuestFavorite === true,
-        )
-        .map((fav) => fav.accommodation?.id ?? fav.accommodation?.Id ?? fav.id ?? fav.Id)
-        .filter((id) => id !== null && id !== undefined)
-        .map(String),
-    );
-
-    buttons.forEach((btn) => {
-      const buttonId = String(btn.dataset.id);
-      if (rememberedStates.has(buttonId)) {
-        return;
-      }
-      setFavoriteButtonState(btn, favoriteIds.has(buttonId));
-    });
-  } catch (error) {
-    console.debug("Could not sync favorite buttons:", error);
+  if (window.RentlyFavoriteInteractions) {
+    await window.RentlyFavoriteInteractions.syncFavoriteButtons();
   }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  stabilizeHashScroll();
-
-  window.addEventListener("load", stabilizeHashScroll);
-  window.addEventListener("hashchange", stabilizeHashScroll);
-
-  document.addEventListener("click", (e) => {
-    const hashLink = e.target.closest(
-      'a[href$="#about-us"], a[href$="#your-apartments-title"], a[href$="#inspiration-title"]',
-    );
-    if (!hashLink) return;
-
-    e.preventDefault();
-    navigateToHashUrl(hashLink.getAttribute("href"));
-  });
-
-  // --- HERO IMAGE LOGIC ---
-  const images = [
-    'url("./images/hero1.png")',
-    'url("./images/hero2.png")',
-    'url("./images/hero3.png")',
-    'url("./images/hero4.png")',
-  ];
-
-  const heroElement = document.getElementById("hero-image");
-  if (heroElement) {
-    let savedImage = localStorage.getItem("heroImage_v2");
-    if (!savedImage) {
-      savedImage = images[Math.floor(Math.random() * images.length)];
-      localStorage.setItem("heroImage_v2", savedImage);
-    }
-    heroElement.style.backgroundImage = savedImage;
-    heroElement.style.backgroundSize = "cover";
-    heroElement.style.backgroundPosition = "center";
-  }
-
-  // --- INITIALIZE MODULES ---
-  // initAuth is invoked from auth.js (DOMContentLoaded or immediate); do not call again here
-  if (typeof renderAccommodations === "function") {
-    renderAccommodations("accommodations-track", true);
-    renderAccommodations("most-visited-track-1", true);
-    renderAccommodations("most-visited-track-2", true);
-  }
-  if (typeof renderCities === "function") renderCities();
-  if (typeof renderAmenities === "function") renderAmenities();
-  
-  // Update all favorite icons to ensure correct paths
-  setTimeout(updateAllFavoriteIcons, 100);
-  setTimeout(syncFavoriteButtons, 200);
-  window.addEventListener("pageshow", syncFavoriteButtons);
-  window.addEventListener("focus", syncFavoriteButtons);
-  if (typeof initAboutSlider === "function") initAboutSlider();
-  if (typeof initPropertyPage === "function") initPropertyPage();
-  if (typeof initMyBookingPage === "function") initMyBookingPage();
-  if (typeof initSearchPage === "function") initSearchPage();
-
-  // --- HOME SECTION TITLE LINKS ---
-  const highestRatedHeading = document.getElementById("highest-rated-heading");
-  if (highestRatedHeading) {
-    highestRatedHeading.addEventListener("click", () => {
-      window.location.href = "./search.html?sort=highest_rated&page=1";
-    });
-  }
-  const mostVisitedHeading = document.getElementById("most-visited-heading");
-  if (mostVisitedHeading) {
-    mostVisitedHeading.addEventListener("click", () => {
-      window.location.href = "./search.html?sort=most_visited&page=1";
-    });
-  }
-  const inspirationTitle = document.getElementById("inspiration-title");
-  if (inspirationTitle) {
-    inspirationTitle.addEventListener("click", () => {
-      if (isInHostMode()) {
-        window.location.href = getHostModeHref("inspiration.html");
-      } else {
-        window.location.href = "./search.html?page=1";
-      }
-    });
-    if (isInHostMode()) {
-      inspirationTitle.style.cursor = "pointer";
-    }
+  if (window.RentlyMainNavigation) {
+    window.RentlyMainNavigation.initHashNavigation();
+    window.RentlyMainNavigation.initHeroImage();
+    window.RentlyMainNavigation.initContentBootstrap();
+    window.RentlyMainNavigation.initHomeSectionLinks();
   }
 
   // --- LEARN MORE BUTTON LOGIC ---
@@ -305,25 +145,12 @@ document.addEventListener("DOMContentLoaded", () => {
     e.preventDefault();
     e.stopPropagation();
 
-    const track = learnMoreBtn.closest(".horizontal-scroll-track");
-    if (!track) {
-      window.location.href = "./search.html?page=1";
+    if (window.RentlyLearnMore) {
+      window.RentlyLearnMore.handleButtonClick(learnMoreBtn);
       return;
     }
 
-    const trackId = track.id || "";
-    if (trackId === "accommodations-track") {
-      window.location.href = "./search.html?sort=highest_rated&page=1";
-    } else if (trackId.startsWith("most-visited-track")) {
-      window.location.href = "./search.html?sort=most_visited&page=1";
-    } else if (trackId === "inspiration-track") {
-      const inspirationPath = isInHostMode()
-        ? getHostModeHref("inspiration.html")
-        : "./search.html?page=1";
-      window.location.href = inspirationPath;
-    } else {
-      window.location.href = "./search.html?page=1";
-    }
+    window.location.href = "./search.html?page=1";
   });
 
   // --- GLOBAL EVENT DELEGATION ---
@@ -337,84 +164,11 @@ document.addEventListener("DOMContentLoaded", () => {
       e.preventDefault();
       e.stopPropagation();
 
-      const isLoggedIn =
-        localStorage.getItem("isLoggedIn") === "true" ||
-        !!localStorage.getItem("auth_token");
-      if (!isLoggedIn) {
-        // If unauthenticated, redirect to login (preserve return path)
-        localStorage.setItem("redirectAfterAuth", window.location.href);
-        const loginPath = window.location.pathname.includes("/host-mode/")
-          ? "../login.html"
-          : "./login.html";
-        window.location.href = loginPath;
-        return;
+      if (window.RentlyFavoriteInteractions) {
+        window.RentlyFavoriteInteractions.handleFavoriteToggle(favBtn, {
+          onFavoritesPage: /\/favorites\.html$/i.test(window.location.pathname),
+        });
       }
-
-      // Determine accommodation id from closest card or from the button itself
-      const card = favBtn.closest(".accommodation-card");
-      let id = card ? card.getAttribute("data-id") : null;
-      if (!id) id = favBtn.dataset.id || favBtn.getAttribute("data-id");
-      // If there is no id, just toggle visually
-      if (!id) {
-        favBtn.classList.toggle("active");
-        return;
-      }
-
-      const token = localStorage.getItem("auth_token") || "";
-      const favoriteType = getFavoriteType();
-      const onHostFavoritesPage =
-        window.location.pathname.includes("/host-mode/favorites.html");
-      const onFavoritesPage = /\/favorites\.html$/i.test(window.location.pathname);
-
-      (async () => {
-        try {
-          const isActive = favBtn.classList.contains("active");
-          if (isActive) {
-            if (onFavoritesPage) {
-              rememberFavoriteChange(id, favoriteType, false);
-            }
-            // currently active -> remove favorite
-            const resp = await fetch(
-              `/api/Favorites/${id}?type=${favoriteType}`,
-              {
-                method: "DELETE",
-                headers: { Authorization: "Bearer " + token },
-              },
-            );
-            if (!resp.ok && resp.status !== 204)
-              throw new Error("Failed to remove favorite");
-            favBtn.classList.remove("active");
-            // swap icon back to outline
-            try {
-              const img = favBtn.querySelector("img");
-              if (img) img.src = getFavoriteIconSrc(false);
-            } catch {}
-            rememberFavoriteChange(id, favoriteType, false);
-          } else {
-            const resp = await fetch(
-              `/api/Favorites/${id}?type=${favoriteType}`,
-              {
-                method: "POST",
-                headers: { Authorization: "Bearer " + token },
-              },
-            );
-            if (!resp.ok) throw new Error("Failed to add favorite");
-            favBtn.classList.add("active");
-            // swap icon to filled heart
-            try {
-              const img = favBtn.querySelector("img");
-              if (img) img.src = getFavoriteIconSrc(true);
-            } catch {}
-            rememberFavoriteChange(id, favoriteType, true);
-          }
-        } catch (err) {
-          if (onFavoritesPage) {
-            rememberFavoriteChange(id, favoriteType, true);
-          }
-          // Fail silently in UI beyond console logging
-          console.error("Favorites Error:", err);
-        }
-      })();
       return; // Stop processing for favorite buttons
     }
 
