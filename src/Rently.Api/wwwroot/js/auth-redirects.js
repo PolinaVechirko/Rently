@@ -46,7 +46,7 @@
 
   redirects.redirectToLoginPreservingCurrentLocation =
     function redirectToLoginPreservingCurrentLocation() {
-      root.localStorage?.setItem("redirectAfterAuth", root.location.href);
+      root.RentlyAuthStorage?.setRedirectAfterAuth(root.location.href);
       root.location.href = redirects.getLoginPageHref();
     };
 
@@ -81,8 +81,8 @@
     fallbackPath = "./index.html",
   ) {
     const fallbackUrl = new URL(fallbackPath, root.location.href).href;
-    const rawRedirect = root.localStorage?.getItem("redirectAfterAuth") || "";
-    root.localStorage?.removeItem("redirectAfterAuth");
+    const rawRedirect = root.RentlyAuthStorage?.getRedirectAfterAuth() || "";
+    root.RentlyAuthStorage?.clearRedirectAfterAuth();
 
     if (!rawRedirect) return fallbackUrl;
 

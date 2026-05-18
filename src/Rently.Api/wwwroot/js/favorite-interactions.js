@@ -6,24 +6,19 @@
   favorites.rememberFavoriteChange = function rememberFavoriteChange(id, type, isActive) {
     if (!id || !type) return;
     try {
-      root.localStorage.setItem(
-        "rently_favorites_changed",
-        JSON.stringify({
-          id: String(id),
-          type: String(type),
-          isActive: !!isActive,
-          changedAt: Date.now(),
-        }),
-      );
+      root.RentlyPageStateStorage?.setFavoritesChanged({
+        id: String(id),
+        type: String(type),
+        isActive: !!isActive,
+        changedAt: Date.now(),
+      });
     } catch {}
   };
 
   favorites.getRememberedFavoriteState = function getRememberedFavoriteState(id, type) {
     if (!id || !type) return null;
     try {
-      const raw = root.localStorage.getItem("rently_favorites_changed");
-      if (!raw) return null;
-      const data = JSON.parse(raw);
+      const data = root.RentlyPageStateStorage?.getFavoritesChanged();
       if (!data || String(data.id) !== String(id) || String(data.type) !== String(type)) {
         return null;
       }
@@ -79,7 +74,10 @@
       }
     });
 
-    const token = root.RentlyApi?.getAuthToken() || root.localStorage.getItem("auth_token") || "";
+    const token =
+      root.RentlyApi?.getAuthToken() ||
+      root.RentlyAuthStorage?.getAuthToken() ||
+      "";
     if (!token) return;
 
     try {
@@ -121,7 +119,7 @@
   };
 
   favorites.redirectUnauthenticated = function redirectUnauthenticated() {
-    root.localStorage.setItem("redirectAfterAuth", root.location.href);
+    root.RentlyAuthStorage?.setRedirectAfterAuth(root.location.href);
     const loginPath = (root.location.pathname || "").includes("/host-mode/")
       ? "../login.html"
       : "./login.html";
@@ -142,8 +140,8 @@
     if (!btn) return false;
 
     const isLoggedIn =
-      root.localStorage.getItem("isLoggedIn") === "true" ||
-      !!(root.RentlyApi?.getAuthToken() || root.localStorage.getItem("auth_token"));
+      root.RentlyAuthStorage?.isLoggedIn() === true ||
+      !!(root.RentlyApi?.getAuthToken() || root.RentlyAuthStorage?.getAuthToken());
     if (!isLoggedIn) {
       favorites.redirectUnauthenticated();
       return true;
@@ -175,7 +173,7 @@
               method: "DELETE",
               headers: {
                 Authorization:
-                  "Bearer " + (root.RentlyApi?.getAuthToken() || root.localStorage.getItem("auth_token") || ""),
+                  "Bearer " + (root.RentlyApi?.getAuthToken() || root.RentlyAuthStorage?.getAuthToken() || ""),
               },
             });
 
@@ -198,7 +196,7 @@
           : await root.fetch(`/api/Favorites/${id}`, {
               headers: {
                 Authorization:
-                  "Bearer " + (root.RentlyApi?.getAuthToken() || root.localStorage.getItem("auth_token") || ""),
+                  "Bearer " + (root.RentlyApi?.getAuthToken() || root.RentlyAuthStorage?.getAuthToken() || ""),
               },
             });
 
@@ -223,7 +221,7 @@
             method: "POST",
             headers: {
               Authorization:
-                "Bearer " + (root.RentlyApi?.getAuthToken() || root.localStorage.getItem("auth_token") || ""),
+                "Bearer " + (root.RentlyApi?.getAuthToken() || root.RentlyAuthStorage?.getAuthToken() || ""),
             },
           });
 

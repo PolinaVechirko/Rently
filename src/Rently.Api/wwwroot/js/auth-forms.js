@@ -67,8 +67,8 @@
         if (root.RentlyAuthStorage) {
           root.RentlyAuthStorage.setAuthenticated(token);
         } else {
-          root.localStorage.setItem("auth_token", token);
-          root.localStorage.setItem("isLoggedIn", "true");
+          root.localStorage?.setItem("auth_token", token);
+          root.localStorage?.setItem("isLoggedIn", "true");
         }
 
         cacheUserSnapshot(data.user);
@@ -81,7 +81,7 @@
           : new URL("./index.html", root.location.href).href;
         root.location.href = redirectUrl;
       } catch (err) {
-        if (root.localStorage.getItem("auth_token")) {
+        if (root.RentlyAuthStorage?.getAuthToken()) {
           return;
         }
         const msg =
@@ -142,8 +142,8 @@
         if (root.RentlyAuthStorage) {
           root.RentlyAuthStorage.setAuthenticated(data.token);
         } else {
-          root.localStorage.setItem("auth_token", data.token);
-          root.localStorage.setItem("isLoggedIn", "true");
+          root.localStorage?.setItem("auth_token", data.token);
+          root.localStorage?.setItem("isLoggedIn", "true");
         }
 
         cacheUserSnapshot(data.user);
@@ -156,7 +156,7 @@
           : new URL("./index.html", root.location.href).href;
         root.location.href = redirectUrl;
       } catch (err) {
-        if (root.localStorage.getItem("auth_token")) {
+        if (root.RentlyAuthStorage?.getAuthToken()) {
           return;
         }
         const msg =

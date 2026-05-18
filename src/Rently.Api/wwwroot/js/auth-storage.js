@@ -2,11 +2,19 @@
   if (!root) return;
 
   const storage = root.RentlyAuthStorage || {};
+  const profileStorage = root.RentlyProfileStorage || {};
+  const pageState = root.RentlyPageStateStorage || {};
 
   storage.cacheKeys = {
     user: "rently_host_data",
     avatar: "rently_host_avatar",
     avatarThumb: "rently_header_avatar_thumb",
+    profileDraft: "rently_user_data",
+  };
+
+  pageState.keys = {
+    selectedAccommodationId: "selectedAccommodationId",
+    favoritesChanged: "rently_favorites_changed",
   };
 
   storage.scopedKeys = new Set([
@@ -102,6 +110,19 @@
     root.localStorage?.removeItem("isLoggedIn");
   };
 
+  storage.setRedirectAfterAuth = function setRedirectAfterAuth(url) {
+    if (!url) return;
+    root.localStorage?.setItem("redirectAfterAuth", String(url));
+  };
+
+  storage.getRedirectAfterAuth = function getRedirectAfterAuth() {
+    return root.localStorage?.getItem("redirectAfterAuth") || "";
+  };
+
+  storage.clearRedirectAfterAuth = function clearRedirectAfterAuth() {
+    root.localStorage?.removeItem("redirectAfterAuth");
+  };
+
   storage.getStoredUserData = function getStoredUserData() {
     try {
       return JSON.parse(
@@ -153,6 +174,95 @@
     root.localStorage?.removeItem(storage.cacheKeys.user);
   };
 
+  profileStorage.getStoredUserData = function getStoredUserData() {
+    return storage.getStoredUserData();
+  };
+
+  profileStorage.setStoredUserData = function setStoredUserData(userData) {
+    root.localStorage?.setItem(
+      storage.cacheKeys.profileDraft,
+      JSON.stringify(userData || {}),
+    );
+  };
+
+  profileStorage.getStoredProfileDraft = function getStoredProfileDraft() {
+    try {
+      return JSON.parse(
+        root.localStorage?.getItem(storage.cacheKeys.profileDraft) || "{}",
+      );
+    } catch {
+      return {};
+    }
+  };
+
+  profileStorage.clearStoredProfileDraft = function clearStoredProfileDraft() {
+    root.localStorage?.removeItem(storage.cacheKeys.profileDraft);
+  };
+
+  profileStorage.getAvatarUrl = function getAvatarUrl() {
+    return (
+      root.localStorage?.getItem("rently_avatar") ||
+      storage.getCachedAvatarUrl()
+    );
+  };
+
+  profileStorage.setAvatarUrls = function setAvatarUrls(url, thumbUrl = "") {
+    if (!url) return;
+    root.localStorage?.setItem("rently_avatar", url);
+    root.localStorage?.setItem(storage.cacheKeys.avatar, url);
+    root.localStorage?.setItem(
+      storage.cacheKeys.avatarThumb,
+      thumbUrl || url,
+    );
+  };
+
+  profileStorage.clearAvatarUrls = function clearAvatarUrls() {
+    root.localStorage?.removeItem("rently_avatar");
+    root.localStorage?.removeItem(storage.cacheKeys.avatar);
+    root.localStorage?.removeItem(storage.cacheKeys.avatarThumb);
+  };
+
+  pageState.getSelectedAccommodationId = function getSelectedAccommodationId() {
+    return root.localStorage?.getItem(pageState.keys.selectedAccommodationId) || "";
+  };
+
+  pageState.setSelectedAccommodationId = function setSelectedAccommodationId(id) {
+    if (id === null || id === undefined || id === "") return;
+    root.localStorage?.setItem(
+      pageState.keys.selectedAccommodationId,
+      String(id),
+    );
+  };
+
+  pageState.clearSelectedAccommodationId =
+    function clearSelectedAccommodationId() {
+      root.localStorage?.removeItem(pageState.keys.selectedAccommodationId);
+    };
+
+  pageState.setFavoritesChanged = function setFavoritesChanged(payload) {
+    if (!payload) return;
+    root.localStorage?.setItem(
+      pageState.keys.favoritesChanged,
+      JSON.stringify(payload),
+    );
+  };
+
+  pageState.getFavoritesChanged = function getFavoritesChanged() {
+    try {
+      return JSON.parse(
+        root.localStorage?.getItem(pageState.keys.favoritesChanged) || "null",
+      );
+    } catch {
+      return null;
+    }
+  };
+
+  pageState.clearFavoritesChanged = function clearFavoritesChanged() {
+    root.localStorage?.removeItem(pageState.keys.favoritesChanged);
+  };
+
   storage.patchScopedAuthStorage();
   root.RentlyAuthStorage = storage;
+  root.RentlyProfileStorage = profileStorage;
+  root.RentlyPageStateStorage = pageState;
 })(window);

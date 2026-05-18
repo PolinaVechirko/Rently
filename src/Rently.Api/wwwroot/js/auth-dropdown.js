@@ -49,18 +49,15 @@
 
       if (root.RentlyAuthStorage) {
         root.RentlyAuthStorage.clearAuthentication();
-      } else {
-        root.localStorage.removeItem("isLoggedIn");
-        root.localStorage.removeItem("auth_token");
       }
 
-      root.localStorage.removeItem("redirectAfterAuth");
+      root.RentlyAuthStorage?.clearRedirectAfterAuth();
 
       if (root.RentlyAuthStorage) {
         root.RentlyAuthStorage.clearUserSnapshot();
       }
 
-      root.localStorage.removeItem("selectedAccommodationId");
+      root.RentlyPageStateStorage?.clearSelectedAccommodationId();
 
       const inHostSubfolder = (root.location.pathname || "").includes("/host-mode/");
       const homePath = inHostSubfolder ? "../index.html" : "./index.html";

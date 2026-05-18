@@ -386,6 +386,15 @@
                       object-fit: cover;
                       border-radius: 20px;
                     " />
+                <button type="button" class="gallery-nav prev show-on-load" id="preview-gallery-prev" style="display: none">
+                  <img src="./icons/arrow-left.svg" alt="prev" />
+                </button>
+                <button type="button" class="gallery-nav next show-on-load" id="preview-gallery-next" style="display: none">
+                  <img src="./icons/arrow-right.svg" alt="next" />
+                </button>
+              </div>
+              <div class="thumbnail-grid" id="preview-thumbnail-container">
+                <!-- Thumbnails populated by JS -->
               </div>
             </div>
 
@@ -533,7 +542,14 @@
   </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-  <script src="./js/edit-accommodation.js?v=20260514_host_listing_states_2"></script>
+  <script src="./js/accommodation-form-auth.js?v=20260518_accommodation_form_split"></script>
+  <script src="./js/accommodation-form-amenities.js?v=20260518_accommodation_form_split"></script>
+  <script src="./js/accommodation-form-preview.js?v=20260518_accommodation_form_split"></script>
+  <script src="./js/accommodation-form-photos.js?v=20260518_accommodation_form_split"></script>
+  <script src="./js/accommodation-form-location.js?v=20260518_accommodation_form_split"></script>
+  <script src="./js/accommodation-form-stepper.js?v=20260518_accommodation_form_split"></script>
+  <script src="./js/accommodation-form-shared.js?v=20260518_accommodation_form_split"></script>
+  <script src="./js/edit-accommodation.js?v=20260517_accommodation_form_refactor_4"></script>
 </body>
 
 </html>

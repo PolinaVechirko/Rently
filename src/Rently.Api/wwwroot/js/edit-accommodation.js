@@ -1,208 +1,91 @@
 document.addEventListener("DOMContentLoaded", () => {
+  const formShared = window.RentlyAccommodationFormShared;
+  const authStorage = window.RentlyAuthStorage;
   const redirectToLogin = () => {
-    localStorage.setItem("redirectAfterAuth", window.location.href);
+    if (formShared) {
+      return formShared.redirectToLogin("./login.html");
+    }
+    authStorage?.setRedirectAfterAuth(window.location.href);
     window.location.href = "./login.html";
   };
 
   const redirectToHostHome = () => {
+    if (formShared) {
+      return formShared.redirectToHostHome("./host-mode.html");
+    }
     window.location.href = "./host-mode.html";
   };
 
-  // Check if user is logged in at page load
-  // If not logged in, redirect to login with return URL
-  const token = localStorage.getItem("auth_token");
+  const token = formShared?.ensureAuthenticated("./login.html") || "";
   if (!token) {
-    redirectToLogin();
     return;
   }
 
-  // Test if we're on edit page
-  console.log("[Edit] Page loaded, checking for edit ID");
   const urlParams = new URLSearchParams(window.location.search);
   const editId = urlParams.get("id");
-  if (editId) {
-    console.log("[Edit] Edit mode detected for ID:", editId);
-  }
 
   let currentStep = 1;
   const totalSteps = 5;
 
-  // Amenities list setup
-  const amenities = [
-    "Wi-Fi — интернет",
-    "TV — телевизор",
-    "Kitchen — кухня (важно для длительного жилья)",
-    "Air Conditioning — кондиционер",
-    "Heating — отопление",
-    "Dedicated Workspace — рабочее место",
-    "Washer — стиральная машина",
-    "Free Parking — бесплатная парковка",
-    "Gym — спортзал",
-    "Pets Allowed — можно с животными",
-    "Balcony — балкон или терраса",
-    "Self Check-in — бесконтактное заселение",
-    "Crib — детская кроватка",
-    "Family Friendly — подойдет семьям",
-    "Meal Service — включено питание",
-    "Pool — бассейн (очень популярный фильтр для отдыха)",
-    "Dryer — сушилка для одежды (часто идет в паре с Washer)",
-    "Iron — утюг (базовая вещь для тех, кто приехал по работе)",
-    "Smoke Alarm — датчик дыма (показывает заботу о безопасности, стандарт для Airbnb)",
-    "First Aid Kit — аптечка (также важный пункт в разделе безопасности)",
-  ];
-
   const amenitiesList = document.getElementById("amenities-list");
-  amenities.forEach((item, index) => {
-    const col = document.createElement("div");
-    col.className = "col-md-4 mb-2";
-    col.innerHTML = `
-            <div class="form-check">
-                <input class="form-check-input amenity-checkbox" type="checkbox" value="${item}" id="amenity-${index}">
-                <label class="form-check-label text-muted" for="amenity-${index}">${item}</label>
-            </div>
-        `;
-    amenitiesList.appendChild(col);
-  });
+  if (formShared) {
+    formShared.seedAmenitiesList(amenitiesList);
+  }
 
-  // --- ADDRESS AUTOCOMPLETE (Nominatim) ---
-  const locInputs = [
+  const locationInputs = [
     document.getElementById("city"),
     document.getElementById("country"),
     document.getElementById("street"),
   ];
   const datalist = document.getElementById("location-suggestions");
 
-  if (locInputs[0]) {
-    let debounceTimer;
-    const handleAutocomplete = function () {
-      clearTimeout(debounceTimer);
-      const query = this.value.trim();
-      if (query.length < 3) {
-        if (datalist) datalist.innerHTML = "";
-        return;
-      }
-
-      debounceTimer = setTimeout(async () => {
-        try {
-          const resp = await fetch(
-            `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&accept-language=en&q=${encodeURIComponent(query)}&limit=10`,
-          );
-          const results = await resp.json();
-          if (datalist) {
-            const formatted = results
-              .map((r) => {
-                const addr = r.address;
-                const city =
-                  addr.city ||
-                  addr.town ||
-                  addr.village ||
-                  addr.hamlet ||
-                  addr.suburb ||
-                  "";
-                const country = addr.country || "";
-                if (city && country) return `${city}, ${country}`;
-                if (country) return country;
-                return r.display_name;
-              })
-              .filter((val, index, self) => val && self.indexOf(val) === index);
-
-            datalist.innerHTML = formatted
-              .map((f) => `<option value="${f}">`)
-              .join("");
-          }
-        } catch (e) {
-          console.error("Autocomplete error:", e);
-        }
-      }, 600);
-    };
-
-    locInputs.forEach((inp) => {
-      if (inp) inp.addEventListener("input", handleAutocomplete);
+  if (locationInputs[0] && formShared) {
+    formShared.initLocationAutocomplete({
+      datalist,
+      definitions: locationInputs
+        .filter(Boolean)
+        .map((input, index) => ({
+          input,
+          stateKey: `edit-field-${index}`,
+          mapResult(result) {
+            const addr = result.address || {};
+            const city =
+              addr.city ||
+              addr.town ||
+              addr.village ||
+              addr.hamlet ||
+              addr.suburb ||
+              "";
+            const country = addr.country || "";
+            if (city && country) return `${city}, ${country}`;
+            if (country) return country;
+            return result.display_name || "";
+          },
+        })),
     });
   }
 
-  // Navigation logic
-  const updateStepper = () => {
-    // Update Step circles
-    document.querySelectorAll(".step").forEach((step) => {
-      const stepNum = parseInt(step.getAttribute("data-step"));
-      step.classList.remove("active", "completed");
-
-      if (stepNum === currentStep) {
-        step.classList.add("active");
-      } else if (stepNum < currentStep) {
-        step.classList.add("completed");
-      }
-    });
-
-    // Show relevant form section
-    document.querySelectorAll(".form-step").forEach((stepEl) => {
-      stepEl.classList.add("d-none");
-    });
-    const currentForm = document.getElementById(`step-${currentStep}`);
-    if (currentForm) {
-      currentForm.classList.remove("d-none");
-    }
-
-    // Load existing photos when navigating to step 3
-    if (currentStep === 3 && existingPhotos.length > 0 && !photosLoaded) {
-      photosLoaded = true;
-      setTimeout(() => {
-        displayExistingPhotos(existingPhotos);
-      }, 100);
-    }
-  };
-
-  // Pre-fill from API if ?id= is present
-  const _editUrlParams = new URLSearchParams(window.location.search);
-  const _editAccomId = _editUrlParams.get("id");
-  const _editToken = localStorage.getItem("auth_token") || "";
-  let _loadedVisibilityState = {
+  const editUrlParams = new URLSearchParams(window.location.search);
+  const editAccommodationId = editUrlParams.get("id");
+  const editToken = formShared?.getAuthToken() || "";
+  let loadedVisibilityState = {
     isActive: true,
     visibleFrom: null,
   };
 
-  // Store existing photos globally for edit mode
   let existingPhotos = [];
-  let photosLoaded = false; // Flag to prevent duplicate loading
 
-  // Photo display will be called after API data is loaded
-  // This was moved to the API fetch success callback
+  const amenityNameMap = formShared?.getAmenityDisplayNameMap() || {};
 
-  const _amenityNameMap = {
-    "Wi-Fi": "Wi-Fi — интернет",
-    TV: "TV — телевизор",
-    Kitchen: "Kitchen — кухня (важно для длительного жилья)",
-    "Air Conditioning": "Air Conditioning — кондиционер",
-    Heating: "Heating — отопление",
-    "Dedicated Workspace": "Dedicated Workspace — рабочее место",
-    Washer: "Washer — стиральная машина",
-    "Free Parking": "Free Parking — бесплатная парковка",
-    Gym: "Gym — спортзал",
-    "Pets Allowed": "Pets Allowed — можно с животными",
-    Balcony: "Balcony — балкон или терраса",
-    "Self Check-in": "Self Check-in — бесконтактное заселение",
-    Crib: "Crib — детская кроватка",
-    "Meal Service": "Meal Service — включено питание",
-    Pool: "Pool — бассейн (очень популярный фильтр для отдыха)",
-    Dryer: "Dryer — сушилка для одежды (часто идет в паре с Washer)",
-    Iron: "Iron — утюг (базовая вещь для тех, кто приехал по работе)",
-    "Smoke Alarm":
-      "Smoke Alarm — датчик дыма (показывает заботу о безопасности, стандарт для Airbnb)",
-    "First Aid Kit":
-      "First Aid Kit — аптечка (также важный пункт в разделе безопасности)",
-  };
-
-  if (_editAccomId && _editToken) {
+  if (editAccommodationId && editToken) {
     fetch("/api/Accommodations/my", {
       headers: {
-        Authorization: "Bearer " + _editToken,
+        Authorization: "Bearer " + editToken,
       },
     })
       .then((r) => {
         if (r.status === 401) {
-          localStorage.removeItem("auth_token");
-          localStorage.removeItem("isLoggedIn");
+          authStorage?.clearAuthentication();
           redirectToLogin();
           return null;
         }
@@ -213,12 +96,12 @@ document.addEventListener("DOMContentLoaded", () => {
         return (
           items.find(
             (item) =>
-              String(item?.id ?? item?.Id ?? "") === String(_editAccomId),
+              String(item?.id ?? item?.Id ?? "") === String(editAccommodationId),
           ) || null
         );
       })
       .then((data) => {
-        if (_editAccomId && !data) {
+        if (editAccommodationId && !data) {
           redirectToHostHome();
           return;
         }
@@ -240,12 +123,14 @@ document.addEventListener("DOMContentLoaded", () => {
         if (countryEl) countryEl.value = data.country || data.Country || "";
         if (streetEl) streetEl.value = data.street || data.Street || "";
         if (bedsEl) bedsEl.value = data.bedsCount || data.BedsCount || "";
-        if (bedroomsEl) bedroomsEl.value = data.roomsCount || "";
-        if (priceEl) priceEl.value = data.pricePerNight || "";
+        if (bedroomsEl)
+          bedroomsEl.value = data.roomsCount || data.RoomsCount || "";
+        if (priceEl)
+          priceEl.value = data.pricePerNight || data.PricePerNight || "";
 
         const visibleFrom = data.visibleFrom || data.VisibleFrom || "";
         const isActive = (data.isActive ?? data.IsActive ?? true) === true;
-        _loadedVisibilityState = {
+        loadedVisibilityState = {
           isActive,
           visibleFrom,
         };
@@ -258,32 +143,21 @@ document.addEventListener("DOMContentLoaded", () => {
           applyListingStatusSelection("Active");
         }
 
-        // Store existing photos for later use
         if (data.photos && data.photos.length > 0) {
           existingPhotos = data.photos;
-          console.log("[Edit] Stored existing photos:", existingPhotos.length);
-          
-          // Auto-navigate to step 3 and display photos
-          console.log("[Edit] Auto-navigating to step 3 to show photos");
-          setTimeout(() => {
-            currentStep = 3;
-            updateStepper();
-            // Display photos after navigation
-            setTimeout(() => {
-              if (existingPhotos.length > 0) {
-                console.log("[Edit] Displaying photos after navigation");
-                displayExistingPhotos(existingPhotos);
-              }
-            }, 500);
-          }, 1000);
+          photoController?.setPhotos(existingPhotos);
         }
 
-        // Pre-check amenities
         const amenities = data.amenities || data.Amenities || [];
         if (amenities && amenities.length > 0) {
           setTimeout(() => {
+            if (formShared?.applySelectedAmenities) {
+              formShared.applySelectedAmenities(amenities);
+              return;
+            }
+
             amenities.forEach((name) => {
-              const label = _amenityNameMap[name] || name;
+              const label = amenityNameMap[name] || name;
               const cb = document.querySelector(
                 `.amenity-checkbox[value="${label}"]`,
               );
@@ -295,221 +169,53 @@ document.addEventListener("DOMContentLoaded", () => {
       .catch((e) => console.error("Failed to pre-fill edit form:", e));
   }
 
-  // Function to display existing photos in step 3
-  function displayExistingPhotos(photos) {
-    console.log("[Edit] Displaying existing photos:", photos.length);
-    const photoPreviewGrid = document.getElementById("photo-preview-grid");
-    
-    if (!photoPreviewGrid) {
-      console.error("[Edit] photo-preview-grid element not found");
+  const stepperController = formShared?.createStepperController({
+    totalSteps,
+    initialStep: currentStep,
+    onStepChanged(step) {
+      currentStep = step;
+    },
+  });
+  const setCurrentStep = (step) => {
+    if (stepperController) {
+      stepperController.setStep(step);
       return;
     }
+    currentStep = step;
+  };
+  const updateStepper = () => {
+    if (stepperController) {
+      stepperController.render();
+    }
+  };
+  stepperController?.bind();
 
-    // Clear existing previews first
-    photoPreviewGrid.innerHTML = "";
-    
-    photos.forEach((photoUrl, index) => {
-      console.log(`[Edit] Processing photo ${index}`);
-      
-      // Create simple photo container
-      const photoContainer = document.createElement("div");
-      photoContainer.style.cssText = `
-        position: relative;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        overflow: hidden;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        width: 140px;
-        height: 140px;
-        margin: 8px;
-        display: inline-block;
-        background: #f8f9fa;
-      `;
-
-      // Create image element
-      const img = document.createElement("img");
-      img.src = photoUrl;
-      img.style.cssText = `
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        display: block;
-      `;
-      img.alt = `Photo ${index + 1}`;
-      
-      // Add image to container
-      photoContainer.appendChild(img);
-      
-      // Add "Cover" badge to first photo
-      if (index === 0) {
-        const badge = document.createElement("span");
-        badge.textContent = "Cover";
-        badge.style.cssText = `
-          position: absolute;
-          top: 8px;
-          left: 8px;
-          background: #2986FE;
-          color: white;
-          padding: 4px 8px;
-          border-radius: 4px;
-          font-size: 11px;
-          font-weight: bold;
-        `;
-        photoContainer.appendChild(badge);
-      }
-      
-      // Add delete button
-      const deleteBtn = document.createElement("button");
-      deleteBtn.innerHTML = "×";
-      deleteBtn.style.cssText = `
-        position: absolute;
-        top: 8px;
-        right: 8px;
-        background: #dc3545;
-        color: white;
-        border: none;
-        border-radius: 50%;
-        width: 24px;
-        height: 24px;
-        cursor: pointer;
-        font-size: 16px;
-        font-weight: bold;
-      `;
-      deleteBtn.onclick = () => {
-        existingPhotos = existingPhotos.filter((_, i) => i !== index);
-        photosLoaded = existingPhotos.length > 0;
-        displayExistingPhotos(existingPhotos);
-      };
-      photoContainer.appendChild(deleteBtn);
-      
-      // Add to grid
-      photoPreviewGrid.appendChild(photoContainer);
-    });
-
-    updateEditPhotoActionState();
-  }
-
-  // Stepper dots clickable bindings
-  document.querySelectorAll(".step").forEach((stepEl) => {
-    stepEl.addEventListener("click", () => {
-      const targetStep = parseInt(stepEl.getAttribute("data-step"), 10);
-      currentStep = targetStep;
-      updateStepper();
-      window.scrollTo(0, 0);
-    });
-  });
-
-  // Buttons bindings
-  document.querySelectorAll(".next-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const currentForm = document.getElementById(`step-${currentStep}`);
-      let isValid = true;
-
-      // Validate required inputs
-      currentForm
-        .querySelectorAll(
-          "input[required], select[required], textarea[required]",
-        )
-        .forEach((input) => {
-          if (!input.value.trim()) {
-            isValid = false;
-            input.classList.add("is-invalid");
-          } else {
-            input.classList.remove("is-invalid");
-          }
-        });
-
-      if (!isValid) return;
-
-      if (currentStep < totalSteps) {
-        currentStep++;
-        updateStepper();
-        window.scrollTo(0, 0);
-      }
-    });
-  });
-
-  document.querySelectorAll(".prev-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      if (currentStep > 1) {
-        currentStep--;
-        updateStepper();
-        window.scrollTo(0, 0);
-      }
-    });
-  });
-
-  // Listing Status radio buttons logic
   const datePickerContainer = document.getElementById("date-picker-container");
   const datePickerInput = document.getElementById("available-from");
-
-  // Initialize flatpickr
-  flatpickr(datePickerInput, {
-    dateFormat: "Y-m-d",
-    minDate: "today",
-    disableMobile: "true",
-  });
-
-  Array.from(document.getElementsByName("listing-status")).forEach((radio) => {
-    radio.addEventListener("change", (e) => {
-      // Update UI card logic manually for styling
-      document
-        .querySelectorAll(".custom-radio-card")
-        .forEach((card) => card.classList.remove("active"));
-      e.target.closest(".custom-radio-card").classList.add("active");
-
-      if (e.target.value === "Upcoming") {
-        datePickerContainer.classList.remove("d-none");
-      } else {
-        datePickerContainer.classList.add("d-none");
+  const listingStatusControls = formShared?.initListingStatusControls({
+    datePickerContainer,
+    datePickerInput,
+    resolveInactiveState() {
+      if (loadedVisibilityState.isActive === false) {
+        return {
+          isActive: false,
+          visibleFrom: null,
+        };
       }
-    });
+
+      return null;
+    },
   });
 
   function applyListingStatusSelection(statusValue, availableFromValue = "") {
-    document
-      .querySelectorAll(".custom-radio-card")
-      .forEach((card) => card.classList.remove("active"));
-
-    Array.from(document.getElementsByName("listing-status")).forEach((radio) => {
-      const isSelected = radio.value === statusValue;
-      radio.checked = isSelected;
-      if (isSelected) {
-        radio.closest(".custom-radio-card")?.classList.add("active");
-      }
-    });
-
-    if (datePickerInput) {
-      datePickerInput.value = availableFromValue || "";
-    }
-
-    if (datePickerContainer) {
-      datePickerContainer.classList.toggle(
-        "d-none",
-        statusValue !== "Upcoming",
-      );
+    if (listingStatusControls) {
+      listingStatusControls.applySelection(statusValue, availableFromValue);
     }
   }
 
   function getEditListingVisibilityPayload() {
-    const isUpcoming = !!document.querySelector(
-      'input[name="listing-status"][value="Upcoming"]',
-    )?.checked;
-    const availableFromValue =
-      document.getElementById("available-from")?.value || "";
-
-    if (isUpcoming) {
-      return {
-        isActive: true,
-        visibleFrom: availableFromValue || null,
-      };
-    }
-
-    if (_loadedVisibilityState.isActive === false) {
-      return {
-        isActive: false,
-        visibleFrom: null,
-      };
+    if (listingStatusControls) {
+      return listingStatusControls.getPayload();
     }
 
     return {
@@ -519,385 +225,196 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function uploadInlinePhotos(token, photos) {
-    const normalizedPhotos = Array.isArray(photos) ? photos : [];
-    const uploaded = [];
-
-    for (const photo of normalizedPhotos) {
-      if (!photo) continue;
-      if (!String(photo).startsWith("data:")) {
-        uploaded.push(photo);
-        continue;
-      }
-
-      const response = await fetch("/api/Images/upload", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: "Bearer " + token,
-        },
-        body: JSON.stringify({ dataUrl: photo }),
-      });
-
-      if (!response.ok) {
-        const payload = await response.json().catch(() => null);
-        throw new Error(payload?.message || "Failed to upload listing photo.");
-      }
-
-      const payload = await response.json();
-      if (payload?.url) {
-        uploaded.push(payload.url);
-      }
+    if (window.RentlyAccommodationFormShared) {
+      return window.RentlyAccommodationFormShared.uploadInlinePhotos(token, photos);
     }
-
-    return uploaded;
+    return [];
   }
 
-  // Photo drag & drop placeholder logic
   const photoUpload = document.getElementById("photo-upload");
   const photoPreviewGrid = document.getElementById("photo-preview-grid");
   const dropZoneEl = document.getElementById("drop-zone");
-  const addMorePhotosBtn = document.createElement("button");
-
-  const updateEditPhotoActionState = () => {
+  const setPhotoStepValidationState = (hasError) => {
     if (!dropZoneEl) return;
-
-    if (existingPhotos.length > 0) {
-      dropZoneEl.classList.add("d-none");
-      addMorePhotosBtn.textContent = "Add More Photos";
-    } else {
-      dropZoneEl.classList.remove("d-none");
-      addMorePhotosBtn.textContent = "Select Photos";
-    }
+    dropZoneEl.style.borderColor = hasError ? "#dc3545" : "";
+    dropZoneEl.style.boxShadow = hasError
+      ? "0 0 0 0.2rem rgba(220, 53, 69, 0.15)"
+      : "";
   };
 
-  addMorePhotosBtn.type = "button";
-  addMorePhotosBtn.className = "btn btn-outline-primary mt-3";
-  addMorePhotosBtn.textContent = "Select Photos";
-  addMorePhotosBtn.addEventListener("click", () => {
-    if (!photoUpload) return;
-    photoUpload.value = "";
-    photoUpload.click();
+  const photoController = formShared?.createPhotoCollectionController({
+    dropZone: dropZoneEl,
+    onPhotosChanged(nextPhotos) {
+      existingPhotos = [...nextPhotos];
+    },
+    photoPreviewGrid,
+    photoUpload,
+    resolveTileOptions() {
+      return {
+        backgroundColor: "#f8f9fa",
+        display: "inline-block",
+        imageDisplay: "block",
+      };
+    },
+    setValidationState: setPhotoStepValidationState,
   });
-  photoPreviewGrid?.parentElement?.appendChild(addMorePhotosBtn);
-  updateEditPhotoActionState();
 
-  // Simulate image selection
-  if (photoUpload) {
-    photoUpload.addEventListener("change", (e) => {
-      const files = e.target.files;
-      if (!files?.length) return;
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const reader = new FileReader();
-        
-        reader.onload = (event) => {
-          const wrapper = document.createElement("div");
-          wrapper.className =
-            "position-relative border rounded overflow-hidden shadow-sm";
-          wrapper.style.width = "140px";
-          wrapper.style.height = "140px";
-          wrapper.style.backgroundColor = "#e0e0e0";
-
-          const img = document.createElement("img");
-          img.src = event.target.result;
-          img.style.width = "100%";
-          img.style.height = "100%";
-          img.style.objectFit = "cover";
-          img.alt = file.name;
-          
-          wrapper.appendChild(img);
-
-          // Add to existing photos array as base64
-          existingPhotos.push(event.target.result);
-          photosLoaded = true;
-          displayExistingPhotos(existingPhotos);
-        };
-        
-        reader.readAsDataURL(file);
-      }
-      photoUpload.value = "";
-    });
-  }
-
-  // Final Review Step
   const reviewBtn = document.getElementById("to-preview-btn");
   const addListingForm = document.getElementById("add-listing-form");
   const previewSection = document.getElementById("preview-section");
   const stepperContainer = document.querySelector(".stepper-container");
+  const previewGalleryController = formShared?.createPreviewGalleryController({
+    mainPhoto: document.getElementById("preview-main-photo"),
+    nextButton: document.getElementById("preview-gallery-next"),
+    prevButton: document.getElementById("preview-gallery-prev"),
+    thumbnailContainer: document.getElementById("preview-thumbnail-container"),
+  });
 
-  if (reviewBtn) {
-    reviewBtn.addEventListener("click", () => {
-      // Validation across all steps
-      let isValid = true;
-      let firstInvalidStep = -1;
+  const buildPreviewState = () => {
+    const typeEl = document.getElementById("prop-type");
+    const isUpcoming = document.querySelector(
+      'input[name="listing-status"][value="Upcoming"]',
+    )?.checked;
 
-      const allRequired = addListingForm.querySelectorAll(
-        "input[required], select[required], textarea[required]",
-      );
-      allRequired.forEach((input) => {
-        if (!input.value.trim()) {
-          isValid = false;
-          input.classList.add("is-invalid");
-          if (firstInvalidStep === -1) {
-            let parent = input.closest(".form-step");
-            if (parent)
-              firstInvalidStep = parseInt(parent.id.split("-")[1] || "1", 10);
-          }
-        } else {
-          input.classList.remove("is-invalid");
-        }
-      });
+    return {
+      amenities: formShared ? formShared.collectSelectedAmenityValues() : [],
+      basics: {
+        title:
+          document.getElementById("listing-title")?.value ||
+          "Beautiful Property",
+        country: document.getElementById("country")?.value || "Country",
+        city: document.getElementById("city")?.value || "City",
+        type: formShared?.getPropertyTypeLabel(typeEl) || "Apartment",
+        guests: document.getElementById("guests-count")?.value || 1,
+        bedrooms: document.getElementById("bedrooms-count")?.value || 1,
+        beds: document.getElementById("beds-count")?.value || 1,
+        description:
+          document.getElementById("listing-desc")?.value ||
+          "A very nice place to stay.",
+        price: document.getElementById("price-night")?.value || "0",
+        statusText:
+          formShared?.buildListingStatusText(
+            isUpcoming,
+            document.getElementById("available-from")?.value,
+          ) || "Active right now",
+      },
+      photos: existingPhotos,
+    };
+  };
 
-      if (!isValid) {
-        currentStep = firstInvalidStep;
-        updateStepper();
-        window.scrollTo({ top: 0, behavior: "smooth" });
+  const previewFlowController = formShared?.createPreviewFlowController({
+    buildPreviewState,
+    editButton: document.getElementById("edit-btn"),
+    form: addListingForm,
+    formMaxWidth: "800px",
+    galleryController: previewGalleryController,
+    previewSection,
+    reviewButton: reviewBtn,
+    setStep: setCurrentStep,
+    stepperContainer,
+    validateBeforeOpen() {
+      if (existingPhotos.length > 0) {
+        return true;
+      }
+
+      setCurrentStep(3);
+      setPhotoStepValidationState(true);
+      alert("Please add at least one photo before opening Final Check.");
+      dropZoneEl?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return false;
+    },
+  });
+  previewFlowController?.bind();
+
+  const submitListingBtnEl = document.getElementById("submit-listing-btn");
+  if (submitListingBtnEl) {
+    submitListingBtnEl.addEventListener("click", async () => {
+      if (!editAccommodationId || !editToken) {
+        alert("No listing ID found. Cannot save.");
         return;
       }
 
-      // Gather data
-      const title =
-        document.getElementById("listing-title").value || "Beautiful Property";
-      const desc =
-        document.getElementById("listing-desc").value ||
-        "A very nice place to stay.";
+      const visibility = getEditListingVisibilityPayload();
+      if (
+        document.querySelector(
+          'input[name="listing-status"][value="Upcoming"]',
+        )?.checked &&
+        !visibility.visibleFrom
+      ) {
+        alert("Choose the date when this listing should become visible.");
+        return;
+      }
+
+      if (existingPhotos.length === 0) {
+        setCurrentStep(3);
+        setPhotoStepValidationState(true);
+        alert("Please add at least one photo before updating the listing.");
+        dropZoneEl?.scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
+
       const typeEl = document.getElementById("prop-type");
-      const typeStr = typeEl.options[typeEl.selectedIndex].text.split(" — ")[0];
-      const type = typeStr || "Apartment";
-      const city = document.getElementById("city").value || "City";
-      const country = document.getElementById("country").value || "Country";
-      const guests = document.getElementById("guests-count").value || 1;
-      const beds = document.getElementById("beds-count").value || 1;
-      const bedrooms = document.getElementById("bedrooms-count").value || 1;
-      const price = document.getElementById("price-night").value || "0";
-      const currency = document.getElementById("currency").value;
+      const propTypeLabel = formShared?.getPropertyTypeLabel(typeEl) || "Apartment";
+      const propType = formShared?.propertyTypeToEnumValue(propTypeLabel) ?? 0;
+      const selectedAmenityNames = formShared
+        ? formShared.collectSelectedAmenityNames()
+        : [];
+      const amenityIds = formShared
+        ? formShared.mapAmenityNamesToIds(selectedAmenityNames)
+        : [];
 
-      const isUpcoming = document.querySelector(
-        'input[name="listing-status"][value="Upcoming"]',
-      ).checked;
-      const activeDate = document.getElementById("available-from").value;
-
-      let statusText = "Active right now";
-      if (isUpcoming && activeDate) {
-        statusText = `Available from ${activeDate}`;
-      } else if (isUpcoming) {
-        statusText = "Upcoming (No date set)";
-      }
-
-      // Selected Amenities
-      const selectedAmenities = [];
-      document.querySelectorAll(".amenity-checkbox:checked").forEach((cb) => {
-        selectedAmenities.push(cb.value);
-      });
-
-      // Populate Preview
-      document.getElementById("preview-prop-title").textContent = title;
-      document.getElementById("preview-prop-location").textContent =
-        `${country}, ${city} - ${type}`;
-
-      document.getElementById("preview-prop-desc").innerHTML =
-        `<p class="fw-bold mb-1">${guests} guests · ${bedrooms} bedrooms · ${beds} beds</p><p class="mt-2 text-muted">${desc}</p>`;
-      document.getElementById("preview-prop-price").textContent = `${price}`;
-      document.getElementById("preview-prop-status").textContent = statusText;
-
-      // Update preview photo if we have existing photos
-      if (existingPhotos.length > 0) {
-        const previewMainPhoto = document.getElementById("preview-main-photo");
-        if (previewMainPhoto) {
-          previewMainPhoto.src = existingPhotos[0].startsWith('data:image/') ? existingPhotos[0] : `/api/Images/resize?url=${encodeURIComponent(existingPhotos[0])}&width=600`;
-        }
-      }
-
-      const previewAmenitiesBox = document.getElementById(
-        "preview-prop-amenities",
-      );
-      previewAmenitiesBox.innerHTML = "";
-      if (selectedAmenities.length > 0) {
-        selectedAmenities.forEach((am) => {
-          const arr = am.split(" — ");
-          const cleanName = arr[0];
-          const ac = document.createElement("div");
-          ac.className = "amenity-item mb-2";
-          ac.innerHTML = `<span class="text-muted">• ${cleanName}</span>`;
-          previewAmenitiesBox.appendChild(ac);
-        });
-      } else {
-        previewAmenitiesBox.innerHTML =
-          "<p class='text-muted small'>No amenities selected.</p>";
-      }
-
-      // Hide form and stepper, show preview
-      stepperContainer.classList.add("d-none");
-      addListingForm.parentElement.style.maxWidth = "100%";
-      addListingForm.classList.add("d-none");
-      previewSection.classList.remove("d-none");
-      window.scrollTo(0, 0);
-    });
-
-    const editBtn = document.getElementById("edit-btn");
-    if (editBtn) {
-      editBtn.addEventListener("click", () => {
-        stepperContainer.classList.remove("d-none");
-        if (addListingForm) addListingForm.classList.remove("d-none");
-        if (addListingForm && addListingForm.parentElement)
-          addListingForm.parentElement.style.maxWidth = "800px";
-        if (previewSection) previewSection.classList.add("d-none");
-      });
-    }
-
-    const submitListingBtnEl = document.getElementById("submit-listing-btn");
-    if (submitListingBtnEl) {
-      submitListingBtnEl.addEventListener("click", async () => {
-        if (!_editAccomId || !_editToken) {
-          alert("No listing ID found. Cannot save.");
-          return;
-        }
-
-        // Gather form values
-        const typeEl = document.getElementById("prop-type");
-        const propTypeLabel = typeEl
-          ? typeEl.value.split(" — ")[0].trim()
-          : "Apartment";
-        const propertyTypeMap = {
-          Apartment: 0,
-          House: 1,
-          Room: 2,
-          Studio: 3,
-          Condo: 4,
-          Townhouse: 5,
-          Guesthouse: 6,
-          Villa: 7,
-          Cottage: 8,
-          Bungalow: 9,
-          Cabin: 10,
-          Chalet: 11,
-          Hotel: 12,
-          Hostel: 13,
-          Motel: 14,
-          Resort: 15,
-          Homestay: 16,
-          Aparthotel: 17,
-          "Farm Stay": 18,
-          "Eco-house": 19,
-          "Tiny House": 20,
-          "Beach House": 21,
-          "Lake House": 22,
-          "Waterfront Apartment": 23,
-          Houseboat: 24,
-        };
-        const propType =
-          propertyTypeMap[propTypeLabel] ?? propertyTypeMap.Apartment;
-        const description = document.getElementById("listing-desc")?.value || "";
-        const city = document.getElementById("city")?.value || "";
-        const country = document.getElementById("country")?.value || "";
-        const street = document.getElementById("street")?.value || "";
-        const beds = parseInt(
-          document.getElementById("beds-count")?.value || "1",
-        );
-        const rooms = parseInt(
-          document.getElementById("bedrooms-count")?.value || "1",
-        );
-        const price = parseFloat(
-          document.getElementById("price-night")?.value || "0",
-        );
-        const visibility = getEditListingVisibilityPayload();
-
-        if (
-          document.querySelector(
-            'input[name="listing-status"][value="Upcoming"]',
-          )?.checked &&
-          !visibility.visibleFrom
-        ) {
-          alert("Choose the date when this listing should become visible.");
-          return;
-        }
-
-        // Collect selected amenity display names (map back to clean names via reverse lookup)
-        const reverseMap = Object.fromEntries(
-          Object.entries(_amenityNameMap).map(([k, v]) => [v, k]),
-        );
-        const selectedAmenityNames = [];
-        document.querySelectorAll(".amenity-checkbox:checked").forEach((cb) => {
-          const clean = reverseMap[cb.value] || cb.value.split(" — ")[0];
-          selectedAmenityNames.push(clean);
-        });
-        const amenityIdMap = {
-          TV: 1,
-          Kitchen: 2,
-          Heating: 3,
-          "Dedicated Workspace": 4,
-          Washer: 5,
-          "Pets Allowed": 6,
-          Balcony: 7,
-          "Self Check-in": 8,
-          Crib: 9,
-          Pool: 10,
-          Dryer: 11,
-          Iron: 12,
-          "Smoke Alarm": 13,
-          "First Aid Kit": 14,
-          "Wi-Fi": 15,
-          "Free Parking": 16,
-          "Air Conditioning": 17,
-          Gym: 18,
-          "Meal Service": 19,
-        };
-        const amenityIds = selectedAmenityNames
-          .map((name) => amenityIdMap[name])
-          .filter(Boolean);
-
-        const photoUrls = await uploadInlinePhotos(_editToken, existingPhotos);
-        const dto = {
-          propertyType: propType,
-          pricePerNight: price,
-          roomsCount: rooms,
-          bedsCount: beds,
-          description: description,
-          title: document.getElementById("listing-title")?.value || "",
-          country: country,
-          city: city,
-          street: street,
-          isActive: visibility.isActive,
-          visibleFrom: visibility.visibleFrom,
-          amenityIds: amenityIds,
-          photoUrls: photoUrls,
-        };
-
-        try {
-          const resp = await fetch(`/api/Accommodations/${_editAccomId}`, {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: "Bearer " + _editToken,
-            },
-            body: JSON.stringify(
-              Object.assign({}, dto, { propertyType: Number(dto.propertyType) }),
+      try {
+        const photoUrls = await uploadInlinePhotos(editToken, existingPhotos);
+        const resp = await fetch(`/api/Accommodations/${editAccommodationId}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + editToken,
+          },
+          body: JSON.stringify({
+            propertyType: Number(propType),
+            pricePerNight: parseFloat(
+              document.getElementById("price-night")?.value || "0",
             ),
-          });
+            roomsCount: parseInt(
+              document.getElementById("bedrooms-count")?.value || "1",
+              10,
+            ),
+            bedsCount: parseInt(
+              document.getElementById("beds-count")?.value || "1",
+              10,
+            ),
+            description: document.getElementById("listing-desc")?.value || "",
+            title: document.getElementById("listing-title")?.value || "",
+            country: document.getElementById("country")?.value || "",
+            city: document.getElementById("city")?.value || "",
+            street: document.getElementById("street")?.value || "",
+            isActive: visibility.isActive,
+            visibleFrom: visibility.visibleFrom,
+            amenityIds,
+            photoUrls,
+          }),
+        });
 
-          if (!resp.ok) {
-            if (resp.status === 401) {
-              // Token expired or invalid; redirect to login with return URL
-              localStorage.setItem("redirectAfterAuth", window.location.href);
-              // Clear invalid token
-              localStorage.removeItem("auth_token");
-              localStorage.removeItem("isLoggedIn");
-              redirectToLogin();
-              return;
-            }
-            if (resp.status === 404) {
-              redirectToHostHome();
-              return;
-            }
-            const err = await resp.json().catch(() => ({}));
-            throw new Error(err.message || "Failed to update listing");
+        if (!resp.ok) {
+          if (resp.status === 401) {
+            authStorage?.setRedirectAfterAuth(window.location.href);
+            authStorage?.clearAuthentication();
+            redirectToLogin();
+            return;
           }
-
-          window.location.href = "./host-mode.html";
-        } catch (e) {
-          alert("Save failed: " + e.message);
+          if (resp.status === 404) {
+            redirectToHostHome();
+            return;
+          }
+          const err = await resp.json().catch(() => ({}));
+          throw new Error(err.message || "Failed to update listing");
         }
-      });
-    }
+
+        window.location.href = "./host-mode.html";
+      } catch (e) {
+        alert("Save failed: " + e.message);
+      }
+    });
   }
 });

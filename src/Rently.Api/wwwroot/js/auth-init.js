@@ -24,8 +24,7 @@
   authInit.checkAuthState = function checkAuthState() {
     const isLoggedIn = root.RentlyAuthStorage
       ? root.RentlyAuthStorage.isLoggedIn()
-      : root.localStorage.getItem("isLoggedIn") === "true" ||
-        !!root.localStorage.getItem("auth_token");
+      : false;
 
     const isAuthPage =
       root.location.pathname.includes("login.html") ||
@@ -60,8 +59,7 @@
           ) {
             link.addEventListener("click", (e) => {
               e.preventDefault();
-              root.localStorage.setItem(
-                "redirectAfterAuth",
+              root.RentlyAuthStorage?.setRedirectAfterAuth(
                 new URL(href, root.location.href).href,
               );
               root.location.href =
@@ -88,12 +86,9 @@
           });
 
       if (resp.status === 401) {
-        if (root.RentlyAuthStorage) {
-          root.RentlyAuthStorage.clearAuthentication();
-        } else {
-          root.localStorage.removeItem("auth_token");
-          root.localStorage.removeItem("isLoggedIn");
-        }
+      if (root.RentlyAuthStorage) {
+        root.RentlyAuthStorage.clearAuthentication();
+      }
 
         root.RentlyAuthUi?.updateHeaderUI(false, false);
         root.RentlyAuthUi?.syncAllUserData(null);
@@ -121,8 +116,6 @@
 
       if (root.RentlyAuthStorage) {
         root.RentlyAuthStorage.setAuthenticated(token);
-      } else {
-        root.localStorage.setItem("isLoggedIn", "true");
       }
 
       root.RentlyAuthUi?.updateHeaderUI(true, false);
@@ -151,7 +144,7 @@
           !root.location.pathname.includes("login.html") &&
           !root.location.pathname.includes("signup.html")
         ) {
-          root.localStorage.setItem("redirectAfterAuth", root.location.href);
+          root.RentlyAuthStorage?.setRedirectAfterAuth(root.location.href);
         }
       });
     }
@@ -170,7 +163,7 @@
 
     const token = root.RentlyAuthStorage
       ? root.RentlyAuthStorage.getAuthToken()
-      : root.localStorage.getItem("auth_token");
+      : "";
     const cachedHostAvatar = root.RentlyAuthStorage
       ? root.RentlyAuthStorage.getCachedAvatarUrl()
       : "";

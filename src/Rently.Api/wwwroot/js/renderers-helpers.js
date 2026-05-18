@@ -55,6 +55,16 @@
     return helpers.getHostModeHref("property-view.html", query);
   };
 
+  helpers.getPropertyHref = function getPropertyHref(id) {
+    if (helpers.isInHostMode()) {
+      return helpers.getHostPropertyViewHref(id);
+    }
+
+    return id
+      ? `./property.html?id=${encodeURIComponent(id)}`
+      : "./property.html";
+  };
+
   helpers.getFavoriteIds = async function getFavoriteIds() {
     try {
       const token = root.RentlyApi
@@ -108,6 +118,72 @@
       return url;
     }
     return `/api/Images/resize?url=${encodeURIComponent(url)}&width=${width}`;
+  };
+
+  helpers.getFallbackHeroImage = function getFallbackHeroImage(index = 0, assetBase) {
+    const base = assetBase || helpers.getAssetBase();
+    const safeIndex = Math.abs(Number(index) || 0) % 4;
+    return `${base}images/hero${safeIndex + 1}.png`;
+  };
+
+  helpers.getCardImageUrl = function getCardImageUrl(photoSource, options = {}) {
+    const width = Number(options.width || 600);
+    const fallbackIndex = Number(options.fallbackIndex || 0);
+    const assetBase = options.assetBase || helpers.getAssetBase();
+    const rawPhoto = Array.isArray(photoSource)
+      ? photoSource.find(Boolean)
+      : photoSource;
+
+    return helpers.getOptimizedImageUrl(
+      rawPhoto || helpers.getFallbackHeroImage(fallbackIndex, assetBase),
+      width,
+    );
+  };
+
+  helpers.formatLocation = function formatLocation(locationSource, options = {}) {
+    const fallbackCountry = options.fallbackCountry ?? "";
+    const fallbackCity = options.fallbackCity ?? "";
+    const country = typeof locationSource === "object" && locationSource
+      ? locationSource.country || locationSource.Country || fallbackCountry
+      : locationSource || fallbackCountry;
+    const city = typeof locationSource === "object" && locationSource
+      ? locationSource.city || locationSource.City || fallbackCity
+      : options.city || fallbackCity;
+
+    return [country, city].map((value) => String(value || "").trim()).join(", ");
+  };
+
+  helpers.formatPrice = function formatPrice(value) {
+    const numericValue = Number(value || 0);
+    return `$${numericValue.toLocaleString()}`;
+  };
+
+  helpers.getStayPriceParts = function getStayPriceParts(pricePerNight, nights = 0) {
+    const nightlyPrice = Number(pricePerNight || 0);
+    const stayNights = Math.max(0, Number(nights || 0));
+    const totalPrice = stayNights > 0 ? nightlyPrice * stayNights : nightlyPrice;
+
+    return {
+      priceDisplay: helpers.formatPrice(totalPrice),
+      priceSubtext:
+        stayNights > 0
+          ? `<span class="price-tag-total">Total for ${stayNights} ${stayNights === 1 ? "night" : "nights"}</span>`
+          : " / night",
+    };
+  };
+
+  helpers.formatRating = function formatRating(value, reviewsCount) {
+    const numericValue = Number(value);
+    const rating = Number.isFinite(numericValue) ? numericValue.toFixed(2) : "5.00";
+    const reviews = Number(reviewsCount || 0);
+    return `${rating}(${reviews})`;
+  };
+
+  helpers.getFavoriteIconSrc = function getFavoriteIconSrc(isActive) {
+    const assetBase = helpers.getAssetBase();
+    return isActive
+      ? `${assetBase}icons/favorite-filled.svg`
+      : `${assetBase}icons/favorite.svg`;
   };
 
   helpers.getLearnMoreCollageImages = async function getLearnMoreCollageImages(assetBase) {

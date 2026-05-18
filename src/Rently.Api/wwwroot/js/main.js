@@ -2,12 +2,29 @@
  * Main entry point and global initialization
  */
 
+function getAppContext() {
+  return window.RentlyAppContext || null;
+}
+
+function getFavoriteInteractions() {
+  return window.RentlyFavoriteInteractions || null;
+}
+
+function getMainNavigation() {
+  return window.RentlyMainNavigation || null;
+}
+
+function getLearnMoreModule() {
+  return window.RentlyLearnMore || null;
+}
+
 /**
  * Helper function to determine if user is in host mode
  */
 function isInHostMode() {
-  if (window.RentlyAppContext) {
-    return window.RentlyAppContext.isInHostMode();
+  const appContext = getAppContext();
+  if (appContext) {
+    return appContext.isInHostMode();
   }
 
   return (
@@ -17,16 +34,18 @@ function isInHostMode() {
 }
 
 function isInHostModeFolder() {
-  if (window.RentlyAppContext) {
-    return window.RentlyAppContext.isInHostModeFolder();
+  const appContext = getAppContext();
+  if (appContext) {
+    return appContext.isInHostModeFolder();
   }
 
   return window.location.pathname.includes("/host-mode/");
 }
 
 function getHostPropertyViewHref(id) {
-  if (window.RentlyAppContext) {
-    return window.RentlyAppContext.getHostPropertyViewHref(id);
+  const appContext = getAppContext();
+  if (appContext) {
+    return appContext.getHostPropertyViewHref(id);
   }
 
   const base = isInHostModeFolder()
@@ -36,8 +55,9 @@ function getHostPropertyViewHref(id) {
 }
 
 function getHostModeHref(path, query = "") {
-  if (window.RentlyAppContext) {
-    return window.RentlyAppContext.getHostModeHref(path, query);
+  const appContext = getAppContext();
+  if (appContext) {
+    return appContext.getHostModeHref(path, query);
   }
 
   const cleanPath = String(path || "").replace(/^\/+/, "");
@@ -48,8 +68,9 @@ function getHostModeHref(path, query = "") {
 }
 
 function getSearchPageHref(query = "") {
-  if (window.RentlyAppContext) {
-    return window.RentlyAppContext.getSearchPageHref(query);
+  const appContext = getAppContext();
+  if (appContext) {
+    return appContext.getSearchPageHref(query);
   }
 
   const base = isInHostModeFolder() ? "../search.html" : "./search.html";
@@ -57,14 +78,16 @@ function getSearchPageHref(query = "") {
 }
 
 function rememberFavoriteChange(id, type, isActive) {
-  if (window.RentlyFavoriteInteractions) {
-    window.RentlyFavoriteInteractions.rememberFavoriteChange(id, type, isActive);
+  const favoriteInteractions = getFavoriteInteractions();
+  if (favoriteInteractions) {
+    favoriteInteractions.rememberFavoriteChange(id, type, isActive);
   }
 }
 
 function getRememberedFavoriteState(id, type) {
-  if (window.RentlyFavoriteInteractions) {
-    return window.RentlyFavoriteInteractions.getRememberedFavoriteState(id, type);
+  const favoriteInteractions = getFavoriteInteractions();
+  if (favoriteInteractions) {
+    return favoriteInteractions.getRememberedFavoriteState(id, type);
   }
   return null;
 }
@@ -76,8 +99,9 @@ window.getRememberedFavoriteState = getRememberedFavoriteState;
  * Helper function to get favorite type based on current mode
  */
 function getFavoriteType() {
-  if (window.RentlyFavoriteInteractions) {
-    return window.RentlyFavoriteInteractions.getFavoriteType();
+  const favoriteInteractions = getFavoriteInteractions();
+  if (favoriteInteractions) {
+    return favoriteInteractions.getFavoriteType();
   }
   return isInHostMode() ? "Host" : "Guest";
 }
@@ -86,58 +110,65 @@ function getFavoriteType() {
  * Helper function to get the appropriate favorite icon based on mode
  */
 function getFavoriteIconSrc(isActive) {
-  if (window.RentlyFavoriteInteractions) {
-    return window.RentlyFavoriteInteractions.getFavoriteIconSrc(isActive);
+  const favoriteInteractions = getFavoriteInteractions();
+  if (favoriteInteractions) {
+    return favoriteInteractions.getFavoriteIconSrc(isActive);
   }
   return isActive ? "./icons/favorite-filled.svg" : "./icons/favorite.svg";
 }
 
 function scrollToHashTarget(hash = window.location.hash, options = {}) {
-  if (window.RentlyMainNavigation) {
-    window.RentlyMainNavigation.scrollToHashTarget(hash, options);
+  const navigation = getMainNavigation();
+  if (navigation) {
+    navigation.scrollToHashTarget(hash, options);
   }
 }
 
 function stabilizeHashScroll() {
-  if (window.RentlyMainNavigation) {
-    window.RentlyMainNavigation.stabilizeHashScroll();
+  const navigation = getMainNavigation();
+  if (navigation) {
+    navigation.stabilizeHashScroll();
   }
 }
 
 function navigateToHashUrl(href) {
-  if (window.RentlyMainNavigation) {
-    window.RentlyMainNavigation.navigateToHashUrl(href);
+  const navigation = getMainNavigation();
+  if (navigation) {
+    navigation.navigateToHashUrl(href);
   }
 }
 
 // Function to update all favorite icons with correct paths
 function updateAllFavoriteIcons() {
-  if (window.RentlyFavoriteInteractions) {
-    window.RentlyFavoriteInteractions.updateAllFavoriteIcons();
+  const favoriteInteractions = getFavoriteInteractions();
+  if (favoriteInteractions) {
+    favoriteInteractions.updateAllFavoriteIcons();
   }
 }
 
 function setFavoriteButtonState(btn, isActive) {
-  if (window.RentlyFavoriteInteractions) {
-    window.RentlyFavoriteInteractions.setFavoriteButtonState(btn, isActive);
+  const favoriteInteractions = getFavoriteInteractions();
+  if (favoriteInteractions) {
+    favoriteInteractions.setFavoriteButtonState(btn, isActive);
   }
 }
 
 async function syncFavoriteButtons() {
-  if (window.RentlyFavoriteInteractions) {
-    await window.RentlyFavoriteInteractions.syncFavoriteButtons();
+  const favoriteInteractions = getFavoriteInteractions();
+  if (favoriteInteractions) {
+    await favoriteInteractions.syncFavoriteButtons();
   }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  if (window.RentlyMainNavigation) {
-    window.RentlyMainNavigation.initHashNavigation();
-    window.RentlyMainNavigation.initHeroImage();
-    window.RentlyMainNavigation.initContentBootstrap();
-    window.RentlyMainNavigation.initHomeSectionLinks();
+  const navigation = getMainNavigation();
+  if (navigation) {
+    navigation.initHashNavigation();
+    navigation.initHeroImage();
+    navigation.initContentBootstrap();
+    navigation.initHomeSectionLinks();
   }
 
-  // --- LEARN MORE BUTTON LOGIC ---
   document.addEventListener("click", (e) => {
     const learnMoreBtn = e.target.closest(".learn-more-btn");
     if (!learnMoreBtn) return;
@@ -145,27 +176,24 @@ document.addEventListener("DOMContentLoaded", () => {
     e.preventDefault();
     e.stopPropagation();
 
-    if (window.RentlyLearnMore) {
-      window.RentlyLearnMore.handleButtonClick(learnMoreBtn);
+    const learnMoreModule = getLearnMoreModule();
+    if (learnMoreModule) {
+      learnMoreModule.handleButtonClick(learnMoreBtn);
       return;
     }
 
-    window.location.href = "./search.html?page=1";
+    window.location.href = getSearchPageHref("?page=1");
   });
 
-  // --- GLOBAL EVENT DELEGATION ---
-
-  
-  // Card redirect logic (moved after favorite button logic)
   document.addEventListener("click", (e) => {
-    // Check if clicking on favorite button first
     const favBtn = e.target.closest(".favorite-btn");
     if (favBtn) {
       e.preventDefault();
       e.stopPropagation();
 
-      if (window.RentlyFavoriteInteractions) {
-        window.RentlyFavoriteInteractions.handleFavoriteToggle(favBtn, {
+      const favoriteInteractions = getFavoriteInteractions();
+      if (favoriteInteractions) {
+        favoriteInteractions.handleFavoriteToggle(favBtn, {
           onFavoritesPage: /\/favorites\.html$/i.test(window.location.pathname),
         });
       }
@@ -206,42 +234,46 @@ document.addEventListener("DOMContentLoaded", () => {
   const checkinInput = document.getElementById("checkin-input");
   const checkoutInput = document.getElementById("checkout-input");
 
+  const setSearchErrorVisibility = (isVisible) => {
+    const errorMsg = document.getElementById("search-error-msg");
+    if (!errorMsg) return;
+    errorMsg.classList.toggle("visible", isVisible);
+    errorMsg.style.display = isVisible ? "block" : "none";
+  };
+
+  const setSearchInputState = (input, hasError) => {
+    const group = input?.closest(".search-input-group");
+    if (!group) return;
+    group.style.boxShadow = hasError
+      ? "0 0 10px 3px #D5D5D6, inset 0 0 10px rgba(255, 0, 0, 0.3), inset 0 0 0 1px rgba(255, 0, 0, 0.7)"
+      : "0 0 10px 3px #D5D5D6";
+  };
+
   if (!homeSearchManaged) {
     if (searchBtn) {
       searchBtn.addEventListener("click", () => {
-        const errorMsg = document.getElementById("search-error-msg");
         let isValid = true;
 
         [locInput, checkinInput, checkoutInput].forEach((inp) => {
           if (inp) {
-            const group = inp.closest(".search-input-group");
             if (!inp.value.trim()) {
-              if (group) {
-                group.style.boxShadow =
-                  "0 0 10px 3px #D5D5D6, inset 0 0 10px rgba(255, 0, 0, 0.3), inset 0 0 0 1px rgba(255, 0, 0, 0.7)";
-              }
+              setSearchInputState(inp, true);
               isValid = false;
             } else {
-              if (group) {
-                group.style.boxShadow = "0 0 10px 3px #D5D5D6";
-              }
+              setSearchInputState(inp, false);
             }
           }
         });
 
         if (!isValid) {
-          if (errorMsg) {
-            errorMsg.classList.add("visible");
-            errorMsg.style.display = "block";
-          }
+          setSearchErrorVisibility(true);
           return;
         }
 
-        if (errorMsg) {
-          errorMsg.classList.remove("visible");
-          errorMsg.style.display = "none";
-        }
-        window.location.href = `./search.html?location=${encodeURIComponent(locInput.value)}&checkin=${checkinInput.value}&checkout=${checkoutInput.value}`;
+        setSearchErrorVisibility(false);
+        window.location.href = getSearchPageHref(
+          `?location=${encodeURIComponent(locInput.value)}&checkin=${checkinInput.value}&checkout=${checkoutInput.value}`,
+        );
       });
     }
 
@@ -314,19 +346,14 @@ document.addEventListener("DOMContentLoaded", () => {
     [locInput, checkinInput, checkoutInput].forEach((inp) => {
       if (inp) {
         const handler = function () {
-          const group = this.closest(".search-input-group");
-          if (this.value.trim() && group) {
-            group.style.boxShadow = "0 0 10px 3px #D5D5D6";
+          if (this.value.trim()) {
+            setSearchInputState(this, false);
 
             const allFilled = [locInput, checkinInput, checkoutInput].every((i) =>
               i.value.trim(),
             );
             if (allFilled) {
-              const errorMsg = document.getElementById("search-error-msg");
-              if (errorMsg) {
-                errorMsg.classList.remove("visible");
-                errorMsg.style.display = "none";
-              }
+              setSearchErrorVisibility(false);
             }
           }
         };
@@ -336,7 +363,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Become a host redirect helper
   const becomeHostHref = window.location.pathname.includes("/host-mode/")
     ? "../become-host.html"
     : "./become-host.html";
@@ -353,7 +379,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Initialize generic scroll snapping for containers
   document
     .querySelectorAll(".horizontal-scroll-container")
     .forEach((container) => {
@@ -361,9 +386,6 @@ document.addEventListener("DOMContentLoaded", () => {
         initScrollSnapping(container, ".horizontal-scroll-track");
       }
     });
-
-  // Initial check for search page results if needed
-  // (Managed by search-logic.js now)
 
   if (!homeSearchManaged) {
     const homeCheckinInput = document.getElementById("checkin-input");
@@ -418,7 +440,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const cityCard = e.target.closest(".city-card");
     if (cityCard) {
       const cityName = cityCard.querySelector(".city-name").innerText;
-      window.location.href = `./search.html?location=${encodeURIComponent(cityName)}`;
+      window.location.href = getSearchPageHref(
+        `?location=${encodeURIComponent(cityName)}`,
+      );
     }
 
     const amenityBtn = e.target.closest(".amenity-btn");

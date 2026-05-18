@@ -37,14 +37,12 @@
   if (startHostingBtn) {
     startHostingBtn.addEventListener("click", (e) => {
       e.preventDefault();
-      const isLoggedIn =
-        localStorage.getItem("isLoggedIn") === "true" ||
-        !!localStorage.getItem("auth_token");
+      const isLoggedIn = window.RentlyAuthStorage?.isLoggedIn() === true;
 
       if (isLoggedIn) {
         window.location.href = "./host-mode.html";
       } else {
-        localStorage.setItem("redirectAfterAuth", window.location.href);
+        window.RentlyAuthStorage?.setRedirectAfterAuth(window.location.href);
         window.location.href = "./login.html";
       }
     });

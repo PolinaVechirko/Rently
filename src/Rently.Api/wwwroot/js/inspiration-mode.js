@@ -347,60 +347,33 @@ async function renderInspirationResultsRows(
 
     container.innerHTML = html;
 
-    // Add direct event listeners to favorite buttons
-    container.querySelectorAll(".favorite-btn").forEach(btn => {
+    container.querySelectorAll(".favorite-btn").forEach((btn) => {
       btn.addEventListener("click", async (e) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log("Inspiration favorite button click", btn);
-        
-        const isLoggedIn = localStorage.getItem("isLoggedIn") === "true" || !!localStorage.getItem("auth_token");
+
+        if (window.RentlyFavoriteInteractions?.handleFavoriteToggle) {
+          try {
+            await window.RentlyFavoriteInteractions.handleFavoriteToggle(btn, {
+              allowConflictOnAdd: true,
+              allowNotFoundOnRemove: true,
+              onFavoritesPage: false,
+            });
+          } catch (error) {
+            console.error("Inspiration favorite error:", error);
+          }
+          return;
+        }
+
+        const isLoggedIn =
+          localStorage.getItem("isLoggedIn") === "true" ||
+          !!localStorage.getItem("auth_token");
         if (!isLoggedIn) {
           window.location.href = "../login.html";
           return;
         }
 
-        const id = btn.dataset.id || btn.getAttribute("data-id");
-        if (!id) {
-          btn.classList.toggle("active");
-          return;
-        }
-
-        const token = localStorage.getItem("auth_token") || "";
-        const favoriteType = "Host"; // Always host mode in inspiration page
-        
-        try {
-          const isActive = btn.classList.contains("active");
-          console.log("Inspiration favorite toggle:", { id, isActive, favoriteType });
-          
-          if (isActive) {
-            const resp = await fetch(`/api/Favorites/${id}?type=${favoriteType}`, {
-              method: "DELETE",
-              headers: { 
-                "Authorization": "Bearer " + token
-              }
-            });
-            console.log("Inspiration remove response:", resp.status);
-            if (!resp.ok && resp.status !== 204 && resp.status !== 404) throw new Error("Failed to remove favorite");
-            btn.classList.remove("active");
-            const img = btn.querySelector("img");
-            if (img) img.src = "../icons/favorite.svg";
-          } else {
-            const resp = await fetch(`/api/Favorites/${id}?type=${favoriteType}`, {
-              method: "POST",
-              headers: { 
-                "Authorization": "Bearer " + token
-              }
-            });
-            console.log("Inspiration add response:", resp.status);
-            if (!resp.ok && resp.status !== 409) throw new Error("Failed to add favorite");
-            btn.classList.add("active");
-            const img = btn.querySelector("img");
-            if (img) img.src = "../icons/favorite-filled.svg";
-          }
-        } catch (err) {
-          console.error("Inspiration favorite error:", err);
-        }
+        btn.classList.toggle("active");
       });
     });
 

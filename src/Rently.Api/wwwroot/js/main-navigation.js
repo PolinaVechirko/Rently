@@ -93,26 +93,38 @@
   };
 
   navigation.initContentBootstrap = function initContentBootstrap() {
-    if (typeof root.renderAccommodations === "function") {
-      root.renderAccommodations("accommodations-track", true);
-      root.renderAccommodations("most-visited-track-1", true);
-      root.renderAccommodations("most-visited-track-2", true);
-    }
-    if (typeof root.renderCities === "function") root.renderCities();
-    if (typeof root.renderAmenities === "function") root.renderAmenities();
+    root.RentlyAccommodationsRenderer?.renderAccommodations(
+      "accommodations-track",
+      true,
+    );
+    root.RentlyAccommodationsRenderer?.renderAccommodations(
+      "most-visited-track-1",
+      true,
+    );
+    root.RentlyAccommodationsRenderer?.renderAccommodations(
+      "most-visited-track-2",
+      true,
+    );
+    root.RentlyHomeRenderers?.renderCities?.();
+    root.RentlyHomeRenderers?.renderAmenities?.();
 
-    if (typeof root.updateAllFavoriteIcons === "function") {
-      root.setTimeout(root.updateAllFavoriteIcons, 100);
+    if (root.RentlyFavoriteInteractions?.updateAllFavoriteIcons) {
+      root.setTimeout(
+        () => root.RentlyFavoriteInteractions.updateAllFavoriteIcons(),
+        100,
+      );
     }
-    if (typeof root.syncFavoriteButtons === "function") {
-      root.setTimeout(root.syncFavoriteButtons, 200);
-      root.addEventListener("pageshow", root.syncFavoriteButtons);
-      root.addEventListener("focus", root.syncFavoriteButtons);
+    if (root.RentlyFavoriteInteractions?.syncFavoriteButtons) {
+      const syncFavoriteButtons = () =>
+        root.RentlyFavoriteInteractions.syncFavoriteButtons();
+      root.setTimeout(syncFavoriteButtons, 200);
+      root.addEventListener("pageshow", syncFavoriteButtons);
+      root.addEventListener("focus", syncFavoriteButtons);
     }
-    if (typeof root.initAboutSlider === "function") root.initAboutSlider();
-    if (typeof root.initPropertyPage === "function") root.initPropertyPage();
-    if (typeof root.initMyBookingPage === "function") root.initMyBookingPage();
-    if (typeof root.initSearchPage === "function") root.initSearchPage();
+    root.RentlyUiShared?.initAboutSlider?.();
+    root.RentlyPropertyPage?.initPropertyPage?.();
+    root.RentlyMyBookingActions?.initMyBookingPage?.();
+    root.RentlySearchPage?.initSearchPage?.();
   };
 
   navigation.initHomeSectionLinks = function initHomeSectionLinks() {
