@@ -43,8 +43,44 @@
     const rememberCheckbox = loginForm.querySelector("#remember");
     const rememberedEmail = root.RentlyAuthStorage?.getRememberedLoginEmail?.() || "";
 
-    if (emailInput && rememberedEmail) {
-      emailInput.value = rememberedEmail;
+    function unlockAutofillFields() {
+      emailInput?.removeAttribute("readonly");
+      passwordInput?.removeAttribute("readonly");
+    }
+
+    function bindAutofillUnlock(input) {
+      if (!input) return;
+      const unlock = () => unlockAutofillFields();
+      input.addEventListener("focus", unlock, { once: true });
+      input.addEventListener("pointerdown", unlock, { once: true });
+      input.addEventListener("click", unlock, { once: true });
+      input.addEventListener("mousedown", unlock, { once: true });
+      input.addEventListener("touchstart", unlock, { once: true });
+      input.addEventListener("keydown", unlock, { once: true });
+      input.addEventListener("beforeinput", unlock, { once: true });
+      input.addEventListener("input", unlock, { once: true });
+    }
+
+    loginForm.addEventListener("pointerdown", unlockAutofillFields, {
+      once: true,
+      capture: true,
+    });
+    loginForm.addEventListener("focusin", unlockAutofillFields, {
+      once: true,
+      capture: true,
+    });
+    loginForm.addEventListener("keydown", unlockAutofillFields, {
+      once: true,
+      capture: true,
+    });
+
+    if (emailInput) {
+      emailInput.autocomplete = "username";
+      bindAutofillUnlock(emailInput);
+    }
+    if (passwordInput) {
+      passwordInput.autocomplete = "current-password";
+      bindAutofillUnlock(passwordInput);
     }
     if (rememberCheckbox) {
       rememberCheckbox.checked = rememberedEmail.length > 0;

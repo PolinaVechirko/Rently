@@ -1,5 +1,15 @@
 (function createSearchResultsRenderer(window) {
   const renderHelpers = window.RentlyRenderHelpers || {};
+  const escapeHtml =
+    renderHelpers.escapeHtml ||
+    function fallbackEscapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    };
 
   async function renderSearchResultsRows(containerId, rowsCount = 8, cardsPerRow = 6) {
     const container = document.getElementById(containerId);
@@ -118,34 +128,43 @@
           const favoriteIconSrc = renderHelpers.getFavoriteIconSrc
             ? renderHelpers.getFavoriteIconSrc(isFavorite)
             : `${assetBase}icons/${isFavorite ? "favorite-filled" : "favorite"}.svg`;
+          const propertyId = escapeHtml(item.id || item.Id || "");
+          const altText = escapeHtml(item.propertyType || "Accommodation");
+          const propertyType = escapeHtml(item.propertyType || "Accommodation");
+          const safeLocation = escapeHtml(loc);
+          const safeRatingText = escapeHtml(ratingText);
+          const safeDescription = escapeHtml(item.description || "");
+          const favoriteLabel = escapeHtml(
+            isFavorite ? "Remove from favorites" : "Add to favorites",
+          );
 
           html += `
-            <div class="accommodation-card type-2 inspiration-clickable-card" data-id="${item.id}" style="cursor:pointer;">
+            <div class="accommodation-card type-2 inspiration-clickable-card" data-id="${propertyId}" style="cursor:pointer;">
                 <div class="acc-img-wrapper">
-                    <img src="${photo}" class="acc-img" alt="${item.propertyType}">
+                    <img src="${photo}" class="acc-img" alt="${altText}">
                     <div class="price-tag-overlay">
                         ${priceParts.priceDisplay}
                         ${nights > 0 ? priceParts.priceSubtext : ""}
                     </div>
-                    <button class="favorite-btn ${isFavorite ? "active" : ""}" data-id="${item.id || item.Id}" aria-label="${isFavorite ? "Remove from favorites" : "Add to favorites"}">
+                    <button class="favorite-btn ${isFavorite ? "active" : ""}" data-id="${propertyId}" aria-label="${favoriteLabel}">
                         <img src="${favoriteIconSrc}" alt="heart">
                     </button>
                 </div>
                 <div class="acc-info">
                     <div class="acc-header">
                         <div class="acc-type-group">
-                            <div class="acc-type">${item.propertyType}</div>
+                            <div class="acc-type">${propertyType}</div>
                             <div class="acc-location">
                                 <img src="${assetBase}icons/locationIcon.svg" class="acc-loc-icon" alt="loc">
-                                <span class="acc-loc-text">${loc}</span>
+                                <span class="acc-loc-text">${safeLocation}</span>
                             </div>
                         </div>
                         <div class="acc-rating">
                             <img src="${assetBase}icons/star.svg" class="star-icon" alt="star">
-                            <span>${ratingText}</span>
+                            <span>${safeRatingText}</span>
                         </div>
                     </div>
-                    <div class="acc-desc">${item.description || ""}</div>
+                    <div class="acc-desc">${safeDescription}</div>
                 </div>
             </div>
           `;

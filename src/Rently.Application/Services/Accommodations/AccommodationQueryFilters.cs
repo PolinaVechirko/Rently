@@ -1,6 +1,7 @@
 using Rently.Application.DTOs;
 using Rently.Domain.Entities;
 using Rently.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 namespace Rently.Application.Services.Accommodations;
 
@@ -58,24 +59,21 @@ internal static class AccommodationQueryFilters
 
         query = query.Where(accommodation => accommodation.Address != null);
 
-        if (locationTerms.Count == 1)
-        {
-            var singleTerm = locationTerms[0];
-            return query.Where(accommodation =>
-                (accommodation.Address!.City != null &&
-                 accommodation.Address.City.ToLower().Contains(singleTerm)) ||
-                (accommodation.Address!.Country != null &&
-                 accommodation.Address.Country.ToLower().Contains(singleTerm)));
-        }
-
         foreach (var term in locationTerms)
         {
             var currentTerm = term;
             query = query.Where(accommodation =>
-                (accommodation.Address!.City != null &&
-                 accommodation.Address.City.ToLower().Contains(currentTerm)) ||
-                (accommodation.Address!.Country != null &&
-                 accommodation.Address.Country.ToLower().Contains(currentTerm)));
+                accommodation.Address != null &&
+                (
+                    EF.Functions.Like((accommodation.Address.City ?? "").ToLower(), $"%{currentTerm}%") ||
+                    EF.Functions.Like((accommodation.Address.Country ?? "").ToLower(), $"%{currentTerm}%") ||
+                    EF.Functions.Like(
+                        (((accommodation.Address.City ?? "") + ", " + (accommodation.Address.Country ?? "")).ToLower()),
+                        $"%{currentTerm}%") ||
+                    EF.Functions.Like(
+                        (((accommodation.Address.Country ?? "") + ", " + (accommodation.Address.City ?? "")).ToLower()),
+                        $"%{currentTerm}%")
+                ));
         }
 
         return query;

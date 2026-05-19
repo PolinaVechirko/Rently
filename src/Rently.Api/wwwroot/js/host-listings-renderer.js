@@ -241,7 +241,7 @@
   }
 
   function getAuthToken() {
-    return localStorage.getItem("auth_token") || "";
+    return window.RentlyAuthStorage?.getAuthToken?.() || "";
   }
 
   function getLoginPath() {

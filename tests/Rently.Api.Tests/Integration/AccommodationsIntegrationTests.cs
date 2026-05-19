@@ -100,6 +100,64 @@ public class AccommodationsIntegrationTests
             item.PropertyType == "Apartment");
     }
 
+    [Fact]
+    public async Task SearchAccommodations_WithCityOnlyLocation_ReturnsMatchingAccommodation()
+    {
+        await using var factory = new TestApiFactory();
+        using var client = factory.CreateClient();
+
+        var auth = await TestAuthClient.RegisterAsync(
+            client,
+            $"host-search-city-{Guid.NewGuid():N}@example.com",
+            "Qwerty.123",
+            "Host Search City User",
+            "Host");
+        TestAuthClient.UseBearerToken(client, auth.Token!);
+
+        var createResponse = await client.PostAsJsonAsync("/api/accommodations", BuildCreateDto());
+        createResponse.EnsureSuccessStatusCode();
+
+        var searchResponse = await client.GetAsync("/api/accommodations/search?location=Warsaw&limit=20&skip=0");
+
+        searchResponse.EnsureSuccessStatusCode();
+        var searchResult = await searchResponse.Content.ReadFromJsonAsync<PagedResultDto<AccommodationDto>>();
+
+        Assert.NotNull(searchResult);
+        Assert.NotNull(searchResult!.Items);
+        Assert.Contains(searchResult.Items, item =>
+            item.City == "Warsaw" &&
+            item.Country == "Poland");
+    }
+
+    [Fact]
+    public async Task SearchAccommodations_WithCountryOnlyLocation_ReturnsMatchingAccommodation()
+    {
+        await using var factory = new TestApiFactory();
+        using var client = factory.CreateClient();
+
+        var auth = await TestAuthClient.RegisterAsync(
+            client,
+            $"host-search-country-{Guid.NewGuid():N}@example.com",
+            "Qwerty.123",
+            "Host Search Country User",
+            "Host");
+        TestAuthClient.UseBearerToken(client, auth.Token!);
+
+        var createResponse = await client.PostAsJsonAsync("/api/accommodations", BuildCreateDto());
+        createResponse.EnsureSuccessStatusCode();
+
+        var searchResponse = await client.GetAsync("/api/accommodations/search?location=Poland&limit=20&skip=0");
+
+        searchResponse.EnsureSuccessStatusCode();
+        var searchResult = await searchResponse.Content.ReadFromJsonAsync<PagedResultDto<AccommodationDto>>();
+
+        Assert.NotNull(searchResult);
+        Assert.NotNull(searchResult!.Items);
+        Assert.Contains(searchResult.Items, item =>
+            item.City == "Warsaw" &&
+            item.Country == "Poland");
+    }
+
     private static CreateAccommodationDto BuildCreateDto()
     {
         return new CreateAccommodationDto

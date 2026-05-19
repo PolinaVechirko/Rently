@@ -278,69 +278,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (locInput) {
-      let dbLocations = [];
-      fetch("/api/Accommodations/locations")
-        .then((r) => (r.ok ? r.json() : []))
-        .then((data) => {
-          dbLocations = data;
-        })
-        .catch((e) => console.error("Failed to load local locations:", e));
-
-      let debounceTimer;
-      locInput.addEventListener("input", function () {
-        clearTimeout(debounceTimer);
-        const query = this.value.trim().toLowerCase();
-        const datalist = document.getElementById("city-suggestions");
-        if (!datalist) return;
-
-        if (query.length < 2) {
-          datalist.innerHTML = "";
-          return;
-        }
-
-        const localMatches = dbLocations.filter((loc) =>
-          loc.toLowerCase().includes(query),
-        );
-        let optionsHtml = localMatches
-          .map((loc) => `<option value="${loc}">`)
-          .join("");
-
-        debounceTimer = setTimeout(async () => {
-          try {
-            const resp = await fetch(
-              `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&accept-language=en&q=${encodeURIComponent(query)}&limit=10`,
-            );
-            const results = await resp.json();
-
-            const globalOptions = results
-              .map((r) => {
-                const addr = r.address;
-                const city =
-                  addr.city ||
-                  addr.town ||
-                  addr.village ||
-                  addr.hamlet ||
-                  addr.suburb ||
-                  "";
-                const country = addr.country || "";
-                if (city && country) return `${city}, ${country}`;
-                if (country) return country;
-                return r.display_name;
-              })
-              .filter((val, index, self) => val && self.indexOf(val) === index)
-              .filter(
-                (formatted) => !localMatches.some((lm) => formatted.includes(lm)),
-              )
-              .map((formatted) => `<option value="${formatted}">`)
-              .join("");
-
-            datalist.innerHTML = optionsHtml + globalOptions;
-          } catch (e) {
-            console.error("Autocomplete error:", e);
-            datalist.innerHTML = optionsHtml;
-          }
-        }, 500);
-      });
+      const datalist = document.getElementById("city-suggestions");
+      window.RentlySearchLocationAutocomplete?.initLocationAutocomplete?.(
+        locInput,
+        datalist,
+      );
     }
 
     [locInput, checkinInput, checkoutInput].forEach((inp) => {

@@ -15,6 +15,15 @@
     return isSubfolder ? "../" : "./";
   };
 
+  helpers.escapeHtml = function escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  };
+
   helpers.isInHostMode = function isInHostMode() {
     if (root.RentlyAppContext) {
       return root.RentlyAppContext.isInHostMode();
@@ -69,7 +78,7 @@
     try {
       const token = root.RentlyApi
         ? root.RentlyApi.getAuthToken()
-        : root.localStorage.getItem("auth_token") || "";
+        : root.RentlyAuthStorage?.getAuthToken?.() || "";
       if (!token) return [];
 
       const resp = root.RentlyFavoritesApi

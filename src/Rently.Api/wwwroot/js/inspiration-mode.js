@@ -2,6 +2,17 @@
  * Inspiration mode for host - similar to search-logic but for host mode
  */
 
+const escapeHtml =
+  window.RentlyRenderHelpers?.escapeHtml ||
+  function fallbackEscapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  };
+
 function initInspirationMode() {
   const resultsContainer = document.getElementById("search-results-container");
   if (resultsContainer && typeof renderInspirationResultsRows === "function") {
@@ -97,70 +108,10 @@ function initInspirationMode() {
   // --- ADDRESS AUTOCOMPLETE (DB + Nominatim) ---
   const locInput = document.getElementById("search-loc");
   const datalist = document.getElementById("search-loc-suggestions");
-
-  if (locInput) {
-    let dbLocations = [];
-    fetch("/api/Accommodations/locations")
-      .then((r) => (r.ok ? r.json() : []))
-      .then((data) => {
-        dbLocations = data;
-      })
-      .catch((e) => console.error("Failed to load local locations:", e));
-
-    let debounceTimer;
-    locInput.addEventListener("input", function () {
-      clearTimeout(debounceTimer);
-      const query = this.value.trim().toLowerCase();
-      if (!datalist) return;
-
-      if (query.length < 2) {
-        datalist.innerHTML = "";
-        return;
-      }
-
-      const localMatches = dbLocations.filter((loc) =>
-        loc.toLowerCase().includes(query),
-      );
-      let optionsHtml = localMatches
-        .map((loc) => `<option value="${loc}">`)
-        .join("");
-
-      debounceTimer = setTimeout(async () => {
-        try {
-          const resp = await fetch(
-            `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&accept-language=en&q=${encodeURIComponent(query)}&limit=10`,
-          );
-          const results = await resp.json();
-
-          const globalOptions = results
-            .map((r) => {
-              const addr = r.address;
-              const city =
-                addr.city ||
-                addr.town ||
-                addr.village ||
-                addr.hamlet ||
-                addr.suburb ||
-                "";
-              const country = addr.country || "";
-              if (city && country) return `${city}, ${country}`;
-              if (country) return country;
-              return r.display_name;
-            })
-            .filter((val, index, self) => val && self.indexOf(val) === index)
-            .filter(
-              (formatted) => !localMatches.some((lm) => formatted.includes(lm)),
-            )
-            .map((formatted) => `<option value="${formatted}">`);
-
-          optionsHtml += globalOptions.join("");
-          datalist.innerHTML = optionsHtml;
-        } catch (e) {
-          console.error("Nominatim lookup failed:", e);
-        }
-      }, 300);
-    });
-  }
+  window.RentlySearchLocationAutocomplete?.initLocationAutocomplete?.(
+    locInput,
+    datalist,
+  );
 }
 
 function getHostInspirationPropertyHref(id) {
@@ -168,6 +119,27 @@ function getHostInspirationPropertyHref(id) {
     ? "./property-view.html"
     : "./host-mode/property-view.html";
   return id ? `${base}?id=${encodeURIComponent(id)}` : base;
+}
+
+async function getSafeFavoriteIds() {
+  try {
+    if (typeof getFavoriteIds === "function") {
+      const favoriteIds = await getFavoriteIds();
+      return Array.isArray(favoriteIds) ? favoriteIds : [];
+    }
+  } catch (error) {
+    console.warn("Could not load favorite ids for inspiration mode:", error);
+  }
+
+  return [];
+}
+
+function isUserLoggedIn() {
+  return (
+    window.RentlyAuthStorage?.isLoggedIn?.() ||
+    localStorage.getItem("isLoggedIn") === "true" ||
+    !!localStorage.getItem("auth_token")
+  );
 }
 
 async function renderInspirationResultsRows(
@@ -194,10 +166,8 @@ async function renderInspirationResultsRows(
   // Show loading placeholder
   container.innerHTML = `<div class="results-loading-placeholder" style="padding: 50px; text-align: center;"><h3>Finding perfect places for you...</h3></div>`;
 
-  // Load favorite IDs for like functionality
-  const favoriteIds = await getFavoriteIds();
-
   try {
+    const favoriteIds = await getSafeFavoriteIds();
     const rooms = params.get("rooms") || "";
     const beds = params.get("beds") || "";
     const types = params.get("types") || (type ? type : "");
@@ -273,34 +243,43 @@ async function renderInspirationResultsRows(
 
         // Check if this property is in favorites
         const isFavorite = favoriteIds.includes(item.id);
+        const propertyId = escapeHtml(item.id || item.Id || "");
+        const safeTitle = escapeHtml(title);
+        const safeHousingType = escapeHtml(housingType || "Property");
+        const safeLocation = escapeHtml(loc);
+        const safeRatingText = escapeHtml(`${displayRating}(${reviewsCount})`);
+        const safeDescription = escapeHtml(description);
+        const favoriteLabel = escapeHtml(
+          isFavorite ? "Remove from favorites" : "Add to favorites",
+        );
 
         html += `
-                    <div class="accommodation-card type-2 inspiration-clickable-card" data-id="${item.id}" style="cursor: pointer;">
+                    <div class="accommodation-card type-2 inspiration-clickable-card" data-id="${propertyId}" style="cursor: pointer;">
                         <div class="acc-img-wrapper">
-                            <img src="${photo}" class="acc-img" alt="${title}">
+                            <img src="${photo}" class="acc-img" alt="${safeTitle}">
                             <div class="price-tag-overlay">
                                 ${priceDisplay}
                                 ${priceSubtext}
                             </div>
-                            <button class="favorite-btn ${isFavorite ? "active" : ""}" data-id="${item.id}" aria-label="${isFavorite ? "Remove from favorites" : "Add to favorites"}">
+                            <button class="favorite-btn ${isFavorite ? "active" : ""}" data-id="${propertyId}" aria-label="${favoriteLabel}">
                                 <img src="${getFavoriteIconSrc(isFavorite)}" alt="heart">
                             </button>
                         </div>
                         <div class="acc-info">
                             <div class="acc-header">
                                 <div class="acc-type-group">
-                                    <div class="acc-type">${housingType}</div>
+                                    <div class="acc-type">${safeHousingType}</div>
                                     <div class="acc-location">
                                         <img src="${assetBase}icons/locationIcon.svg" class="acc-loc-icon" alt="loc">
-                                        <span class="acc-loc-text">${loc}</span>
+                                        <span class="acc-loc-text">${safeLocation}</span>
                                     </div>
                                 </div>
                                 <div class="acc-rating">
                                     <img src="${assetBase}icons/star.svg" class="star-icon" alt="star">
-                                    <span>${displayRating}(${reviewsCount})</span>
+                                    <span>${safeRatingText}</span>
                                 </div>
                             </div>
-                            <div class="acc-desc">${description}</div>
+                            <div class="acc-desc">${safeDescription}</div>
                         </div>
                     </div>
                 `;
@@ -365,10 +344,7 @@ async function renderInspirationResultsRows(
           return;
         }
 
-        const isLoggedIn =
-          localStorage.getItem("isLoggedIn") === "true" ||
-          !!localStorage.getItem("auth_token");
-        if (!isLoggedIn) {
+        if (!isUserLoggedIn()) {
           window.location.href = "../login.html";
           return;
         }

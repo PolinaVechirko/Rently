@@ -149,7 +149,7 @@
     historyContainer.innerHTML = loadingState;
 
     try {
-      const token = localStorage.getItem("auth_token") || "";
+      const token = window.RentlyAuthStorage?.getAuthToken?.() || "";
       const response = await fetch("/api/Bookings/my-bookings", {
         headers: { Authorization: "Bearer " + token },
       });

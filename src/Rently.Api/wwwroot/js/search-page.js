@@ -116,6 +116,17 @@
     searchApplyButton?.addEventListener("click", (event) => {
       event.preventDefault();
 
+      const rawMinPrice = String(minPriceInput?.value || "").trim();
+      const rawMaxPrice = String(maxPriceInput?.value || "").trim();
+      const defaultMinPrice = String(minPriceInput?.defaultValue || "0").trim();
+      const defaultMaxPrice = String(maxPriceInput?.defaultValue || "").trim();
+      const normalizedMinPrice =
+        rawMinPrice && Number(rawMinPrice) > Number(defaultMinPrice)
+          ? rawMinPrice
+          : "";
+      const normalizedMaxPrice =
+        rawMaxPrice && rawMaxPrice !== defaultMaxPrice ? rawMaxPrice : "";
+
       const selectedDates = dateController.getSelectedDates();
       if (
         selectedDates.checkin &&
@@ -133,8 +144,8 @@
           checkout:
             dateRange?.formatDateForQuery?.(selectedDates.checkout) || "",
           sort: sortSelect.value,
-          minPrice: minPriceInput?.value,
-          maxPrice: maxPriceInput?.value,
+          minPrice: normalizedMinPrice,
+          maxPrice: normalizedMaxPrice,
           rooms: roomsInput?.value,
           beds: bedsInput?.value,
           guests: guestsInput?.value,

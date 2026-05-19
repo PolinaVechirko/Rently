@@ -1,8 +1,6 @@
 (function initHostInspirationPage() {
   async function boot() {
-    const token = localStorage.getItem("auth_token") || "";
-    const isLoggedIn =
-      localStorage.getItem("isLoggedIn") === "true" || !!token;
+    const isLoggedIn = window.RentlyAuthStorage?.isLoggedIn?.() || false;
 
     if (!isLoggedIn) {
       window.location.href = "../login.html";

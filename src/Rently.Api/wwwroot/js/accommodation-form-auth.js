@@ -2,9 +2,10 @@
   if (!window) return;
 
   const auth = window.RentlyAccommodationFormAuth || {};
+  const authStorage = window.RentlyAuthStorage || null;
 
   auth.redirectToLogin = function redirectToLogin(loginPath = "./login.html") {
-    localStorage.setItem("redirectAfterAuth", window.location.href);
+    authStorage?.setRedirectAfterAuth?.(window.location.href);
     window.location.href = loginPath;
   };
 
@@ -15,7 +16,7 @@
   };
 
   auth.getAuthToken = function getAuthToken() {
-    return localStorage.getItem("auth_token") || "";
+    return authStorage?.getAuthToken?.() || "";
   };
 
   auth.ensureAuthenticated = function ensureAuthenticated(
