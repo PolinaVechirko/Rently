@@ -9,6 +9,13 @@
       ? window.__rentlyPropertyUnavailableRanges
       : [];
 
+    function redirectToLogin() {
+      authStorage?.setRedirectAfterAuth?.(window.location.href);
+      window.location.href = window.location.pathname.includes("/host-mode/")
+        ? "../login.html"
+        : "./login.html";
+    }
+
     function parseDateOnlyAsLocal(value) {
       const raw = String(value || "").trim();
       if (!raw) return null;
@@ -22,37 +29,47 @@
       return parsed;
     }
 
-    const normalizedUnavailableRanges = unavailableRanges
-      .map((range) => {
-        const startDate = parseDateOnlyAsLocal(range.startDate || range.StartDate);
-        const endDate = parseDateOnlyAsLocal(range.endDate || range.EndDate);
-        if (!startDate || !endDate) return null;
-        return { startDate, endDate };
-      })
-      .filter(Boolean);
+    function normalizeUnavailableRanges(ranges) {
+      return (Array.isArray(ranges) ? ranges : [])
+        .map((range) => {
+          const startDate = parseDateOnlyAsLocal(range.startDate || range.StartDate);
+          const endDate = parseDateOnlyAsLocal(range.endDate || range.EndDate);
+          if (!startDate || !endDate) return null;
+          return { startDate, endDate };
+        })
+        .filter(Boolean);
+    }
 
-    const disabledDates = normalizedUnavailableRanges
-      .map((range) => {
-        const lastUnavailableDate = new Date(range.endDate);
-        lastUnavailableDate.setDate(lastUnavailableDate.getDate() - 1);
-        if (lastUnavailableDate < range.startDate) return null;
-        return { from: range.startDate, to: lastUnavailableDate };
-      })
-      .filter(Boolean);
+    function buildDisabledDates(ranges) {
+      return ranges
+        .map((range) => {
+          const lastUnavailableDate = new Date(range.endDate);
+          lastUnavailableDate.setDate(lastUnavailableDate.getDate() - 1);
+          if (lastUnavailableDate < range.startDate) return null;
+          return { from: range.startDate, to: lastUnavailableDate };
+        })
+        .filter(Boolean);
+    }
 
-    const checkinDisabledDates = normalizedUnavailableRanges
-      .map((range) => {
-        const firstUnavailableCheckInDate = new Date(range.startDate);
-        firstUnavailableCheckInDate.setDate(firstUnavailableCheckInDate.getDate() - 1);
-        const lastUnavailableCheckInDate = new Date(range.endDate);
-        lastUnavailableCheckInDate.setDate(lastUnavailableCheckInDate.getDate() - 1);
-        if (lastUnavailableCheckInDate < firstUnavailableCheckInDate) return null;
-        return {
-          from: firstUnavailableCheckInDate,
-          to: lastUnavailableCheckInDate,
-        };
-      })
-      .filter(Boolean);
+    function buildCheckinDisabledDates(ranges) {
+      return ranges
+        .map((range) => {
+          const firstUnavailableCheckInDate = new Date(range.startDate);
+          firstUnavailableCheckInDate.setDate(firstUnavailableCheckInDate.getDate() - 1);
+          const lastUnavailableCheckInDate = new Date(range.endDate);
+          lastUnavailableCheckInDate.setDate(lastUnavailableCheckInDate.getDate() - 1);
+          if (lastUnavailableCheckInDate < firstUnavailableCheckInDate) return null;
+          return {
+            from: firstUnavailableCheckInDate,
+            to: lastUnavailableCheckInDate,
+          };
+        })
+        .filter(Boolean);
+    }
+
+    let normalizedUnavailableRanges = normalizeUnavailableRanges(unavailableRanges);
+    let disabledDates = buildDisabledDates(normalizedUnavailableRanges);
+    let checkinDisabledDates = buildCheckinDisabledDates(normalizedUnavailableRanges);
 
     function rangeOverlapsUnavailable(checkInDate, checkOutDate) {
       if (!(checkInDate instanceof Date) || !(checkOutDate instanceof Date)) {
@@ -71,7 +88,7 @@
       if (parts.length === 3) {
         const [day, month, year] = parts.map((part) => Number(part));
         if (Number.isFinite(day) && Number.isFinite(month) && Number.isFinite(year)) {
-          return new Date(Date.UTC(year, month - 1, day));
+          return new Date(year, month - 1, day);
         }
       }
       const parsed = new Date(raw);
@@ -79,46 +96,158 @@
       return parsed;
     }
 
-    function toIsoDateString(date) {
+    function toApiDateString(date) {
       if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
-      return date.toISOString();
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
     }
 
-    if (typeof flatpickr !== "undefined" && checkinInput && checkoutInput) {
-      const fpConfig = {
+    function addDays(date, days) {
+      if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+        return null;
+      }
+
+      const nextDate = new Date(date);
+      nextDate.setDate(nextDate.getDate() + Number(days || 0));
+      return nextDate;
+    }
+
+    function isAtLeastOneNight(checkInDate, checkOutDate) {
+      if (!(checkInDate instanceof Date) || !(checkOutDate instanceof Date)) {
+        return false;
+      }
+
+      return checkOutDate > checkInDate;
+    }
+
+    function buildDatePickerConfig(options = {}) {
+      const input = options.input;
+      const disable = Array.isArray(options.disable) ? options.disable : [];
+      const onSelectionChanged = options.onSelectionChanged;
+      const onMinDateChanged = options.onMinDateChanged;
+
+      return {
         dateFormat: "d.m.Y",
         minDate: "today",
         locale: { firstDayOfWeek: 1 },
-      };
-      const fpCheckin = flatpickr(checkinInput, {
-        ...fpConfig,
-        disable: checkinDisabledDates,
-        onChange: (_dates, str) => {
-          fpCheckout.set("minDate", str);
-          updateAvailabilityHint();
-        },
-      });
-      const fpCheckout = flatpickr(checkoutInput, {
-        ...fpConfig,
-        disable: disabledDates,
-        onChange: (selectedDates) => {
-          const selectedCheckInDate = parseBookingDate(checkinInput.value);
-          if (
-            selectedCheckInDate &&
-            selectedDates[0] &&
-            rangeOverlapsUnavailable(selectedCheckInDate, selectedDates[0])
-          ) {
-            fpCheckout.clear();
-            alert("These dates overlap with unavailable dates.");
-            updateAvailabilityHint();
+        disable,
+        onChange(selectedDates, dateString) {
+          if (typeof onMinDateChanged === "function") {
+            onMinDateChanged(dateString);
+          }
+
+          if (typeof onSelectionChanged !== "function") {
             return;
           }
-          updateAvailabilityHint();
+
+          const selectedDate = selectedDates[0] || parseBookingDate(input?.value);
+          onSelectionChanged(selectedDate);
         },
-      });
+      };
+    }
+
+    function handleCheckoutSelection(selectedCheckInDate, selectedCheckOutDate, onInvalid) {
+      if (
+        !selectedCheckInDate ||
+        !selectedCheckOutDate ||
+        !rangeOverlapsUnavailable(selectedCheckInDate, selectedCheckOutDate)
+      ) {
+        return false;
+      }
+
+      if (typeof onInvalid === "function") {
+        onInvalid();
+      }
+
+      return true;
+    }
+
+    function refreshUnavailableDateState() {
+      disabledDates = buildDisabledDates(normalizedUnavailableRanges);
+      checkinDisabledDates = buildCheckinDisabledDates(normalizedUnavailableRanges);
+    }
+
+    function addUnavailableRange(checkInDate, checkOutDate) {
+      if (!checkInDate || !checkOutDate) {
+        return;
+      }
+
+      normalizedUnavailableRanges = [
+        ...normalizedUnavailableRanges,
+        {
+          startDate: new Date(checkInDate),
+          endDate: new Date(checkOutDate),
+        },
+      ];
+      refreshUnavailableDateState();
+    }
+
+    let fpCheckin = null;
+    let fpCheckout = null;
+    let modalFpCheckin = null;
+    let modalFpCheckout = null;
+    let updateAvailabilityHint = () => {};
+
+    function syncCheckoutMinDate(picker, input) {
+      if (!picker) return;
+
+      const selectedCheckInDate = parseBookingDate(input?.value);
+      picker.set("minDate", addDays(selectedCheckInDate, 1) || "today");
+    }
+
+    function syncBookingPickers() {
+      fpCheckin?.set("disable", checkinDisabledDates);
+      fpCheckout?.set("disable", disabledDates);
+      modalFpCheckin?.set("disable", checkinDisabledDates);
+      modalFpCheckout?.set("disable", disabledDates);
+
+      syncCheckoutMinDate(fpCheckout, checkinInput);
+      syncCheckoutMinDate(modalFpCheckout, modalCheckin);
+      updateAvailabilityHint();
+    }
+
+    if (typeof flatpickr !== "undefined" && checkinInput && checkoutInput) {
+      fpCheckout = flatpickr(
+        checkoutInput,
+        buildDatePickerConfig({
+          input: checkoutInput,
+          disable: disabledDates,
+          onSelectionChanged(selectedCheckOutDate) {
+            const selectedCheckInDate = parseBookingDate(checkinInput.value);
+            const isInvalid = handleCheckoutSelection(
+              selectedCheckInDate,
+              selectedCheckOutDate,
+              () => {
+                fpCheckout.clear();
+                alert("These dates overlap with unavailable dates.");
+              },
+            );
+            if (!isInvalid) {
+              updateAvailabilityHint();
+              return;
+            }
+            updateAvailabilityHint();
+          },
+        }),
+      );
+      fpCheckin = flatpickr(
+        checkinInput,
+        buildDatePickerConfig({
+          input: checkinInput,
+          disable: checkinDisabledDates,
+          onMinDateChanged() {
+            syncCheckoutMinDate(fpCheckout, checkinInput);
+          },
+          onSelectionChanged() {
+            updateAvailabilityHint();
+          },
+        }),
+      );
       calendarTrigger?.addEventListener("click", () => fpCheckin.open());
 
-      function updateAvailabilityHint() {
+      updateAvailabilityHint = function updateAvailabilityHintImpl() {
         if (checkinInput.value && checkoutInput.value) {
           availabilityHint.textContent = `${checkinInput.value} → ${checkoutInput.value}`;
           availabilityHint.style.cssText =
@@ -131,7 +260,7 @@
             new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() - now.getDate();
           availabilityHint.textContent = `Available ${daysLeft} days in ${now.toLocaleString("en-US", { month: "long" })}`;
         }
-      }
+      };
       updateAvailabilityHint();
     }
 
@@ -150,15 +279,15 @@
       const bookingPropertyId = new URLSearchParams(window.location.search).get("id");
 
       if (!token) {
-        authStorage?.setRedirectAfterAuth(window.location.href);
-        window.location.href = window.location.pathname.includes("/host-mode/")
-          ? "../login.html"
-          : "./login.html";
+        redirectToLogin();
         return false;
       }
 
       if (!checkInDate || !checkOutDate) {
         throw new Error("Please select valid booking dates.");
+      }
+      if (!isAtLeastOneNight(checkInDate, checkOutDate)) {
+        throw new Error("Please choose a stay of at least 1 night.");
       }
       if (rangeOverlapsUnavailable(checkInDate, checkOutDate)) {
         throw new Error("These dates overlap with unavailable dates.");
@@ -175,17 +304,14 @@
         },
         body: JSON.stringify({
           accommodationId: Number(bookingPropertyId),
-          checkInDate: toIsoDateString(checkInDate),
-          checkOutDate: toIsoDateString(checkOutDate),
+          checkInDate: toApiDateString(checkInDate),
+          checkOutDate: toApiDateString(checkOutDate),
         }),
       });
 
       if (response.status === 401) {
         authStorage?.clearAuthentication();
-        authStorage?.setRedirectAfterAuth(window.location.href);
-        window.location.href = window.location.pathname.includes("/host-mode/")
-          ? "../login.html"
-          : "./login.html";
+        redirectToLogin();
         return false;
       }
 
@@ -198,37 +324,64 @@
       return true;
     }
 
-    let modalFpCheckin;
-    let modalFpCheckout;
+    async function reloadUnavailableRangesFromServer() {
+      const bookingPropertyId = new URLSearchParams(window.location.search).get("id");
+      if (!bookingPropertyId) {
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `/api/Accommodations/${encodeURIComponent(bookingPropertyId)}`,
+        );
+        if (!response.ok) {
+          return;
+        }
+
+        const property = await response.json();
+        const nextRanges = Array.isArray(property?.unavailableDateRanges)
+          ? property.unavailableDateRanges
+          : Array.isArray(property?.UnavailableDateRanges)
+            ? property.UnavailableDateRanges
+            : [];
+
+        window.__rentlyPropertyUnavailableRanges = nextRanges;
+        normalizedUnavailableRanges = normalizeUnavailableRanges(nextRanges);
+        refreshUnavailableDateState();
+        syncBookingPickers();
+      } catch (error) {
+        console.warn("Failed to refresh unavailable dates after booking", error);
+      }
+    }
+
     const modalCheckin = document.getElementById("modal-checkin");
     const modalCheckout = document.getElementById("modal-checkout");
 
     if (typeof flatpickr !== "undefined" && modalCheckin && modalCheckout) {
-      const mConfig = {
-        dateFormat: "d.m.Y",
-        minDate: "today",
-        locale: { firstDayOfWeek: 1 },
-      };
-      modalFpCheckin = flatpickr(modalCheckin, {
-        ...mConfig,
-        disable: checkinDisabledDates,
-        onChange: (_dates, str) => modalFpCheckout.set("minDate", str),
-      });
-      modalFpCheckout = flatpickr(modalCheckout, {
-        ...mConfig,
-        disable: disabledDates,
-        onChange: (selectedDates) => {
-          const selectedCheckInDate = parseBookingDate(modalCheckin.value);
-          if (
-            selectedCheckInDate &&
-            selectedDates[0] &&
-            rangeOverlapsUnavailable(selectedCheckInDate, selectedDates[0])
-          ) {
-            modalFpCheckout.clear();
-            alert("These dates overlap with unavailable dates.");
-          }
-        },
-      });
+      modalFpCheckout = flatpickr(
+        modalCheckout,
+        buildDatePickerConfig({
+          input: modalCheckout,
+          disable: disabledDates,
+          onSelectionChanged(selectedCheckOutDate) {
+            const selectedCheckInDate = parseBookingDate(modalCheckin.value);
+            handleCheckoutSelection(selectedCheckInDate, selectedCheckOutDate, () => {
+              modalFpCheckout.clear();
+              alert("These dates overlap with unavailable dates.");
+            });
+          },
+        }),
+      );
+      modalFpCheckin = flatpickr(
+        modalCheckin,
+        buildDatePickerConfig({
+          input: modalCheckin,
+          disable: checkinDisabledDates,
+          onMinDateChanged() {
+            syncCheckoutMinDate(modalFpCheckout, modalCheckin);
+          },
+        }),
+      );
     }
 
     const showDateModal = () => {
@@ -255,7 +408,7 @@
           resModalOk.disabled = true;
           const created = await createBooking(modalCheckin.value, modalCheckout.value);
           if (!created) return;
-          showSuccessModal(modalCheckin.value, modalCheckout.value);
+          await showSuccessModal(modalCheckin.value, modalCheckout.value);
         } catch (error) {
           alert(error.message || "Failed to create booking.");
         } finally {
@@ -266,7 +419,15 @@
       document.body.style.overflow = "hidden";
     };
 
-    const showSuccessModal = (from, to) => {
+    const showSuccessModal = async (from, to) => {
+      addUnavailableRange(parseBookingDate(from), parseBookingDate(to));
+      syncBookingPickers();
+      await reloadUnavailableRangesFromServer();
+      if (checkinInput) checkinInput.value = "";
+      if (checkoutInput) checkoutInput.value = "";
+      if (modalCheckin) modalCheckin.value = "";
+      if (modalCheckout) modalCheckout.value = "";
+
       resModalIcon.textContent = "🎉";
       resModalTitle.textContent = "Reservation Confirmed!";
       resModalText.textContent = `You have reserved this property from ${from} to ${to}. Check your email for booking details!`;
@@ -280,14 +441,6 @@
     };
 
     reserveBtn?.addEventListener("click", () => {
-      const isLoggedIn = !!authStorage?.getAuthToken();
-      if (!isLoggedIn) {
-        authStorage?.setRedirectAfterAuth(window.location.href);
-        window.location.href = window.location.pathname.includes("/host-mode/")
-          ? "../login.html"
-          : "./login.html";
-        return;
-      }
       if (!checkinInput?.value || !checkoutInput?.value) {
         showDateModal();
         return;
@@ -297,7 +450,7 @@
           reserveBtn.disabled = true;
           const created = await createBooking(checkinInput.value, checkoutInput.value);
           if (!created) return;
-          showSuccessModal(checkinInput.value, checkoutInput.value);
+          await showSuccessModal(checkinInput.value, checkoutInput.value);
         } catch (error) {
           alert(error.message || "Failed to create booking.");
         } finally {

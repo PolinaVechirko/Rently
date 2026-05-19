@@ -7,6 +7,6 @@ namespace Rently.Application.Interfaces
     public interface IImageService
     {
         Task<ImageUploadResultDto> UploadAccommodationImageAsync(UploadImageRequest request, CancellationToken cancellationToken = default);
-        Task<ImageContentDto?> GetResizedImageAsync(string url, int width, CancellationToken cancellationToken = default);
+        Task<ImageContentDto?> GetResizedImageAsync(string url, int width, int? quality = null, CancellationToken cancellationToken = default);
     }
 }

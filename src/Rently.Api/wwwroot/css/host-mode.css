@@ -267,6 +267,99 @@
   filter: brightness(0) invert(1);
 }
 
+.host-delete-modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.45);
+  z-index: 1200;
+}
+
+.host-delete-modal-overlay.is-visible {
+  display: flex;
+}
+
+.host-delete-modal {
+  width: min(100%, 420px);
+  padding: 28px;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.2);
+}
+
+.host-delete-modal-title {
+  margin: 0 0 12px;
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.host-delete-modal-text {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.5;
+  color: #4b5563;
+}
+
+.host-delete-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.host-delete-modal-btn {
+  min-width: 110px;
+  padding: 12px 18px;
+  border: none;
+  border-radius: 999px;
+  font-weight: 600;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.host-delete-modal-btn:hover {
+  transform: translateY(-1px);
+}
+
+.host-delete-modal-btn-secondary {
+  background: #eef2f7;
+  color: #1f2937;
+}
+
+.host-delete-modal-btn-secondary:hover {
+  background: #e2e8f0;
+}
+
+.host-delete-modal-btn-danger {
+  background: #ff4d4d;
+  color: #fff;
+  box-shadow: 0 10px 24px rgba(255, 77, 77, 0.28);
+}
+
+.host-delete-modal-btn-danger:hover {
+  background: #e53e3e;
+}
+
+/* Host dashboard calendars: visually distinguish non-selectable dates */
+.flatpickr-calendar .flatpickr-day.flatpickr-disabled,
+.flatpickr-calendar .flatpickr-day.flatpickr-disabled:hover,
+.flatpickr-calendar .flatpickr-day.prevMonthDay.flatpickr-disabled,
+.flatpickr-calendar .flatpickr-day.prevMonthDay.flatpickr-disabled:hover,
+.flatpickr-calendar .flatpickr-day.nextMonthDay.flatpickr-disabled,
+.flatpickr-calendar .flatpickr-day.nextMonthDay.flatpickr-disabled:hover,
+.flatpickr-calendar .flatpickr-day.notAllowed,
+.flatpickr-calendar .flatpickr-day.notAllowed:hover {
+  color: #b8c0cc !important;
+  background-color: #f4f6f8 !important;
+  border-color: transparent !important;
+  cursor: not-allowed !important;
+  opacity: 1 !important;
+  text-decoration: none;
+}
+
 /* Responsive Grid adjustments */
 @media (max-width: 1280px) {
   .host-listings-grid .accommodation-card {
@@ -309,5 +402,17 @@
 
   .add-listing-cta {
     padding: 40px 20px;
+  }
+
+  .host-delete-modal {
+    padding: 24px 20px;
+  }
+
+  .host-delete-modal-actions {
+    flex-direction: column-reverse;
+  }
+
+  .host-delete-modal-btn {
+    width: 100%;
   }
 }

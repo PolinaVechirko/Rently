@@ -108,16 +108,70 @@
     }
   };
 
+  helpers.normalizeLocalImageUrl = function normalizeLocalImageUrl(url, assetBase) {
+    const raw = String(url || "").trim();
+    const base = assetBase || helpers.getAssetBase();
+    if (!raw) return "";
+
+    if (/^(data:|https?:\/\/)/i.test(raw) || raw.includes("/api/Images")) {
+      return raw;
+    }
+
+    if (
+      raw.startsWith("/uploads/") ||
+      raw.startsWith("/images/") ||
+      raw.startsWith("/icons/")
+    ) {
+      return raw;
+    }
+
+    if (raw.startsWith("./")) {
+      return `${base}${raw.slice(2)}`;
+    }
+
+    if (raw.startsWith("../")) {
+      return raw;
+    }
+
+    if (
+      raw.startsWith("uploads/") ||
+      raw.startsWith("images/") ||
+      raw.startsWith("icons/")
+    ) {
+      return `${base}${raw}`;
+    }
+
+    return raw;
+  };
+
   helpers.getOptimizedImageUrl = function getOptimizedImageUrl(url, width = 720) {
     if (!url) return "";
-    if (
-      url.startsWith("data:") ||
-      /^https?:\/\//i.test(url) ||
-      url.includes("/api/Images")
-    ) {
-      return url;
+
+    const normalizedUrl = helpers.normalizeLocalImageUrl(url);
+    if (!normalizedUrl) {
+      return "";
     }
-    return `/api/Images/resize?url=${encodeURIComponent(url)}&width=${width}`;
+
+    if (
+      normalizedUrl.startsWith("data:") ||
+      /^https?:\/\//i.test(normalizedUrl) ||
+      normalizedUrl.includes("/api/Images")
+    ) {
+      return normalizedUrl;
+    }
+
+    if (
+      normalizedUrl.startsWith("/uploads/") ||
+      normalizedUrl.startsWith("/images/") ||
+      normalizedUrl.startsWith("./uploads/") ||
+      normalizedUrl.startsWith("./images/") ||
+      normalizedUrl.startsWith("../uploads/") ||
+      normalizedUrl.startsWith("../images/")
+    ) {
+      return `/api/Images/resize?url=${encodeURIComponent(normalizedUrl)}&width=${width}&quality=82`;
+    }
+
+    return `/api/Images/resize?url=${encodeURIComponent(normalizedUrl)}&width=${width}`;
   };
 
   helpers.getFallbackHeroImage = function getFallbackHeroImage(index = 0, assetBase) {
@@ -126,13 +180,52 @@
     return `${base}images/hero${safeIndex + 1}.png`;
   };
 
+  helpers.extractPhotoUrl = function extractPhotoUrl(photo) {
+    if (!photo) return "";
+
+    if (typeof photo === "string") {
+      return photo.trim();
+    }
+
+    if (typeof photo !== "object") {
+      return "";
+    }
+
+    return String(
+      photo.url ||
+        photo.Url ||
+        photo.src ||
+        photo.Src ||
+        photo.path ||
+        photo.Path ||
+        "",
+    ).trim();
+  };
+
+  helpers.getPhotoCandidates = function getPhotoCandidates(photoSource) {
+    if (Array.isArray(photoSource)) {
+      return photoSource.map(helpers.extractPhotoUrl).filter(Boolean);
+    }
+
+    if (photoSource && typeof photoSource === "object") {
+      if (Array.isArray(photoSource.photos)) {
+        return photoSource.photos.map(helpers.extractPhotoUrl).filter(Boolean);
+      }
+
+      if (Array.isArray(photoSource.Photos)) {
+        return photoSource.Photos.map(helpers.extractPhotoUrl).filter(Boolean);
+      }
+    }
+
+    const singlePhoto = helpers.extractPhotoUrl(photoSource);
+    return singlePhoto ? [singlePhoto] : [];
+  };
+
   helpers.getCardImageUrl = function getCardImageUrl(photoSource, options = {}) {
     const width = Number(options.width || 600);
     const fallbackIndex = Number(options.fallbackIndex || 0);
     const assetBase = options.assetBase || helpers.getAssetBase();
-    const rawPhoto = Array.isArray(photoSource)
-      ? photoSource.find(Boolean)
-      : photoSource;
+    const [rawPhoto] = helpers.getPhotoCandidates(photoSource);
 
     return helpers.getOptimizedImageUrl(
       rawPhoto || helpers.getFallbackHeroImage(fallbackIndex, assetBase),
@@ -200,10 +293,7 @@
       root.sessionStorage.removeItem(storageKey);
     }
 
-    const photosOf = (item) => {
-      const raw = item.photos || item.Photos || [];
-      return Array.isArray(raw) ? raw.filter(Boolean) : [];
-    };
+    const photosOf = (item) => helpers.getPhotoCandidates(item);
 
     const runFetch = async () => {
       try {

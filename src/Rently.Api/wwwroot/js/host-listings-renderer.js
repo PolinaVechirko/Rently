@@ -2,6 +2,98 @@
   let isDeleteBindingRegistered = false;
   let deleteConfirmationElements = null;
   const renderHelpers = window.RentlyRenderHelpers || {};
+  const currencyFormatter = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  });
+
+  function getFieldValue(source, camelKey, pascalKey, fallback = 0) {
+    if (!source || typeof source !== "object") return fallback;
+    return source[camelKey] ?? source[pascalKey] ?? fallback;
+  }
+
+  function setText(id, value) {
+    const element = document.getElementById(id);
+    if (element) {
+      element.textContent = value;
+    }
+  }
+
+  function computeFallbackHostSummary(items) {
+    const accommodations = Array.isArray(items) ? items : [];
+    const totals = accommodations.reduce(
+      (accumulator, item) => {
+        const reviewsCount = Number(
+          getFieldValue(item, "reviewsCount", "ReviewsCount", 0),
+        );
+        const averageRating = Number(
+          getFieldValue(item, "averageRating", "AverageRating", 0),
+        );
+        const earnings = Number(
+          getFieldValue(item, "totalEarnings", "TotalEarnings", 0),
+        );
+
+        accumulator.reviewsCount += reviewsCount;
+        accumulator.earnings += earnings;
+        accumulator.weightedRatingTotal += averageRating * reviewsCount;
+        return accumulator;
+      },
+      {
+        reviewsCount: 0,
+        earnings: 0,
+        weightedRatingTotal: 0,
+      },
+    );
+
+    return {
+      averageRating:
+        totals.reviewsCount > 0
+          ? totals.weightedRatingTotal / totals.reviewsCount
+          : 0,
+      earnings: totals.earnings,
+      responseRate: accommodations.length > 0 ? 100 : 0,
+      reviewsCount: totals.reviewsCount,
+    };
+  }
+
+  function renderHostSummary(summary) {
+    const averageRating = Number(
+      getFieldValue(summary, "averageRating", "AverageRating", 0),
+    );
+    const earnings = Number(getFieldValue(summary, "earnings", "Earnings", 0));
+    const responseRate = Number(
+      getFieldValue(summary, "responseRate", "ResponseRate", 0),
+    );
+    const reviewsCount = Number(
+      getFieldValue(summary, "reviewsCount", "ReviewsCount", 0),
+    );
+
+    setText("dashboard-host-rating", averageRating > 0 ? averageRating.toFixed(2) : "0.00");
+    setText("dashboard-host-earnings", currencyFormatter.format(earnings));
+    setText(
+      "dashboard-host-response",
+      `${Math.round(Math.max(0, Math.min(100, responseRate)))}%`,
+    );
+    setText("dashboard-host-reviews", String(reviewsCount));
+  }
+
+  async function fetchHostSummary(token) {
+    const response = await fetch("/api/Analytics/host-summary", {
+      headers: token ? { Authorization: "Bearer " + token } : {},
+    });
+
+    if (response.status === 401) {
+      window.location.href = getLoginPath();
+      throw new Error("Unauthorized");
+    }
+
+    if (!response.ok) {
+      throw new Error("Failed to load host summary");
+    }
+
+    return response.json().catch(() => null);
+  }
 
   function parseLocalDate(value) {
     const raw = String(value || "").trim();
@@ -39,10 +131,51 @@
   }
 
   function setLoading(trackId) {
+    if (!trackId) return;
+
     const element = document.getElementById(trackId);
     if (element) {
       element.innerHTML = `<div style="padding:20px;color:#888">Loading...</div>`;
     }
+  }
+
+  function renderMessageCard(trackId, message) {
+    if (!trackId) return;
+
+    const element = document.getElementById(trackId);
+    if (!element) return;
+
+    element.innerHTML = `
+      <div class="host-empty-card">
+        <div class="host-empty-card-content">
+          <span class="host-empty-card-title">${message}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  function unwrapCollection(payload) {
+    if (Array.isArray(payload)) {
+      return payload;
+    }
+
+    if (!payload || typeof payload !== "object") {
+      return [];
+    }
+
+    if (Array.isArray(payload.items)) {
+      return payload.items;
+    }
+
+    if (Array.isArray(payload.Items)) {
+      return payload.Items;
+    }
+
+    if (Array.isArray(payload.$values)) {
+      return payload.$values;
+    }
+
+    return [];
   }
 
   function buildCard(item, index, assetBase) {
@@ -94,17 +227,13 @@
   }
 
   function renderTrack(trackId, items, assetBase) {
+    if (!trackId) return;
+
     const element = document.getElementById(trackId);
     if (!element) return;
 
     if (items.length === 0) {
-      element.innerHTML = `
-        <div class="host-empty-card">
-          <div class="host-empty-card-content">
-            <span class="host-empty-card-title">No listings in this category yet.</span>
-          </div>
-        </div>
-      `;
+      renderMessageCard(trackId, "No listings in this category yet.");
       return;
     }
 
@@ -277,7 +406,16 @@
         throw new Error("Failed to load listings");
       }
 
-      const all = await response.json();
+      const payload = await response.json();
+      const all = unwrapCollection(payload);
+      try {
+        const hostSummary = await fetchHostSummary(token);
+        renderHostSummary(hostSummary || computeFallbackHostSummary(all));
+      } catch (summaryError) {
+        console.warn("Failed to load host summary, using fallback data:", summaryError);
+        renderHostSummary(computeFallbackHostSummary(all));
+      }
+
       const active = all.filter((item) => getHostListingState(item).key === "active");
       const hidden = all.filter((item) => {
         const state = getHostListingState(item);
@@ -298,6 +436,14 @@
       bindDeleteActions();
     } catch (error) {
       console.error("Failed to load host listings:", error);
+      renderMessageCard(
+        activeTrackId,
+        "We couldn't load your listings right now.",
+      );
+      renderMessageCard(
+        hiddenTrackId,
+        "We couldn't load your listings right now.",
+      );
     }
   }
 

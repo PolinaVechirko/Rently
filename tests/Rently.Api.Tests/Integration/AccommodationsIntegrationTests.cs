@@ -70,6 +70,36 @@ public class AccommodationsIntegrationTests
         Assert.Equal("/photo-1.jpg", fetched.Photos.First());
     }
 
+    [Fact]
+    public async Task SearchAccommodations_WithCityCountryLocation_ReturnsMatchingAccommodation()
+    {
+        await using var factory = new TestApiFactory();
+        using var client = factory.CreateClient();
+
+        var auth = await TestAuthClient.RegisterAsync(
+            client,
+            $"host-search-{Guid.NewGuid():N}@example.com",
+            "Qwerty.123",
+            "Host Search User",
+            "Host");
+        TestAuthClient.UseBearerToken(client, auth.Token!);
+
+        var createResponse = await client.PostAsJsonAsync("/api/accommodations", BuildCreateDto());
+        createResponse.EnsureSuccessStatusCode();
+
+        var searchResponse = await client.GetAsync("/api/accommodations/search?location=Warsaw%2C%20Poland&limit=20&skip=0");
+
+        searchResponse.EnsureSuccessStatusCode();
+        var searchResult = await searchResponse.Content.ReadFromJsonAsync<PagedResultDto<AccommodationDto>>();
+
+        Assert.NotNull(searchResult);
+        Assert.NotNull(searchResult!.Items);
+        Assert.Contains(searchResult.Items, item =>
+            item.City == "Warsaw" &&
+            item.Country == "Poland" &&
+            item.PropertyType == "Apartment");
+    }
+
     private static CreateAccommodationDto BuildCreateDto()
     {
         return new CreateAccommodationDto

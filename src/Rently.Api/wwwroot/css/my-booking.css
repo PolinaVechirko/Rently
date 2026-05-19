@@ -33,6 +33,9 @@
 /* History Card */
 .history-card {
   display: flex;
+  width: 100%;
+  min-height: 236px;
+  align-items: stretch;
   gap: 30px;
   background: #ffffff;
   border-radius: 24px;
@@ -50,14 +53,19 @@
   box-shadow: none;
 }
 
+.history-card-muted .history-card-img img {
+  filter: grayscale(0.18) saturate(0.78) brightness(0.9);
+}
+
 .history-card-muted:hover {
   box-shadow: none;
 }
 
 .history-card-img {
   width: 280px;
-  min-height: 220px;
+  min-height: 236px;
   flex-shrink: 0;
+  align-self: stretch;
 }
 
 .history-card-img img {
@@ -71,6 +79,7 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  min-width: 0;
   padding: 25px 30px 25px 0;
 }
 
@@ -78,6 +87,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-width: 0;
 }
 
 .history-card-name {
@@ -87,12 +97,20 @@
   margin: 0;
 }
 
+.history-card-muted .history-card-name {
+  color: #4b5563;
+}
+
 .history-card-location {
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: 15px;
   color: #484848;
+}
+
+.history-card-muted .history-card-location {
+  color: #6b7280;
 }
 
 .history-card-location img {
@@ -109,6 +127,10 @@
   margin-top: 5px;
 }
 
+.history-card-muted .history-dates {
+  color: #6b7280;
+}
+
 .history-cal-icon {
   width: 18px;
   height: 18px;
@@ -119,6 +141,10 @@
   font-size: 14px;
   color: #717171;
   margin-top: 3px;
+}
+
+.history-card-muted .history-price {
+  color: #7b818c;
 }
 
 .booking-status {

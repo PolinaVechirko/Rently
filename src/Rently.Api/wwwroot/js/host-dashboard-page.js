@@ -10,37 +10,89 @@
     return /\/property-dashboard\.html$/i.test(window.location.pathname);
   }
 
+  function unwrapCollection(payload) {
+    if (Array.isArray(payload)) {
+      return payload;
+    }
+
+    if (!payload || typeof payload !== "object") {
+      return [];
+    }
+
+    if (Array.isArray(payload.items)) {
+      return payload.items;
+    }
+
+    if (Array.isArray(payload.Items)) {
+      return payload.Items;
+    }
+
+    if (Array.isArray(payload.$values)) {
+      return payload.$values;
+    }
+
+    return [];
+  }
+
+  async function fetchAvailabilityBlocksSafe(accommodationId) {
+    try {
+      return await api.fetchAvailabilityBlocks(accommodationId);
+    } catch (error) {
+      console.warn(
+        "Availability blocks are unavailable for selected accommodation",
+        error,
+      );
+      return [];
+    }
+  }
+
+  async function refreshAvailabilitySection(selectedAccommodationId, hostBookings) {
+    const blocks = await fetchAvailabilityBlocksSafe(selectedAccommodationId);
+
+    availabilityModule.renderAvailabilityBlocks(blocks, {
+      async onDelete(blockId) {
+        await api.deleteAvailabilityBlock(blockId, selectedAccommodationId);
+        await refreshAvailabilitySection(selectedAccommodationId, hostBookings);
+      },
+    });
+
+    availabilityModule.initAvailabilityPicker(
+      selectedAccommodationId,
+      hostBookings,
+      blocks,
+      {
+        async onCreate(payload) {
+          await api.createAvailabilityBlock(selectedAccommodationId, payload);
+          await refreshAvailabilitySection(selectedAccommodationId, hostBookings);
+        },
+      },
+    );
+  }
+
   async function loadDashboard() {
     if (!api.ensureLoggedIn()) return;
 
+    const accommodations = unwrapCollection(await api.fetchMyAccommodations());
     const accommodationId = api.getAccommodationId();
-    if (!accommodationId) {
-      api.setHTML("upcoming-bookings-list", "");
-      api.setHTML("booking-history-list", "");
-      api.setHTML("reviews-list", "");
-      api.setHTML("current-stay-content", "");
-      return;
-    }
+    let selected = accommodations.find(
+      (item) => String(item?.id || item?.Id) === String(accommodationId),
+    );
 
-    const accommodations = await api.fetchMyAccommodations();
-    let selected = Array.isArray(accommodations)
-      ? accommodations.find(
-          (item) => String(item.id || item.Id) === String(accommodationId),
-        )
-      : null;
+    if (!selected && accommodationId) {
+      try {
+        selected = await api.fetchAccommodationById(accommodationId);
+      } catch (error) {
+        console.warn(
+          "Selected accommodation could not be loaded directly",
+          error,
+        );
+      }
+    }
 
     if (!selected) {
-      selected = Array.isArray(accommodations) ? accommodations[0] : null;
+      selected = accommodations[0] || null;
     }
     if (!selected) {
-      api.redirectToHostHome();
-      return;
-    }
-
-    if (
-      accommodationId &&
-      String(selected.id || selected.Id) !== String(accommodationId)
-    ) {
       api.redirectToHostHome();
       return;
     }
@@ -78,34 +130,7 @@
     bookingsModule.renderBookingHistory(selected.id || selected.Id, hostBookings);
     api.setText("dashboard-property-status-note", listingState.note);
 
-    let blocks = [];
-    try {
-      blocks = await api.fetchAvailabilityBlocks(selected.id || selected.Id);
-    } catch (error) {
-      console.warn(
-        "Availability blocks are unavailable for selected accommodation",
-        error,
-      );
-      blocks = [];
-    }
-
-    availabilityModule.renderAvailabilityBlocks(blocks, {
-      async onDelete(blockId) {
-        await api.deleteAvailabilityBlock(blockId, selected.id || selected.Id);
-        await loadDashboard();
-      },
-    });
-    availabilityModule.initAvailabilityPicker(
-      selected.id || selected.Id,
-      hostBookings,
-      blocks,
-      {
-        async onCreate(payload) {
-          await api.createAvailabilityBlock(selected.id || selected.Id, payload);
-          await loadDashboard();
-        },
-      },
-    );
+    await refreshAvailabilitySection(selected.id || selected.Id, hostBookings);
 
     bookingsModule.renderReviews(selected, {
       async onReply(reviewId, reply) {
@@ -115,7 +140,12 @@
     });
 
     visibilityModule.bindGuestViewButton(selected, listingState);
-    visibilityModule.bindVisibilityControls(selected, listingState, loadDashboard);
+    visibilityModule.bindVisibilityControls(
+      selected,
+      listingState,
+      loadDashboard,
+      hostBookings,
+    );
     visibilityModule.bindEditListingButton(selected);
   }
 

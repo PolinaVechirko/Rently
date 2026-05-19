@@ -29,6 +29,16 @@
       return `${day}.${month}.${year}`;
     };
 
+    const formatQueryDate = (date) => {
+      if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+        return "";
+      }
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    };
+
     const addDays = (date, days) => {
       const next = new Date(date);
       next.setDate(next.getDate() + days);
@@ -52,11 +62,25 @@
       const group = input.closest(".search-input-group");
       if (!group) return;
 
-      group.style.boxShadow = isInvalid
-        ? "0 0 10px 3px #D5D5D6, inset 0 0 10px rgba(255, 0, 0, 0.3), inset 0 0 0 1px rgba(255, 0, 0, 0.7)"
-        : input.value.trim()
-          ? "0 0 10px 3px #D5D5D6"
-          : "";
+      group.classList.toggle("is-invalid", Boolean(isInvalid));
+    };
+
+    const setGroupActive = (input, isActive) => {
+      const group = input?.closest(".search-input-group");
+      if (!group) return;
+
+      group.classList.toggle("is-active", Boolean(isActive));
+    };
+
+    const updateActiveGroups = () => {
+      const groups = document.querySelectorAll(".search-input-group");
+      groups.forEach((group) => group.classList.remove("is-active"));
+
+      const activeElement = document.activeElement;
+      const activeGroup = activeElement?.closest?.(".search-input-group");
+      if (activeGroup) {
+        activeGroup.classList.add("is-active");
+      }
     };
 
     const clearFieldError = (input) => {
@@ -97,6 +121,10 @@
 
     const attachPickerOpen = (input) => {
       const openPicker = () => {
+        if (document.activeElement === locInput) {
+          locInput.blur();
+        }
+
         if (input._flatpickr) {
           input._flatpickr.open();
         } else {
@@ -169,6 +197,32 @@
     [locInput, checkinInput, checkoutInput].forEach((input) => {
       input.addEventListener("input", () => clearFieldError(input));
       input.addEventListener("change", () => clearFieldError(input));
+      input.addEventListener("focus", updateActiveGroups);
+      input.addEventListener("blur", () => {
+        window.setTimeout(updateActiveGroups, 0);
+      });
+    });
+
+    [checkinInput, checkoutInput].forEach((input) => {
+      input.addEventListener("pointerdown", () => {
+        if (document.activeElement === locInput) {
+          locInput.blur();
+          updateActiveGroups();
+        }
+      });
+    });
+
+    document.addEventListener("focusin", updateActiveGroups);
+    document.addEventListener("click", () => {
+      window.setTimeout(updateActiveGroups, 0);
+    });
+
+    locInput.style.outline = "none";
+    locInput.addEventListener("focus", () => {
+      locInput.style.outline = "none";
+    });
+    locInput.addEventListener("blur", () => {
+      locInput.style.outline = "none";
     });
 
     let dbLocations = [];
@@ -271,8 +325,8 @@
 
       window.location.href =
         `./search.html?location=${encodeURIComponent(locInput.value)}` +
-        `&checkin=${encodeURIComponent(checkinInput.value)}` +
-        `&checkout=${encodeURIComponent(checkoutInput.value)}`;
+        `&checkin=${encodeURIComponent(formatQueryDate(checkinDate))}` +
+        `&checkout=${encodeURIComponent(formatQueryDate(checkoutDate))}`;
     });
   }
 

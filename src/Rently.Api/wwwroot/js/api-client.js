@@ -23,7 +23,9 @@
     delete normalizedOptions.auth;
 
     if (requiresAuth) {
-      normalizedOptions.headers = api.createAuthHeaders(normalizedOptions.headers);
+      normalizedOptions.headers = api.createAuthHeaders(
+        normalizedOptions.headers,
+      );
     }
 
     return root.fetch(url, normalizedOptions);

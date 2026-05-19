@@ -32,14 +32,14 @@ namespace Rently.Api.Controllers
         }
 
         [HttpGet("resize")]
-        public async Task<IActionResult> GetResizedImage([FromQuery] string url, [FromQuery] int width, CancellationToken cancellationToken)
+        public async Task<IActionResult> GetResizedImage([FromQuery] string url, [FromQuery] int width, [FromQuery] int? quality, CancellationToken cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(url))
             {
                 return BadRequest();
             }
 
-            var result = await _imageService.GetResizedImageAsync(url, width, cancellationToken);
+            var result = await _imageService.GetResizedImageAsync(url, width, quality, cancellationToken);
             if (result == null)
             {
                 return NotFound();

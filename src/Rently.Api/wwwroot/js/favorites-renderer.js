@@ -1,6 +1,30 @@
 (function createFavoritesRenderer(window) {
   const renderHelpers = window.RentlyRenderHelpers || {};
 
+  function normalizeAccommodation(item) {
+    if (!item || typeof item !== "object") {
+      return {};
+    }
+
+    return {
+      ...item,
+      id: item.id ?? item.Id ?? "",
+      propertyType: item.propertyType ?? item.PropertyType ?? "Accommodation",
+      photos: Array.isArray(item.photos)
+        ? item.photos
+        : Array.isArray(item.Photos)
+          ? item.Photos
+          : [],
+      country: item.country ?? item.Country ?? "",
+      city: item.city ?? item.City ?? "",
+      street: item.street ?? item.Street ?? "",
+      pricePerNight: item.pricePerNight ?? item.PricePerNight ?? 0,
+      averageRating: item.averageRating ?? item.AverageRating ?? 0,
+      reviewsCount: item.reviewsCount ?? item.ReviewsCount ?? 0,
+      description: item.description ?? item.Description ?? "",
+    };
+  }
+
   async function renderFavorites(containerId) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -64,7 +88,9 @@
 
       let html = "";
       data.forEach((item) => {
-        const displayItem = item.accommodation ? item.accommodation : item;
+        const displayItem = normalizeAccommodation(
+          item.accommodation ? item.accommodation : item,
+        );
         const photo = renderHelpers.getCardImageUrl
           ? renderHelpers.getCardImageUrl(displayItem.photos, {
               assetBase,
@@ -113,6 +139,10 @@
       });
 
       container.innerHTML = html;
+
+      if (window.RentlyFavoriteInteractions?.bindTrackFavoriteButtons) {
+        window.RentlyFavoriteInteractions.bindTrackFavoriteButtons(container);
+      }
 
       container.querySelectorAll(".inspiration-clickable-card").forEach((card) => {
         card.addEventListener("click", (event) => {

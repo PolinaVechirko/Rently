@@ -44,11 +44,41 @@ internal static class AccommodationQueryFilters
             return query;
         }
 
-        var lowerLoc = location.Trim().ToLower();
-        return query.Where(accommodation =>
-            accommodation.Address != null &&
-            (accommodation.Address.City.ToLower().Contains(lowerLoc) ||
-             accommodation.Address.Country.ToLower().Contains(lowerLoc)));
+        var locationTerms = location
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value.ToLower())
+            .Distinct()
+            .ToList();
+
+        if (locationTerms.Count == 0)
+        {
+            return query;
+        }
+
+        query = query.Where(accommodation => accommodation.Address != null);
+
+        if (locationTerms.Count == 1)
+        {
+            var singleTerm = locationTerms[0];
+            return query.Where(accommodation =>
+                (accommodation.Address!.City != null &&
+                 accommodation.Address.City.ToLower().Contains(singleTerm)) ||
+                (accommodation.Address!.Country != null &&
+                 accommodation.Address.Country.ToLower().Contains(singleTerm)));
+        }
+
+        foreach (var term in locationTerms)
+        {
+            var currentTerm = term;
+            query = query.Where(accommodation =>
+                (accommodation.Address!.City != null &&
+                 accommodation.Address.City.ToLower().Contains(currentTerm)) ||
+                (accommodation.Address!.Country != null &&
+                 accommodation.Address.Country.ToLower().Contains(currentTerm)));
+        }
+
+        return query;
     }
 
     private static IQueryable<Accommodation> ApplyPropertyTypeFilter(IQueryable<Accommodation> query, string? type)

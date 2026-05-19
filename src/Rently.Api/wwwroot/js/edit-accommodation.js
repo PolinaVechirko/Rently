@@ -32,36 +32,90 @@ document.addEventListener("DOMContentLoaded", () => {
     formShared.seedAmenitiesList(amenitiesList);
   }
 
-  const locationInputs = [
-    document.getElementById("city"),
-    document.getElementById("country"),
-    document.getElementById("street"),
-  ];
+  const cityInput = document.getElementById("city");
+  const countryInput = document.getElementById("country");
+  const streetInput = document.getElementById("street");
+  const locationInputs = [cityInput, countryInput, streetInput];
   const datalist = document.getElementById("location-suggestions");
 
-  if (locationInputs[0] && formShared) {
+  if (cityInput && formShared) {
     formShared.initLocationAutocomplete({
       datalist,
-      definitions: locationInputs
-        .filter(Boolean)
-        .map((input, index) => ({
-          input,
-          stateKey: `edit-field-${index}`,
+      definitions: [
+        {
+          input: cityInput,
+          stateKey: "edit-city",
           mapResult(result) {
             const addr = result.address || {};
-            const city =
+            return (
               addr.city ||
               addr.town ||
               addr.village ||
               addr.hamlet ||
               addr.suburb ||
-              "";
-            const country = addr.country || "";
-            if (city && country) return `${city}, ${country}`;
-            if (country) return country;
-            return result.display_name || "";
+              ""
+            );
           },
-        })),
+          onChange(selectedCity, results) {
+            if (!selectedCity || !countryInput) return;
+            const matching = results.find((result) => {
+              const addr = result.address || {};
+              const city =
+                addr.city ||
+                addr.town ||
+                addr.village ||
+                addr.hamlet ||
+                addr.suburb ||
+                "";
+              return city === selectedCity;
+            });
+            if (matching) {
+              countryInput.value = matching.address?.country || "";
+            }
+          },
+        },
+        {
+          input: countryInput,
+          stateKey: "edit-country",
+          buildQuery(query) {
+            return `${query} country`;
+          },
+          mapResult(result) {
+            const country = result.address?.country || "";
+            const city =
+              result.address?.city ||
+              result.address?.town ||
+              result.address?.village ||
+              result.address?.hamlet ||
+              result.address?.suburb ||
+              "";
+            return country && !city ? country : "";
+          },
+        },
+        {
+          input: streetInput,
+          stateKey: "edit-street",
+          buildQuery(query) {
+            const city = cityInput?.value?.trim();
+            const country = countryInput?.value?.trim();
+            return [query, city, country].filter(Boolean).join(", ");
+          },
+          mapResult(result) {
+            const address = result.address || {};
+            const road =
+              address.road ||
+              address.pedestrian ||
+              address.footway ||
+              address.cycleway ||
+              address.path ||
+              address.residential ||
+              "";
+            const houseNumber = address.house_number || "";
+            const streetValue = [road, houseNumber].filter(Boolean).join(" ").trim();
+            return streetValue || road || "";
+          },
+        },
+      ],
     });
   }
 

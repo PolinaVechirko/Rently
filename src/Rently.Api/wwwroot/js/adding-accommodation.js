@@ -212,15 +212,42 @@ document.addEventListener("DOMContentLoaded", () => {
         {
           input: countryInput,
           stateKey: "country",
+          buildQuery(query) {
+            return `${query} country`;
+          },
           mapResult(result) {
-            return result.address?.country || "";
+            const country = result.address?.country || "";
+            const city =
+              result.address?.city ||
+              result.address?.town ||
+              result.address?.village ||
+              result.address?.hamlet ||
+              result.address?.suburb ||
+              "";
+            return country && !city ? country : "";
           },
         },
         {
           input: streetInput,
           stateKey: "street",
+          buildQuery(query) {
+            const city = cityInput?.value?.trim();
+            const country = countryInput?.value?.trim();
+            return [query, city, country].filter(Boolean).join(", ");
+          },
           mapResult(result) {
-            return result.display_name || "";
+            const address = result.address || {};
+            const road =
+              address.road ||
+              address.pedestrian ||
+              address.footway ||
+              address.cycleway ||
+              address.path ||
+              address.residential ||
+              "";
+            const houseNumber = address.house_number || "";
+            const streetValue = [road, houseNumber].filter(Boolean).join(" ").trim();
+            return streetValue || road || "";
           },
         },
       ],

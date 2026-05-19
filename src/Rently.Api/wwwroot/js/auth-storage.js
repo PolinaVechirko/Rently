@@ -10,6 +10,7 @@
     avatar: "rently_host_avatar",
     avatarThumb: "rently_header_avatar_thumb",
     profileDraft: "rently_user_data",
+    rememberedLoginEmail: "rently_remembered_login_email",
   };
 
   pageState.keys = {
@@ -122,6 +123,25 @@
   storage.clearRedirectAfterAuth = function clearRedirectAfterAuth() {
     root.localStorage?.removeItem("redirectAfterAuth");
   };
+
+  storage.getRememberedLoginEmail = function getRememberedLoginEmail() {
+    return root.localStorage?.getItem(storage.cacheKeys.rememberedLoginEmail) || "";
+  };
+
+  storage.setRememberedLoginEmail =
+    function setRememberedLoginEmail(email) {
+      const normalizedEmail = String(email || "").trim();
+      if (!normalizedEmail) return;
+      root.localStorage?.setItem(
+        storage.cacheKeys.rememberedLoginEmail,
+        normalizedEmail,
+      );
+    };
+
+  storage.clearRememberedLoginEmail =
+    function clearRememberedLoginEmail() {
+      root.localStorage?.removeItem(storage.cacheKeys.rememberedLoginEmail);
+    };
 
   storage.getStoredUserData = function getStoredUserData() {
     try {

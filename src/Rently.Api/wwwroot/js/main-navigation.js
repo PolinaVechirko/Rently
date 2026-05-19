@@ -125,6 +125,24 @@
     root.RentlyPropertyPage?.initPropertyPage?.();
     root.RentlyMyBookingActions?.initMyBookingPage?.();
     root.RentlySearchPage?.initSearchPage?.();
+
+    if (document.getElementById("inspiration-track")) {
+      root.RentlyAccommodationsRenderer?.renderAccommodations(
+        "inspiration-track",
+        true,
+      );
+    }
+
+    if (
+      document.getElementById("active-track") &&
+      document.getElementById("hidden-track")
+    ) {
+      root.RentlyHostListingsRenderer?.renderHostListings(
+        "active-track",
+        "",
+        "hidden-track",
+      );
+    }
   };
 
   navigation.initHomeSectionLinks = function initHomeSectionLinks() {

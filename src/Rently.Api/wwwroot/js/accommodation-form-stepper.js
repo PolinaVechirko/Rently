@@ -46,7 +46,9 @@
 
       let isValid = true;
       currentForm
-        .querySelectorAll("input[required], select[required], textarea[required]")
+        .querySelectorAll(
+          "input[required], select[required], textarea[required]",
+        )
         .forEach((input) => {
           if (!input.value.trim()) {
             isValid = false;
@@ -97,90 +99,91 @@
     };
   };
 
-  stepperModule.initListingStatusControls =
-    function initListingStatusControls(options = {}) {
-      const datePickerInput = options.datePickerInput;
-      const datePickerContainer = options.datePickerContainer;
+  stepperModule.initListingStatusControls = function initListingStatusControls(
+    options = {},
+  ) {
+    const datePickerInput = options.datePickerInput;
+    const datePickerContainer = options.datePickerContainer;
 
-      if (datePickerInput && typeof window.flatpickr === "function") {
-        window.flatpickr(datePickerInput, {
-          dateFormat: "Y-m-d",
-          minDate: "today",
-          disableMobile: true,
-        });
-      }
+    if (datePickerInput && typeof window.flatpickr === "function") {
+      window.flatpickr(datePickerInput, {
+        dateFormat: "Y-m-d",
+        minDate: "today",
+        disableMobile: true,
+      });
+    }
 
-      function syncUi(statusValue) {
-        document.querySelectorAll(".custom-radio-card").forEach((card) => {
-          card.classList.remove("active");
-        });
-
-        Array.from(document.getElementsByName("listing-status")).forEach(
-          (radio) => {
-            const isSelected = radio.value === statusValue;
-            radio.checked = isSelected;
-            if (isSelected) {
-              radio.closest(".custom-radio-card")?.classList.add("active");
-            }
-          },
-        );
-
-        if (datePickerContainer) {
-          datePickerContainer.classList.toggle(
-            "d-none",
-            statusValue !== "Upcoming",
-          );
-        }
-      }
+    function syncUi(statusValue) {
+      document.querySelectorAll(".custom-radio-card").forEach((card) => {
+        card.classList.remove("active");
+      });
 
       Array.from(document.getElementsByName("listing-status")).forEach(
         (radio) => {
-          radio.addEventListener("change", (event) => {
-            syncUi(event.target.value);
-          });
+          const isSelected = radio.value === statusValue;
+          radio.checked = isSelected;
+          if (isSelected) {
+            radio.closest(".custom-radio-card")?.classList.add("active");
+          }
         },
       );
 
-      function applySelection(statusValue, availableFromValue = "") {
-        syncUi(statusValue);
-        if (datePickerInput) {
-          datePickerInput.value = availableFromValue || "";
-        }
+      if (datePickerContainer) {
+        datePickerContainer.classList.toggle(
+          "d-none",
+          statusValue !== "Upcoming",
+        );
       }
+    }
 
-      function getPayload() {
-        const isUpcoming = !!document.querySelector(
-          'input[name="listing-status"][value="Upcoming"]',
-        )?.checked;
-        const availableFromValue = datePickerInput?.value || "";
+    Array.from(document.getElementsByName("listing-status")).forEach(
+      (radio) => {
+        radio.addEventListener("change", (event) => {
+          syncUi(event.target.value);
+        });
+      },
+    );
 
-        if (isUpcoming) {
-          return {
-            isActive: true,
-            visibleFrom: availableFromValue || null,
-          };
-        }
+    function applySelection(statusValue, availableFromValue = "") {
+      syncUi(statusValue);
+      if (datePickerInput) {
+        datePickerInput.value = availableFromValue || "";
+      }
+    }
 
-        const resolveInactiveState = options.resolveInactiveState;
-        if (typeof resolveInactiveState === "function") {
-          const inactivePayload = resolveInactiveState();
-          if (inactivePayload) {
-            return inactivePayload;
-          }
-        }
+    function getPayload() {
+      const isUpcoming = !!document.querySelector(
+        'input[name="listing-status"][value="Upcoming"]',
+      )?.checked;
+      const availableFromValue = datePickerInput?.value || "";
 
+      if (isUpcoming) {
         return {
           isActive: true,
-          visibleFrom: null,
+          visibleFrom: availableFromValue || null,
         };
       }
 
+      const resolveInactiveState = options.resolveInactiveState;
+      if (typeof resolveInactiveState === "function") {
+        const inactivePayload = resolveInactiveState();
+        if (inactivePayload) {
+          return inactivePayload;
+        }
+      }
+
       return {
-        applySelection,
-        getPayload,
-        syncUi,
+        isActive: true,
+        visibleFrom: null,
       };
+    }
+
+    return {
+      applySelection,
+      getPayload,
+      syncUi,
     };
+  };
 
   window.RentlyAccommodationFormStepper = stepperModule;
 })(window);

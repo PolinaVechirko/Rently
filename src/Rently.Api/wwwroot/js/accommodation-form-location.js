@@ -3,9 +3,12 @@
 
   const locationModule = window.RentlyAccommodationFormLocation || {};
 
-  async function fetchLocationResults(query) {
+  async function fetchLocationResults(query, definition = {}) {
+    const requestQuery = typeof definition.buildQuery === "function"
+      ? definition.buildQuery(query)
+      : query;
     const response = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&accept-language=en&q=${encodeURIComponent(query)}&limit=10`,
+      `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&accept-language=en&q=${encodeURIComponent(requestQuery)}&limit=10`,
     );
     return response.json();
   }
@@ -48,7 +51,7 @@
 
         debounceTimer = window.setTimeout(async () => {
           try {
-            const results = await fetchLocationResults(query);
+            const results = await fetchLocationResults(query, definition);
             state[stateKey] = results;
             const values = results
               .map((result) => definition.mapResult(result))

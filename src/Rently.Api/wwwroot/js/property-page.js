@@ -4,6 +4,7 @@
   const mapModule = window.RentlyPropertyMap;
   const reviewsModule = window.RentlyPropertyReviews;
   const renderHelpers = window.RentlyRenderHelpers;
+  let hasInitializedPropertyPage = false;
 
   function getAssetBase() {
     return renderHelpers?.getAssetBase
@@ -21,6 +22,50 @@
       window.location.pathname.includes("/host-mode/") ||
       window.location.pathname.includes("host-mode.html")
     );
+  }
+
+  function normalizeProperty(property) {
+    if (!property || typeof property !== "object") {
+      return {};
+    }
+
+    return {
+      ...property,
+      id: property.id ?? property.Id ?? "",
+      title: property.title ?? property.Title ?? property.propertyType ?? property.PropertyType ?? "Accommodation",
+      propertyType: property.propertyType ?? property.PropertyType ?? "Accommodation",
+      country: property.country ?? property.Country ?? "",
+      city: property.city ?? property.City ?? "",
+      street: property.street ?? property.Street ?? "",
+      pricePerNight: property.pricePerNight ?? property.PricePerNight ?? 0,
+      description: property.description ?? property.Description ?? "",
+      averageRating: property.averageRating ?? property.AverageRating ?? 0,
+      reviewsCount: property.reviewsCount ?? property.ReviewsCount ?? 0,
+      amenities: Array.isArray(property.amenities)
+        ? property.amenities
+        : Array.isArray(property.Amenities)
+          ? property.Amenities
+          : [],
+      photos: Array.isArray(property.photos)
+        ? property.photos
+        : Array.isArray(property.Photos)
+          ? property.Photos
+          : [],
+      reviews: Array.isArray(property.reviews)
+        ? property.reviews
+        : Array.isArray(property.Reviews)
+          ? property.Reviews
+          : [],
+      hostName: property.hostName ?? property.HostName ?? "Host",
+      hostAvatarUrl: property.hostAvatarUrl ?? property.HostAvatarUrl ?? property.hostPhoto ?? property.HostPhoto ?? property.profilePhotoUrl ?? property.ProfilePhotoUrl ?? "",
+      hostCreatedAt: property.hostCreatedAt ?? property.HostCreatedAt ?? "",
+      hostEmail: property.hostEmail ?? property.HostEmail ?? "",
+      unavailableDateRanges: Array.isArray(property.unavailableDateRanges)
+        ? property.unavailableDateRanges
+        : Array.isArray(property.UnavailableDateRanges)
+          ? property.UnavailableDateRanges
+          : [],
+    };
   }
 
   function getPropertyPageElements() {
@@ -109,7 +154,7 @@
 
     if (titleElement) {
       titleElement.classList.remove("skeleton", "skeleton-title");
-      titleElement.textContent = property.propertyType || "Accommodation";
+      titleElement.textContent = property.title || property.propertyType || "Accommodation";
     }
 
     if (locationElement) {
@@ -211,14 +256,11 @@
       };
     }
 
-    if (hostLabelElement && property.hostCreatedAt) {
+    if (hostLabelElement) {
       hostLabelElement.classList.remove("skeleton", "skeleton-text");
       hostLabelElement.style.width = "auto";
-      const years = Math.max(
-        1,
-        new Date().getFullYear() - new Date(property.hostCreatedAt).getFullYear(),
-      );
-      hostLabelElement.textContent = `Superhost · ${years} ${years === 1 ? "year" : "years"} hosting`;
+      hostLabelElement.textContent = property.hostEmail || "";
+      hostLabelElement.style.display = property.hostEmail ? "" : "none";
     }
 
     if (contactHostButton) {
@@ -231,15 +273,32 @@
   }
 
   async function initPropertyPage() {
+    if (hasInitializedPropertyPage) {
+      return;
+    }
+
     if (!isPropertyPage()) {
       return;
     }
+
+    hasInitializedPropertyPage = true;
 
     const urlParams = new URLSearchParams(window.location.search);
     const propertyId = urlParams.get("id");
     const pageElements = getPropertyPageElements();
     const { mainContainer } = pageElements;
-    if (!propertyId || !mainContainer) {
+    if (!mainContainer) {
+      return;
+    }
+
+    if (!propertyId) {
+      mainContainer.classList.remove("is-loading");
+      mainContainer.innerHTML = `
+        <div class="container" style="padding: 32px 0;">
+          <h2>Property not found</h2>
+          <p>Open this page from a property card or search result to load accommodation details.</p>
+        </div>
+      `;
       return;
     }
 
@@ -249,7 +308,7 @@
         throw new Error("Property not found");
       }
 
-      const property = await response.json();
+      const property = normalizeProperty(await response.json());
       const token = window.RentlyAuthStorage?.getAuthToken() || "";
       const assetBase = getAssetBase();
       window.__rentlyPropertyUnavailableRanges =
@@ -259,13 +318,13 @@
       renderPropertyHeader(property, pageElements);
       renderAmenities(property, assetBase, pageElements);
       renderHostProfile(property, assetBase, pageElements);
-      reviewsModule.renderPropertyReviews(property, assetBase);
+      reviewsModule?.renderPropertyReviews?.(property, assetBase);
       await window.RentlyPropertyReviewComposer?.renderReviewComposer?.(
         propertyId,
         token,
       );
-      galleryModule.initPropertyGallery(property);
-      await mapModule.initPropertyMap(property);
+      galleryModule?.initPropertyGallery?.(property);
+      await mapModule?.initPropertyMap?.(property);
     } catch (error) {
       console.error(
         "[Property] Error loading property details:",
@@ -277,9 +336,15 @@
     }
 
     bindDescriptionToggle(pageElements);
-    reviewsModule.bindReviewsToggle();
+    reviewsModule?.bindReviewsToggle?.();
     window.RentlyPropertyBooking?.initPropertyBooking?.();
   }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    void initPropertyPage().catch((error) => {
+      console.error("Failed to initialize property page", error);
+    });
+  });
 
   window.RentlyPropertyPage = {
     initPropertyPage,

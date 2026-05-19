@@ -16,7 +16,12 @@ public static class AccommodationMapper
         List<AvailabilityBlock>? availabilityBlocks = null)
     {
         var confirmedBookings = entity.Bookings?.Where(b => b.Status == BookingStatus.Confirmed).ToList() ?? new List<Booking>();
-        var unavailableDateRanges = BuildUnavailableDateRanges(confirmedBookings, availabilityBlocks);
+        var unavailableBookings = entity.Bookings?
+            .Where(b =>
+                b.Status == BookingStatus.Confirmed ||
+                b.Status == BookingStatus.Pending)
+            .ToList() ?? new List<Booking>();
+        var unavailableDateRanges = BuildUnavailableDateRanges(unavailableBookings, availabilityBlocks);
         var totalEarnings = CalculateTotalEarnings(confirmedBookings, entity.PricePerNight);
         var nextAvailableDate = CalculateNextAvailableDate(confirmedBookings);
         var reviews = BuildReviewDtos(entity.Reviews, reviewers);
@@ -124,10 +129,10 @@ public static class AccommodationMapper
     }
 
     private static List<UnavailableDateRangeDto> BuildUnavailableDateRanges(
-        List<Booking> confirmedBookings,
+        List<Booking> unavailableBookings,
         List<AvailabilityBlock>? availabilityBlocks)
     {
-        var unavailableDateRanges = confirmedBookings
+        var unavailableDateRanges = unavailableBookings
             .Where(b => b.CheckOutDate.Date > DateTime.UtcNow.Date)
             .Select(b => new UnavailableDateRangeDto
             {

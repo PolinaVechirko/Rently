@@ -53,11 +53,6 @@ public class AccommodationService : IAccommodationService
 
         var effectiveCheckIn = filters.CheckIn?.Date;
         var effectiveCheckOut = filters.CheckOut?.Date;
-        if (!effectiveCheckIn.HasValue && !effectiveCheckOut.HasValue)
-        {
-            effectiveCheckIn = DateTime.UtcNow.Date;
-            effectiveCheckOut = effectiveCheckIn.Value.AddDays(1);
-        }
 
         var today = DateTime.UtcNow.Date;
         var accommodationsQuery = AccommodationQueries.BuildAccommodationSearchQuery(_context, today);
@@ -174,14 +169,29 @@ public class AccommodationService : IAccommodationService
 
     public async Task<bool> DeleteAccommodationAsync(int id, string hostId, CancellationToken cancellationToken = default)
     {
-        var accommodation = await _context.Accommodations.FirstOrDefaultAsync(a => a.Id == id && a.HostId == hostId, cancellationToken);
+        var accommodation = await _context.Accommodations
+            .Include(a => a.Address)
+            .FirstOrDefaultAsync(a => a.Id == id && a.HostId == hostId, cancellationToken);
+
         if (accommodation == null)
         {
             return false;
         }
 
+        var addressId = accommodation.AddressId;
+
         _context.Accommodations.Remove(accommodation);
         await _context.SaveChangesAsync(cancellationToken);
+
+        var hasOtherAccommodationsAtAddress = await _context.Accommodations
+            .AnyAsync(a => a.AddressId == addressId, cancellationToken);
+
+        if (!hasOtherAccommodationsAtAddress && accommodation.Address != null)
+        {
+            _context.Addresses.Remove(accommodation.Address);
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+
         ClearHomepageCache();
         return true;
     }

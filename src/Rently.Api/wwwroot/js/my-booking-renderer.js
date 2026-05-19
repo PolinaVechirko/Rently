@@ -23,6 +23,23 @@
     }).format(date);
   }
 
+  function normalizeBookingStatus(status) {
+    const normalized = String(status || "").trim().toLowerCase();
+
+    switch (normalized) {
+      case "confirmed":
+        return "Confirmed";
+      case "cancelled":
+      case "canceled":
+        return "Cancelled";
+      case "completed":
+        return "Completed";
+      case "pending":
+      default:
+        return "Pending";
+    }
+  }
+
   function renderBookingsGroup(container, bookings, emptyTitle, emptyText, assetBase) {
     if (!Array.isArray(bookings) || bookings.length === 0) {
       container.innerHTML = buildEmptyState(emptyTitle, emptyText);
@@ -38,8 +55,10 @@
 
     let html = "";
     bookings.forEach((booking, index) => {
+      const accommodationPhotoUrl =
+        booking.accommodationPhotoUrl || booking.AccommodationPhotoUrl || "";
       const photo = renderHelpers.getCardImageUrl
-        ? renderHelpers.getCardImageUrl(booking.accommodationPhotoUrl, {
+        ? renderHelpers.getCardImageUrl(accommodationPhotoUrl, {
             assetBase,
             fallbackIndex: index,
             width: 700,
@@ -59,7 +78,7 @@
         ),
       );
       const totalPrice = (Number(pricePerNight) * stayNights).toFixed(2);
-      const status = booking.status || "Pending";
+      const status = normalizeBookingStatus(booking.status || booking.Status);
       const statusClass = statusClassMap[status] || "status-pending";
       const isPending = status === "Pending";
       const cardClass = booking.__section === "history"
@@ -163,7 +182,7 @@
       const assetBase = renderHelpers.getAssetBase?.() || "./";
 
       const activeBookings = safeBookings.filter((booking) => {
-        const status = String(booking.status || "");
+        const status = normalizeBookingStatus(booking.status || booking.Status);
         const checkIn = new Date(booking.checkInDate);
         const checkOut = new Date(booking.checkOutDate);
         if (status !== "Confirmed") return false;
@@ -175,7 +194,7 @@
 
       const upcomingBookings = safeBookings.filter((booking) => {
         if (activeBookings.includes(booking)) return false;
-        const status = String(booking.status || "");
+        const status = normalizeBookingStatus(booking.status || booking.Status);
         const checkIn = new Date(booking.checkInDate);
         if (status === "Pending") return true;
         if (status === "Confirmed") {

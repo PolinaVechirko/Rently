@@ -82,11 +82,39 @@
     const normalizeAmenityName =
       window.RentlyAccommodationFormAmenities?.normalizeAmenityName ||
       ((value) => String(value || "").split(" — ")[0].trim());
+    const assetBase = window.RentlyRenderHelpers?.getAssetBase?.() || "./";
+    const amenityIconMap = {
+      "Wi-Fi": "wifi.svg",
+      "Free Parking": "freeParking.svg",
+      "Air Conditioning": "airConditioning.svg",
+      "Pets Allowed": "pets.svg",
+      TV: "tv.svg",
+      Kitchen: "kitchen.svg",
+      Gym: "gym.svg",
+      Iron: "iron.svg",
+      "Smoke Alarm": "smokealarm.svg",
+      "First Aid Kit": "firstaidkit.svg",
+      "Meal Service": "mealService.svg",
+      Balcony: "balcony.svg",
+      "Self Check-in": "selfcheckin.svg",
+      Crib: "crib.svg",
+      "Dedicated Workspace": "workspace.svg",
+      "Family Friendly": "familyFriendly.svg",
+      Pool: "pool.svg",
+      Dryer: "dryer.svg",
+      Washer: "washer.svg",
+      Heating: "heating.svg",
+    };
 
     amenities.forEach((amenityValue) => {
+      const amenityName = normalizeAmenityName(amenityValue);
+      const iconName = amenityIconMap[amenityName] || "wifi.svg";
       const amenityElement = document.createElement("div");
-      amenityElement.className = "amenity-item mb-2";
-      amenityElement.innerHTML = `<span class="text-muted">• ${normalizeAmenityName(amenityValue)}</span>`;
+      amenityElement.className = "amenity-item";
+      amenityElement.innerHTML = `
+        <img src="${assetBase}icons/${iconName}" onerror="this.src='${assetBase}icons/wifi.svg'; this.onerror=null;" alt="${amenityName}">
+        <span>${amenityName}</span>
+      `;
       container.appendChild(amenityElement);
     });
   };
@@ -114,7 +142,13 @@
       const savedData = JSON.parse(
         localStorage.getItem("rently_host_data") || "{}",
       );
-      const hostName = savedData.name || "Host Name";
+      const hostName =
+        savedData.fullName ||
+        savedData.name ||
+        savedData.userName ||
+        savedData.email ||
+        "Host";
+      const hostLabel = savedData.email || "";
       const hostAvatar =
         localStorage.getItem("rently_header_avatar_thumb") ||
         localStorage.getItem("rently_host_avatar") ||
@@ -123,6 +157,12 @@
       const hostNameElement = document.querySelector(".host-name");
       if (hostNameElement) {
         hostNameElement.textContent = hostName;
+      }
+
+      const hostLabelElement = document.querySelector(".host-label");
+      if (hostLabelElement) {
+        hostLabelElement.textContent = hostLabel;
+        hostLabelElement.style.display = hostLabel ? "" : "none";
       }
 
       const hostAvatarElement = document.querySelector(".host-avatar");

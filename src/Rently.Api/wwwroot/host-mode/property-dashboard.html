@@ -64,6 +64,21 @@
       font-size: 13px;
       color: #9ca3af;
     }
+
+    .listing-hide-picker-anchor {
+      position: absolute;
+      width: 0;
+      height: 0;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .listing-hide-calendar-heading {
+      padding: 12px 12px 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: #111827;
+    }
   </style>
 </head>
 
@@ -129,31 +144,15 @@
         <button class="btn btn-outline-dark" id="listing-visibility-btn" type="button">
           Hide Listing
         </button>
+        <input
+          type="text"
+          id="listing-hide-until"
+          class="listing-hide-picker-anchor"
+          aria-hidden="true"
+          tabindex="-1" />
         <button class="btn btn-primary" id="edit-listing-btn">
           Edit Listing
         </button>
-      </div>
-    </div>
-
-    <div class="bg-white border rounded-4 p-3 mb-4 shadow-sm d-none" id="listing-visibility-panel">
-      <div class="d-flex flex-column flex-lg-row align-items-lg-end gap-3">
-        <div class="flex-grow-1">
-          <label class="form-label fw-semibold mb-1" for="listing-hide-until">
-            Hide from guests until
-          </label>
-          <input type="text" id="listing-hide-until" class="form-control" placeholder="Select date" />
-          <div class="form-text">
-            The listing will stay in Hidden Listings until this date, then become visible again automatically.
-          </div>
-        </div>
-        <div class="d-flex gap-2">
-          <button class="btn btn-outline-secondary" id="listing-hide-cancel-btn" type="button">
-            Cancel
-          </button>
-          <button class="btn btn-dark" id="listing-hide-apply-btn" type="button">
-            Hide Now
-          </button>
-        </div>
       </div>
     </div>
 
@@ -392,6 +391,7 @@
   <script src="../js/api-client.js?v=20260515_frontend_foundation"></script>
   <script src="../js/renderers-helpers.js?v=20260515_render_helpers_split"></script>
   <script src="../js/renderers-home.js?v=20260515_render_home_split"></script>
+  <script src="../js/accommodations-renderer.js?v=20260515_renderers_big_split"></script>
   <script src="../js/learn-more.js?v=20260515_learn_more_split"></script>
   <script src="../js/favorite-interactions.js?v=20260515_favorite_interactions_split"></script>
   <script src="../js/main-navigation.js?v=20260515_main_navigation_split"></script>
@@ -405,9 +405,16 @@
   <script src="../js/api-auth.js?v=20260515_frontend_auth_favorites_api"></script>
   <script src="../js/api-favorites.js?v=20260515_frontend_auth_favorites_api"></script>
   <script src="../js/auth.js?v=20260513_profile_return"></script>
+  <script src="../js/ui-shared.js?v=20260515_ui_shared_split"></script>
   <script src="../js/ui-utils.js"></script>
   <script src="../js/renderers.js?v=20260514_host_listing_visibility_fix"></script>
-  <script src="../js/host-dashboard.js?v=20260514_host_hide_controls_reviews"></script>
+  <script src="../js/host-dashboard-api.js?v=20260518_host_dashboard_split_1"></script>
+  <script src="../js/host-dashboard-status.js?v=20260518_host_dashboard_split_1"></script>
+  <script src="../js/host-dashboard-stats.js?v=20260518_host_dashboard_split_1"></script>
+  <script src="../js/host-dashboard-bookings.js?v=20260518_host_dashboard_split_1"></script>
+  <script src="../js/host-dashboard-availability.js?v=20260518_host_dashboard_split_1"></script>
+  <script src="../js/host-dashboard-visibility.js?v=20260518_host_dashboard_split_1"></script>
+  <script src="../js/host-dashboard-page.js?v=20260518_host_dashboard_split_1"></script>
 </body>
 
 </html>

@@ -6,6 +6,7 @@ using Rently.Application.DTOs;
 using Rently.Application.Exceptions;
 using Rently.Application.Interfaces;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Processing;
 
 namespace Rently.Application.Services.Images;
@@ -88,7 +89,7 @@ public class ImageService : IImageService
         };
     }
 
-    public async Task<ImageContentDto?> GetResizedImageAsync(string url, int width, CancellationToken cancellationToken = default)
+    public async Task<ImageContentDto?> GetResizedImageAsync(string url, int width, int? quality = null, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(url))
         {
@@ -101,8 +102,18 @@ public class ImageService : IImageService
             return null;
         }
 
+        var normalizedQuality = NormalizeImageQuality(quality);
         using var image = await Image.LoadAsync(filePath, cancellationToken);
-        if (width <= 0 || image.Width <= width)
+        if (width > 0 && image.Width > width)
+        {
+            image.Mutate(x => x.Resize(new ResizeOptions
+            {
+                Size = new Size(width, 0),
+                Mode = ResizeMode.Max
+            }));
+        }
+
+        if (normalizedQuality == null)
         {
             return new ImageContentDto
             {
@@ -111,20 +122,27 @@ public class ImageService : IImageService
             };
         }
 
-        image.Mutate(x => x.Resize(new ResizeOptions
-        {
-            Size = new Size(width, 0),
-            Mode = ResizeMode.Max
-        }));
-
         await using var output = new MemoryStream();
-        await image.SaveAsJpegAsync(output, cancellationToken);
+        await image.SaveAsJpegAsync(
+            output,
+            new JpegEncoder { Quality = normalizedQuality.Value },
+            cancellationToken);
 
         return new ImageContentDto
         {
             Content = output.ToArray(),
             ContentType = "image/jpeg"
         };
+    }
+
+    private static int? NormalizeImageQuality(int? quality)
+    {
+        if (!quality.HasValue)
+        {
+            return null;
+        }
+
+        return Math.Clamp(quality.Value, 40, 95);
     }
 
     private string? ResolveImagePath(string url)

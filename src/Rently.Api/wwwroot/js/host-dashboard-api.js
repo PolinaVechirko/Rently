@@ -185,6 +185,11 @@
     return fetchJson("/api/Accommodations/my");
   }
 
+  async function fetchAccommodationById(accommodationId) {
+    if (!accommodationId) return null;
+    return fetchJson(`/api/Accommodations/${encodeURIComponent(accommodationId)}`);
+  }
+
   async function fetchHostBookings(accommodationId) {
     return fetchJson(
       `/api/Bookings/host-bookings?accommodationId=${encodeURIComponent(accommodationId)}`,
@@ -253,6 +258,7 @@
     dateFormatter,
     deleteAvailabilityBlock,
     ensureLoggedIn,
+    fetchAccommodationById,
     fetchAvailabilityBlocks,
     fetchHostBookings,
     fetchJson,

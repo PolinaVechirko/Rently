@@ -11,20 +11,50 @@
     );
   };
 
+  async function rememberBrowserCredentials(email, password) {
+    if (
+      !root.navigator?.credentials?.store ||
+      typeof PasswordCredential === "undefined"
+    ) {
+      return;
+    }
+
+    try {
+      await root.navigator.credentials.store(
+        new PasswordCredential({
+          id: String(email || "").trim(),
+          password: String(password || ""),
+          name: String(email || "").trim(),
+        }),
+      );
+    } catch {
+      // Browser-managed credential storage is best-effort only.
+    }
+  }
+
   authForms.bindLoginForm = function bindLoginForm(loginForm) {
     if (!loginForm || loginForm.dataset.rentlyAuthBound === "true") return;
     loginForm.dataset.rentlyAuthBound = "true";
+
+    const emailInput = loginForm.querySelector(
+      'input[type="email"], input[type="text"]',
+    );
+    const passwordInput = loginForm.querySelector('input[type="password"]');
+    const rememberCheckbox = loginForm.querySelector("#remember");
+    const rememberedEmail = root.RentlyAuthStorage?.getRememberedLoginEmail?.() || "";
+
+    if (emailInput && rememberedEmail) {
+      emailInput.value = rememberedEmail;
+    }
+    if (rememberCheckbox) {
+      rememberCheckbox.checked = rememberedEmail.length > 0;
+    }
 
     loginForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       const submitBtn = loginForm.querySelector('button[type="submit"]');
       submitBtn.disabled = true;
       submitBtn.innerText = "Signing in...";
-
-      const emailInput = loginForm.querySelector(
-        'input[type="email"], input[type="text"]',
-      );
-      const passwordInput = loginForm.querySelector('input[type="password"]');
 
       try {
         const response = root.RentlyAuthApi
@@ -72,6 +102,13 @@
         }
 
         cacheUserSnapshot(data.user);
+
+        if (rememberCheckbox?.checked) {
+          root.RentlyAuthStorage?.setRememberedLoginEmail?.(emailInput.value);
+          await rememberBrowserCredentials(emailInput.value, passwordInput.value);
+        } else {
+          root.RentlyAuthStorage?.clearRememberedLoginEmail?.();
+        }
 
         const redirectUrl = root.RentlyAuthRedirects
           ? await root.RentlyAuthRedirects.resolvePostAuthRedirect(
