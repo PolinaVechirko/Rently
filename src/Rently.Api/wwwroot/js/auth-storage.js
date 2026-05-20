@@ -205,6 +205,10 @@
     );
   };
 
+  profileStorage.setStoredProfileDraft = function setStoredProfileDraft(draft) {
+    profileStorage.setStoredUserData(draft);
+  };
+
   profileStorage.getStoredProfileDraft = function getStoredProfileDraft() {
     try {
       return JSON.parse(

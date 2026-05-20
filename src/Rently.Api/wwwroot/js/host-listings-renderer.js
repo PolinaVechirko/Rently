@@ -1,6 +1,7 @@
 (function createHostListingsRenderer(window) {
   let isDeleteBindingRegistered = false;
   let deleteConfirmationElements = null;
+  let deleteNoticeElements = null;
   const renderHelpers = window.RentlyRenderHelpers || {};
   const currencyFormatter = new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -279,6 +280,43 @@
     return deleteConfirmationElements;
   }
 
+  function ensureDeleteNotice() {
+    if (deleteNoticeElements) {
+      return deleteNoticeElements;
+    }
+
+    const notice = document.createElement("div");
+    notice.className = "host-delete-notice";
+    notice.setAttribute("role", "status");
+    notice.setAttribute("aria-live", "polite");
+    document.body.appendChild(notice);
+
+    deleteNoticeElements = { notice, hideTimer: null };
+    return deleteNoticeElements;
+  }
+
+  function showDeleteNotice(message, variant = "warning") {
+    const state = ensureDeleteNotice();
+    if (!message) return;
+
+    state.notice.textContent = message;
+    state.notice.classList.remove(
+      "is-success",
+      "is-warning",
+      "is-error",
+      "is-visible",
+    );
+    state.notice.classList.add(`is-${variant}`, "is-visible");
+
+    if (state.hideTimer) {
+      window.clearTimeout(state.hideTimer);
+    }
+
+    state.hideTimer = window.setTimeout(() => {
+      state.notice.classList.remove("is-visible");
+    }, 4200);
+  }
+
   function showDeleteConfirmation() {
     const modal = ensureDeleteConfirmationModal();
 
@@ -378,7 +416,10 @@
         clearDeletedAccommodationSelection(accommodationId);
         await renderHostListings("active-track", "rented-track", "hidden-track");
       } catch (error) {
-        alert(error.message || "Failed to delete listing.");
+        showDeleteNotice(
+          error.message || "Failed to delete listing.",
+          "warning",
+        );
         deleteButton.disabled = originalDisabled;
       }
     });

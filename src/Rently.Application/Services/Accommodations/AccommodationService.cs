@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Rently.Application.DTOs;
+using Rently.Application.Exceptions;
 using Rently.Application.Interfaces;
 using Rently.Application.Mappers;
 using Rently.Domain.Entities;
@@ -11,6 +12,9 @@ namespace Rently.Application.Services.Accommodations;
 
 public class AccommodationService : IAccommodationService
 {
+    private const string ConfirmedReservationsDeletionMessage =
+        "This apartment cannot be deleted while it has confirmed reservations.";
+
     private readonly ApplicationDbContext _context;
     private readonly IMemoryCache _cache;
     private readonly ILogger<AccommodationService> _logger;
@@ -176,6 +180,16 @@ public class AccommodationService : IAccommodationService
         if (accommodation == null)
         {
             return false;
+        }
+
+        var hasConfirmedReservations = await _context.Bookings
+            .AnyAsync(
+                booking => booking.AccommodationId == id && booking.Status == BookingStatus.Confirmed,
+                cancellationToken);
+
+        if (hasConfirmedReservations)
+        {
+            throw new ConflictException(ConfirmedReservationsDeletionMessage);
         }
 
         var addressId = accommodation.AddressId;

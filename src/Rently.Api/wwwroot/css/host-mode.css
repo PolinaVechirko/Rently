@@ -343,6 +343,47 @@
   background: #e53e3e;
 }
 
+.host-delete-notice {
+  position: fixed;
+  top: 28px;
+  right: 28px;
+  max-width: min(420px, calc(100vw - 32px));
+  padding: 14px 18px;
+  border-radius: 18px;
+  border: 1px solid transparent;
+  background: #fffaf0;
+  color: #7c2d12;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+  opacity: 0;
+  transform: translateY(-10px);
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 1300;
+}
+
+.host-delete-notice.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.host-delete-notice.is-warning {
+  background: #fff7ed;
+  border-color: #fdba74;
+  color: #9a3412;
+}
+
+.host-delete-notice.is-error {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  color: #991b1b;
+}
+
+.host-delete-notice.is-success {
+  background: #f0fdf4;
+  border-color: #86efac;
+  color: #166534;
+}
+
 /* Host dashboard calendars: visually distinguish non-selectable dates */
 .flatpickr-calendar .flatpickr-day.flatpickr-disabled,
 .flatpickr-calendar .flatpickr-day.flatpickr-disabled:hover,
@@ -414,5 +455,12 @@
 
   .host-delete-modal-btn {
     width: 100%;
+  }
+
+  .host-delete-notice {
+    top: 16px;
+    right: 16px;
+    left: 16px;
+    max-width: none;
   }
 }

@@ -170,6 +170,16 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   document.addEventListener("click", (e) => {
+    const navTarget = e.target.closest("[data-nav-href]");
+    if (navTarget) {
+      const href = navTarget.getAttribute("data-nav-href");
+      if (href) {
+        e.preventDefault();
+        window.location.href = href;
+        return;
+      }
+    }
+
     const learnMoreBtn = e.target.closest(".learn-more-btn");
     if (!learnMoreBtn) return;
 

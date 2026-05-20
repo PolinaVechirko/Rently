@@ -52,6 +52,16 @@
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const phonePattern = /^\+?[0-9\s\-\(\)]{7,20}$/;
 
+    function unlockProfileInputs() {
+      [nameInput, emailInput, phoneInput, bioInput].forEach((input) => {
+        if (!input) return;
+        input.disabled = false;
+        input.readOnly = false;
+        input.removeAttribute("disabled");
+        input.removeAttribute("readonly");
+      });
+    }
+
     function clearValidation() {
       [nameInput, emailInput, phoneInput].forEach((input) => {
         input.classList.remove("is-invalid");
@@ -128,6 +138,8 @@
     }
 
     document.addEventListener("DOMContentLoaded", () => {
+      unlockProfileInputs();
+
       const token = authStorage?.getAuthToken() || "";
       if (!token) {
         window.location.href = loginPath;
@@ -141,6 +153,8 @@
         .then((data) => {
           if (!data) return;
 
+          unlockProfileInputs();
+
           if (data.fullName) nameInput.value = data.fullName;
           if (data.email) emailInput.value = data.email;
           if (data.phoneNumber) phoneInput.value = data.phoneNumber;
@@ -152,6 +166,13 @@
           }
         })
         .catch((error) => console.error("Failed to load profile:", error));
+    });
+
+    [nameInput, emailInput, phoneInput, bioInput].forEach((input) => {
+      input?.addEventListener("focus", unlockProfileInputs);
+      input?.addEventListener("pointerdown", unlockProfileInputs);
+      input?.addEventListener("click", unlockProfileInputs);
+      input?.addEventListener("keydown", unlockProfileInputs);
     });
 
     avatarPlaceholder?.addEventListener("click", () => {
@@ -211,12 +232,18 @@
 
         const updated = await response.json();
 
-        profileStorage?.setStoredProfileDraft({
+        const storedProfileDraft = {
           name: updated.fullName,
           email: updated.email,
           phone: updated.phoneNumber || "",
           bio: updated.bio || bioInput.value.trim(),
-        });
+        };
+
+        if (typeof profileStorage?.setStoredProfileDraft === "function") {
+          profileStorage.setStoredProfileDraft(storedProfileDraft);
+        } else if (typeof profileStorage?.setStoredUserData === "function") {
+          profileStorage.setStoredUserData(storedProfileDraft);
+        }
 
         persistAvatar(updated.profilePhotoUrl);
 
