@@ -75,10 +75,17 @@ internal static class AccommodationHomepageQueries
                 Popularity = dbContext.Bookings.Count(booking =>
                     booking.AccommodationId == accommodation.Id &&
                     booking.Status == Rently.Domain.Entities.BookingStatus.Confirmed),
-                FirstPhoto = dbContext.Photos
-                    .Where(photo => photo.AccommodationId == accommodation.Id)
-                    .Select(photo => photo.Url)
-                    .FirstOrDefault()
+                FirstPhoto =
+                    dbContext.Photos
+                        .Where(photo => photo.Id == accommodation.CoverPhotoId)
+                        .Select(photo => photo.Url)
+                        .FirstOrDefault()
+                    ?? dbContext.Photos
+                        .Where(photo => photo.AccommodationId == accommodation.Id)
+                        .OrderBy(photo => photo.SortOrder)
+                        .ThenBy(photo => photo.Id)
+                        .Select(photo => photo.Url)
+                        .FirstOrDefault()
             });
     }
 }

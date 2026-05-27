@@ -49,7 +49,7 @@ public static class AccommodationMapper
                 .Where(aa => aa.Amenity != null && !string.IsNullOrEmpty(aa.Amenity.Name))
                 .Select(aa => aa.Amenity!.Name)
                 .ToList() ?? new List<string>(),
-            Photos = entity.Photos?.Select(p => p.Url).ToList() ?? new List<string>(),
+            Photos = GetOrderedPhotoUrls(entity),
             IsRented = confirmedBookings.Any(b =>
                 b.CheckInDate <= DateTime.UtcNow &&
                 b.CheckOutDate >= DateTime.UtcNow),
@@ -89,7 +89,7 @@ public static class AccommodationMapper
                 .Where(aa => aa.Amenity != null)
                 .Select(aa => aa.Amenity!.Name)
                 .ToList() ?? new List<string>(),
-            Photos = entity.Photos?.Select(p => p.Url).ToList() ?? new List<string>(),
+            Photos = GetOrderedPhotoUrls(entity),
             IsRented = false,
             TotalEarnings = 0,
             NextAvailableDate = DateTime.UtcNow.Date,
@@ -216,5 +216,15 @@ public static class AccommodationMapper
                 ? avatarGuest.ProfilePhotoUrl ?? DefaultHostAvatarUrl
                 : DefaultHostAvatarUrl
         }).ToList();
+    }
+
+    private static List<string> GetOrderedPhotoUrls(Accommodation entity)
+    {
+        return entity.Photos?
+            .OrderBy(photo => photo.Id == entity.CoverPhotoId ? 0 : 1)
+            .ThenBy(photo => photo.SortOrder)
+            .ThenBy(photo => photo.Id)
+            .Select(photo => photo.Url)
+            .ToList() ?? new List<string>();
     }
 }

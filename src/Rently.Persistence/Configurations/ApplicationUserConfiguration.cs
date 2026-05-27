@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Rently.Domain.Entities;
+using Rently.Persistence;
 
 namespace Rently.Persistence.Configurations;
 

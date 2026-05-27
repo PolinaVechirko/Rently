@@ -19,5 +19,13 @@ internal class AccommodationConfiguration : IEntityTypeConfiguration<Accommodati
             .WithMany(address => address.Accommodations)
             .HasForeignKey(accommodation => accommodation.AddressId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(accommodation => accommodation.CoverPhoto)
+            .WithMany()
+            .HasForeignKey(accommodation => accommodation.CoverPhotoId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(accommodation => accommodation.CoverPhotoId)
+            .IsUnique();
     }
 }

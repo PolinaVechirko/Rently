@@ -63,7 +63,7 @@ public class ReviewEligibilityServiceTests
     }
 
     [Fact]
-    public async Task GetEligibilityAsync_HostReplyOnly_DoesNotPretendGuestHasExistingReview()
+    public async Task GetEligibilityAsync_ReviewWithHostReply_StillReturnsExistingReview()
     {
         await using var db = TestApplicationDbContextFactory.Create();
         db.Bookings.Add(new Booking
@@ -80,8 +80,9 @@ public class ReviewEligibilityServiceTests
             GuestId = "guest-3",
             AccommodationId = 9,
             Rating = 5,
-            Comment = "Host reply only marker",
-            ParentReviewId = 10,
+            Comment = "Wonderful stay",
+            HostReply = "Thank you for staying with us!",
+            HostReplyCreatedAt = DateTime.UtcNow,
             CreatedAt = DateTime.UtcNow
         });
         await db.SaveChangesAsync();
@@ -91,7 +92,9 @@ public class ReviewEligibilityServiceTests
         var result = await service.GetEligibilityAsync("guest-3", 9);
 
         Assert.True(result.CanReview);
-        Assert.False(result.HasExistingReview);
-        Assert.Null(result.ReviewId);
+        Assert.True(result.HasExistingReview);
+        Assert.Equal(44, result.ReviewId);
+        Assert.Equal(5, result.Rating);
+        Assert.Equal("Wonderful stay", result.Comment);
     }
 }

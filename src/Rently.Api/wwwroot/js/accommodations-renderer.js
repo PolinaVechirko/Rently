@@ -175,8 +175,13 @@
     try {
       const response = await fetch(buildApiUrl(trackId, count));
       const apiData = await response.json();
+      const items = Array.isArray(apiData) ? apiData : [];
 
-      if (apiData.length === 0 && count === 0) {
+      if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}`);
+      }
+
+      if (items.length === 0 && count === 0) {
         track.innerHTML = `
           <div class="empty-state-placeholder">
               <p>You don't have any apartments for this section yet.</p>
@@ -186,7 +191,7 @@
       }
 
       let html = "";
-      apiData.forEach((item, index) => {
+      items.forEach((item, index) => {
         html += buildAccommodationCard(item, index, {
           assetBase,
           favoriteIds,

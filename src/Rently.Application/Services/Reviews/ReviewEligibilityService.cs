@@ -23,8 +23,7 @@ public class ReviewEligibilityService
             .AsNoTracking()
             .Where(review =>
                 review.GuestId == guestId &&
-                review.AccommodationId == accommodationId &&
-                review.ParentReviewId == null)
+                review.AccommodationId == accommodationId)
             .OrderByDescending(review => review.CreatedAt)
             .Select(review => new ReviewEligibilityDto
             {

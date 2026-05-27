@@ -71,6 +71,39 @@ public class AccommodationsIntegrationTests
     }
 
     [Fact]
+    public async Task CreateAccommodation_WithMultiplePhotos_PreservesPhotoOrder()
+    {
+        await using var factory = new TestApiFactory();
+        using var client = factory.CreateClient();
+
+        var auth = await TestAuthClient.RegisterAsync(
+            client,
+            $"host-photos-{Guid.NewGuid():N}@example.com",
+            "Qwerty.123",
+            "Host Photo User",
+            "Host");
+        TestAuthClient.UseBearerToken(client, auth.Token!);
+
+        var dto = BuildCreateDto();
+        dto.PhotoUrls = ["/cover.jpg", "/second.jpg", "/third.jpg"];
+
+        var createResponse = await client.PostAsJsonAsync("/api/accommodations", dto);
+
+        createResponse.EnsureSuccessStatusCode();
+        var created = await createResponse.Content.ReadFromJsonAsync<AccommodationDto>();
+
+        Assert.NotNull(created);
+        Assert.Equal(["/cover.jpg", "/second.jpg", "/third.jpg"], created!.Photos);
+
+        var getResponse = await client.GetAsync($"/api/accommodations/{created.Id}");
+        getResponse.EnsureSuccessStatusCode();
+        var fetched = await getResponse.Content.ReadFromJsonAsync<AccommodationDto>();
+
+        Assert.NotNull(fetched);
+        Assert.Equal(["/cover.jpg", "/second.jpg", "/third.jpg"], fetched!.Photos);
+    }
+
+    [Fact]
     public async Task SearchAccommodations_WithCityCountryLocation_ReturnsMatchingAccommodation()
     {
         await using var factory = new TestApiFactory();
@@ -156,6 +189,43 @@ public class AccommodationsIntegrationTests
         Assert.Contains(searchResult.Items, item =>
             item.City == "Warsaw" &&
             item.Country == "Poland");
+    }
+
+    [Fact]
+    public async Task HomepageEndpoints_WithAccommodationPhotos_ReturnSuccessfulArrays()
+    {
+        await using var factory = new TestApiFactory();
+        using var client = factory.CreateClient();
+
+        var auth = await TestAuthClient.RegisterAsync(
+            client,
+            $"host-homepage-{Guid.NewGuid():N}@example.com",
+            "Qwerty.123",
+            "Host Homepage User",
+            "Host");
+        TestAuthClient.UseBearerToken(client, auth.Token!);
+
+        var dto = BuildCreateDto();
+        dto.PhotoUrls = ["/cover.jpg", "/second.jpg"];
+
+        var createResponse = await client.PostAsJsonAsync("/api/accommodations", dto);
+        createResponse.EnsureSuccessStatusCode();
+
+        client.DefaultRequestHeaders.Authorization = null;
+
+        var highestRatedResponse = await client.GetAsync("/api/accommodations/homepage/highest-rated?count=16");
+        highestRatedResponse.EnsureSuccessStatusCode();
+        var highestRated = await highestRatedResponse.Content.ReadFromJsonAsync<List<AccommodationDto>>();
+
+        Assert.NotNull(highestRated);
+        Assert.IsType<List<AccommodationDto>>(highestRated);
+
+        var mostVisitedResponse = await client.GetAsync("/api/accommodations/homepage/most-visited?count=16&skip=0");
+        mostVisitedResponse.EnsureSuccessStatusCode();
+        var mostVisited = await mostVisitedResponse.Content.ReadFromJsonAsync<List<AccommodationDto>>();
+
+        Assert.NotNull(mostVisited);
+        Assert.Contains(mostVisited!, item => item.Photos.FirstOrDefault() == "/cover.jpg");
     }
 
     private static CreateAccommodationDto BuildCreateDto()

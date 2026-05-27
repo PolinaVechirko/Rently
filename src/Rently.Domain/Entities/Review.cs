@@ -26,8 +26,5 @@ namespace Rently.Domain.Entities
         public DateTime? HostReplyCreatedAt { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
-        public int? ParentReviewId { get; set; }
-        public Review? ParentReview { get; set; }
     }
 }

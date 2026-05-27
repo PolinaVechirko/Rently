@@ -17,6 +17,9 @@ namespace Rently.Domain.Entities
         public int AddressId { get; set; }
         public Address? Address { get; set; }
 
+        public int? CoverPhotoId { get; set; }
+        public Photo? CoverPhoto { get; set; }
+
         [Required]
         public PropertyType PropertyType { get; set; }
 
@@ -24,8 +27,8 @@ namespace Rently.Domain.Entities
         [Column(TypeName = "decimal(18,2)")]
         public decimal PricePerNight { get; set; }
 
-        public int? RoomsCount { get; set; }
-        public int? BedsCount { get; set; }
+        public int RoomsCount { get; set; }
+        public int BedsCount { get; set; }
 
         public string? Description { get; set; }
         public string Title { get; set; } = string.Empty;

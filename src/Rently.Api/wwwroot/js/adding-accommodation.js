@@ -115,8 +115,8 @@ document.addEventListener("DOMContentLoaded", () => {
             data.MaxGuests ||
             1;
         if (bedroomsEl)
-          bedroomsEl.value = data.roomsCount || data.RoomsCount || 1;
-        if (bedsEl) bedsEl.value = data.bedsCount || data.BedsCount || 1;
+          bedroomsEl.value = data.roomsCount ?? data.RoomsCount ?? 0;
+        if (bedsEl) bedsEl.value = data.bedsCount ?? data.BedsCount ?? 0;
         if (titleEl) titleEl.value = data.title || data.Title || "";
         if (descEl) descEl.value = data.description || data.Description || "";
         if (priceEl)
@@ -429,11 +429,11 @@ document.addEventListener("DOMContentLoaded", () => {
       const country = document.getElementById("country").value || "Country";
       const street = document.getElementById("street").value || "Main St";
       const beds = parseInt(
-        document.getElementById("beds-count").value || "1",
+        document.getElementById("beds-count").value || "0",
         10,
       );
       const rooms = parseInt(
-        document.getElementById("bedrooms-count").value || "1",
+        document.getElementById("bedrooms-count").value || "0",
         10,
       );
       const price = parseFloat(

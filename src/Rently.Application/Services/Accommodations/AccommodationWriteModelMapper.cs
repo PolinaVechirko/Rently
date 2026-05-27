@@ -13,8 +13,8 @@ internal static class AccommodationWriteModelMapper
             HostId = hostId,
             PropertyType = dto.PropertyType,
             PricePerNight = dto.PricePerNight,
-            RoomsCount = dto.RoomsCount,
-            BedsCount = dto.BedsCount,
+            RoomsCount = NormalizeCount(dto.RoomsCount),
+            BedsCount = NormalizeCount(dto.BedsCount),
             Description = dto.Description,
             Title = AccommodationMapper.BuildTitle(dto.Title, dto.Description, "Property"),
             IsActive = dto.IsActive,
@@ -34,8 +34,8 @@ internal static class AccommodationWriteModelMapper
     {
         accommodation.PropertyType = dto.PropertyType;
         accommodation.PricePerNight = dto.PricePerNight;
-        accommodation.RoomsCount = dto.RoomsCount;
-        accommodation.BedsCount = dto.BedsCount;
+        accommodation.RoomsCount = NormalizeCount(dto.RoomsCount);
+        accommodation.BedsCount = NormalizeCount(dto.BedsCount);
         accommodation.Description = dto.Description;
         accommodation.Title = BuildUpdatedTitle(dto);
         accommodation.IsActive = dto.IsActive;
@@ -111,10 +111,11 @@ internal static class AccommodationWriteModelMapper
         }
 
         accommodation.Photos = photoUrls
-            .Select(url => new Photo
+            .Select((url, index) => new Photo
             {
                 AccommodationId = accommodationId,
-                Url = url
+                Url = url,
+                SortOrder = index
             })
             .ToList();
     }
@@ -124,5 +125,10 @@ internal static class AccommodationWriteModelMapper
         return string.IsNullOrWhiteSpace(dto.Title)
             ? AccommodationMapper.BuildTitle(null, dto.Description, "Beautiful Property")
             : dto.Title;
+    }
+
+    private static int NormalizeCount(int count)
+    {
+        return Math.Max(0, count);
     }
 }

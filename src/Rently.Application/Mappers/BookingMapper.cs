@@ -21,7 +21,12 @@ internal static class BookingMapper
             AccommodationType = entity.Accommodation?.PropertyType.ToString(),
             AccommodationCountry = entity.Accommodation?.Address?.Country,
             AccommodationCity = entity.Accommodation?.Address?.City,
-            AccommodationPhotoUrl = entity.Accommodation?.Photos?.FirstOrDefault()?.Url,
+            AccommodationPhotoUrl = entity.Accommodation?.Photos?
+                .OrderBy(photo => photo.Id == entity.Accommodation.CoverPhotoId ? 0 : 1)
+                .ThenBy(photo => photo.SortOrder)
+                .ThenBy(photo => photo.Id)
+                .Select(photo => photo.Url)
+                .FirstOrDefault(),
             PricePerNight = entity.Accommodation?.PricePerNight,
             GuestName = guest?.FullName,
             GuestAvatarUrl = guest?.ProfilePhotoUrl

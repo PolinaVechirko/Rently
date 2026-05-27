@@ -176,9 +176,9 @@ document.addEventListener("DOMContentLoaded", () => {
         if (cityEl) cityEl.value = data.city || data.City || "";
         if (countryEl) countryEl.value = data.country || data.Country || "";
         if (streetEl) streetEl.value = data.street || data.Street || "";
-        if (bedsEl) bedsEl.value = data.bedsCount || data.BedsCount || "";
+        if (bedsEl) bedsEl.value = data.bedsCount ?? data.BedsCount ?? 0;
         if (bedroomsEl)
-          bedroomsEl.value = data.roomsCount || data.RoomsCount || "";
+          bedroomsEl.value = data.roomsCount ?? data.RoomsCount ?? 0;
         if (priceEl)
           priceEl.value = data.pricePerNight || data.PricePerNight || "";
 
@@ -431,11 +431,11 @@ document.addEventListener("DOMContentLoaded", () => {
               document.getElementById("price-night")?.value || "0",
             ),
             roomsCount: parseInt(
-              document.getElementById("bedrooms-count")?.value || "1",
+              document.getElementById("bedrooms-count")?.value || "0",
               10,
             ),
             bedsCount: parseInt(
-              document.getElementById("beds-count")?.value || "1",
+              document.getElementById("beds-count")?.value || "0",
               10,
             ),
             description: document.getElementById("listing-desc")?.value || "",

@@ -144,7 +144,12 @@ namespace Rently.Persistence
                     context.Accommodations.Add(acc);
 
                     // Add some related data
-                    for (int p = 0; p < 3; p++) context.Photos.Add(new Photo { Accommodation = acc, Url = allImageFiles[random.Next(allImageFiles.Count)] });
+                    acc.Photos =
+                    [
+                        new Photo { Url = allImageFiles[random.Next(allImageFiles.Count)], SortOrder = 0 },
+                        new Photo { Url = allImageFiles[random.Next(allImageFiles.Count)], SortOrder = 1 },
+                        new Photo { Url = allImageFiles[random.Next(allImageFiles.Count)], SortOrder = 2 }
+                    ];
                     
                     var selectedAmenities = amenities.OrderBy(x => random.Next()).Take(random.Next(5, 10)).ToList();
                     foreach (var am in selectedAmenities) 
@@ -177,6 +182,7 @@ namespace Rently.Persistence
                 }
             }
             await context.SaveChangesAsync();
+            await EnsureAccommodationCoverPhotosAsync(context);
             Console.WriteLine("Seeding complete. Total properties: " + aCount);
             }
             catch (Exception ex)
@@ -185,6 +191,25 @@ namespace Rently.Persistence
                 Console.WriteLine(ex.StackTrace);
                 // Do not rethrow - allow the application to continue running even if seeding fails.
             }
+        }
+
+        private static async Task EnsureAccommodationCoverPhotosAsync(ApplicationDbContext context)
+        {
+            var accommodations = await context.Accommodations
+                .Include(accommodation => accommodation.Photos)
+                .Where(accommodation => accommodation.CoverPhotoId == null)
+                .ToListAsync();
+
+            foreach (var accommodation in accommodations)
+            {
+                accommodation.CoverPhotoId = accommodation.Photos?
+                    .OrderBy(photo => photo.SortOrder)
+                    .ThenBy(photo => photo.Id)
+                    .Select(photo => (int?)photo.Id)
+                    .FirstOrDefault();
+            }
+
+            await context.SaveChangesAsync();
         }
 
         private static async Task EnsureDefaultLoginAccountsAsync(UserManager<ApplicationUser> userManager)

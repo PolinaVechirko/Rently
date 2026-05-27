@@ -8,8 +8,8 @@ internal sealed class HomepageAccommodationRow
     public string HostId { get; init; } = string.Empty;
     public PropertyType PropertyType { get; init; }
     public decimal PricePerNight { get; init; }
-    public int? RoomsCount { get; init; }
-    public int? BedsCount { get; init; }
+    public int RoomsCount { get; init; }
+    public int BedsCount { get; init; }
     public string? Description { get; init; }
     public string Title { get; init; } = string.Empty;
     public DateTime CreatedAt { get; init; }

@@ -17,10 +17,5 @@ internal class ReviewConfiguration : IEntityTypeConfiguration<Review>
             .WithMany(accommodation => accommodation.Reviews)
             .HasForeignKey(review => review.AccommodationId)
             .OnDelete(DeleteBehavior.Cascade);
-
-        builder.HasOne(review => review.ParentReview)
-            .WithMany()
-            .HasForeignKey(review => review.ParentReviewId)
-            .OnDelete(DeleteBehavior.Restrict);
     }
 }

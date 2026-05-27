@@ -152,7 +152,7 @@ internal static class AccommodationQueryFilters
     private static IQueryable<Accommodation> ApplyGuestsFilter(IQueryable<Accommodation> query, int? guests)
     {
         return guests.HasValue && guests.Value > 0
-            ? query.Where(accommodation => (accommodation.BedsCount ?? 0) >= guests.Value)
+            ? query.Where(accommodation => accommodation.BedsCount >= guests.Value)
             : query;
     }
 

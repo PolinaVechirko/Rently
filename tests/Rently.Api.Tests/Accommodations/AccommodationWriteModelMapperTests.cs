@@ -39,6 +39,7 @@ public class AccommodationWriteModelMapperTests
         Assert.Equal("Warsaw", accommodation.Address!.City);
         Assert.Equal(2, accommodation.AccommodationAmenities!.Count);
         Assert.Equal(2, accommodation.Photos!.Count);
+        Assert.Equal([0, 1], accommodation.Photos.Select(photo => photo.SortOrder).ToArray());
     }
 
     [Fact]
@@ -116,6 +117,51 @@ public class AccommodationWriteModelMapperTests
 
         Assert.Equal(60, title.Length);
         Assert.EndsWith("...", title);
+    }
+
+    [Fact]
+    public void Create_NegativeCounts_ClampsThemToZero()
+    {
+        var dto = new CreateAccommodationDto
+        {
+            PropertyType = PropertyType.Apartment,
+            PricePerNight = 180,
+            RoomsCount = -3,
+            BedsCount = -2,
+            Country = "Poland",
+            City = "Warsaw"
+        };
+
+        var accommodation = AccommodationWriteModelMapper.Create("host-1", dto);
+
+        Assert.Equal(0, accommodation.RoomsCount);
+        Assert.Equal(0, accommodation.BedsCount);
+    }
+
+    [Fact]
+    public void ToDto_PrioritizesCoverPhotoBeforeOtherPhotos()
+    {
+        var accommodation = new Accommodation
+        {
+            Id = 30,
+            HostId = "host-30",
+            PropertyType = PropertyType.Apartment,
+            PricePerNight = 120,
+            Title = "Apartment",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            CoverPhotoId = 7,
+            Photos =
+            [
+                new Photo { Id = 5, Url = "/photo-2.jpg", SortOrder = 1 },
+                new Photo { Id = 7, Url = "/photo-cover.jpg", SortOrder = 2 },
+                new Photo { Id = 3, Url = "/photo-1.jpg", SortOrder = 0 }
+            ]
+        };
+
+        var dto = AccommodationMapper.ToDto(accommodation);
+
+        Assert.Equal(["/photo-cover.jpg", "/photo-1.jpg", "/photo-2.jpg"], dto.Photos);
     }
 
     [Fact]

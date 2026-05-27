@@ -30,8 +30,7 @@ public class ReviewService : IReviewService
             .Include(existingReview => existingReview.Accommodation)
             .FirstOrDefaultAsync(existingReview =>
                 existingReview.GuestId == guestId &&
-                existingReview.AccommodationId == dto.AccommodationId &&
-                existingReview.ParentReviewId == null, cancellationToken);
+                existingReview.AccommodationId == dto.AccommodationId, cancellationToken);
 
         if (review == null)
         {

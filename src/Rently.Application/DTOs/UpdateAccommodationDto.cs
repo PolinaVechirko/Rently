@@ -7,8 +7,8 @@ namespace Rently.Application.DTOs
     {
         public PropertyType PropertyType { get; set; }
         public decimal PricePerNight { get; set; }
-        public int? RoomsCount { get; set; }
-        public int? BedsCount { get; set; }
+        public int RoomsCount { get; set; }
+        public int BedsCount { get; set; }
         public string? Description { get; set; }
         [System.Text.Json.Serialization.JsonPropertyName("title")]
         public string Title { get; set; } = string.Empty;

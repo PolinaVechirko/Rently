@@ -11,12 +11,10 @@ public class CreateAccommodationDtoValidator : AbstractValidator<CreateAccommoda
             .GreaterThan(0);
 
         RuleFor(dto => dto.RoomsCount)
-            .GreaterThan(0)
-            .When(dto => dto.RoomsCount.HasValue);
+            .GreaterThanOrEqualTo(0);
 
         RuleFor(dto => dto.BedsCount)
-            .GreaterThan(0)
-            .When(dto => dto.BedsCount.HasValue);
+            .GreaterThanOrEqualTo(0);
 
         RuleFor(dto => dto.Country)
             .NotEmpty()

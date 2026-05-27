@@ -166,6 +166,7 @@ public class AccommodationService : IAccommodationService
         var accommodation = AccommodationWriteModelMapper.Create(hostId, dto);
         _context.Accommodations.Add(accommodation);
         await _context.SaveChangesAsync(cancellationToken);
+        await AssignCoverPhotoAsync(accommodation.Id, cancellationToken);
         ClearHomepageCache();
 
         return await GetAccommodationByIdAsync(accommodation.Id, cancellationToken) ?? AccommodationMapper.ToDto(accommodation);
@@ -264,12 +265,14 @@ public class AccommodationService : IAccommodationService
 
         if (dto.PhotoUrls != null)
         {
+            accommodation.CoverPhotoId = null;
             _context.RemoveRange(accommodation.Photos ?? []);
         }
 
         AccommodationWriteModelMapper.ApplyUpdate(accommodation, dto);
 
         await _context.SaveChangesAsync(cancellationToken);
+        await AssignCoverPhotoAsync(accommodation.Id, cancellationToken);
         ClearHomepageCache();
 
         return await GetAccommodationByIdAsync(id, cancellationToken);
@@ -284,5 +287,26 @@ public class AccommodationService : IAccommodationService
     {
         _cache.Remove(AccommodationHomepageCache.HighestRatedKey(16));
         _cache.Remove(AccommodationHomepageCache.MostVisitedKey(16, 0));
+    }
+
+    private async Task AssignCoverPhotoAsync(int accommodationId, CancellationToken cancellationToken)
+    {
+        var accommodation = await _context.Accommodations
+            .Include(item => item.Photos)
+            .FirstAsync(item => item.Id == accommodationId, cancellationToken);
+
+        var coverPhotoId = accommodation.Photos?
+            .OrderBy(photo => photo.SortOrder)
+            .ThenBy(photo => photo.Id)
+            .Select(photo => (int?)photo.Id)
+            .FirstOrDefault();
+
+        if (accommodation.CoverPhotoId == coverPhotoId)
+        {
+            return;
+        }
+
+        accommodation.CoverPhotoId = coverPhotoId;
+        await _context.SaveChangesAsync(cancellationToken);
     }
 }
