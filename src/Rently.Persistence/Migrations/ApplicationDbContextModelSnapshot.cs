@@ -164,6 +164,7 @@ namespace Rently.Persistence.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Description")
+                        .HasMaxLength(2000)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("HostId")
@@ -185,6 +186,7 @@ namespace Rently.Persistence.Migrations
 
                     b.Property<string>("Title")
                         .IsRequired()
+                        .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("VisibleFrom")
@@ -199,7 +201,12 @@ namespace Rently.Persistence.Migrations
 
                     b.HasIndex("HostId");
 
-                    b.ToTable("Accommodations");
+                    b.ToTable("Accommodations", t =>
+                        {
+                            t.HasCheckConstraint("CK_Accommodations_Description_Length", "\"Description\" IS NULL OR length(\"Description\") <= 2000");
+
+                            t.HasCheckConstraint("CK_Accommodations_Title_Length", "length(\"Title\") <= 100");
+                        });
                 });
 
             modelBuilder.Entity("Rently.Domain.Entities.AccommodationAmenity", b =>
@@ -228,10 +235,12 @@ namespace Rently.Persistence.Migrations
 
                     b.Property<string>("City")
                         .IsRequired()
+                        .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Country")
                         .IsRequired()
+                        .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
                     b.Property<double?>("Latitude")
@@ -248,7 +257,12 @@ namespace Rently.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Addresses");
+                    b.ToTable("Addresses", t =>
+                        {
+                            t.HasCheckConstraint("CK_Addresses_City_Length", "length(\"City\") <= 100");
+
+                            t.HasCheckConstraint("CK_Addresses_Country_Length", "length(\"Country\") <= 100");
+                        });
                 });
 
             modelBuilder.Entity("Rently.Domain.Entities.Amenity", b =>
@@ -386,6 +400,7 @@ namespace Rently.Persistence.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Comment")
+                        .HasMaxLength(1000)
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreatedAt")
@@ -396,6 +411,7 @@ namespace Rently.Persistence.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("HostReply")
+                        .HasMaxLength(1000)
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("HostReplyCreatedAt")
@@ -410,7 +426,12 @@ namespace Rently.Persistence.Migrations
 
                     b.HasIndex("GuestId");
 
-                    b.ToTable("Reviews");
+                    b.ToTable("Reviews", t =>
+                        {
+                            t.HasCheckConstraint("CK_Reviews_Comment_Length", "\"Comment\" IS NULL OR length(\"Comment\") <= 1000");
+
+                            t.HasCheckConstraint("CK_Reviews_HostReply_Length", "\"HostReply\" IS NULL OR length(\"HostReply\") <= 1000");
+                        });
                 });
 
             modelBuilder.Entity("Rently.Persistence.ApplicationUser", b =>
@@ -432,7 +453,7 @@ namespace Rently.Persistence.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Email")
-                        .HasMaxLength(256)
+                        .HasMaxLength(254)
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("EmailConfirmed")
@@ -440,6 +461,7 @@ namespace Rently.Persistence.Migrations
 
                     b.Property<string>("FullName")
                         .IsRequired()
+                        .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("LockoutEnabled")
@@ -449,7 +471,7 @@ namespace Rently.Persistence.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("NormalizedEmail")
-                        .HasMaxLength(256)
+                        .HasMaxLength(254)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("NormalizedUserName")
@@ -494,7 +516,14 @@ namespace Rently.Persistence.Migrations
                     b.HasIndex("PhoneNumber")
                         .IsUnique();
 
-                    b.ToTable("AspNetUsers", (string)null);
+                    b.ToTable("AspNetUsers", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_AspNetUsers_Email_Length", "\"Email\" IS NULL OR length(\"Email\") <= 254");
+
+                            t.HasCheckConstraint("CK_AspNetUsers_FullName_Length", "length(\"FullName\") <= 100");
+
+                            t.HasCheckConstraint("CK_AspNetUsers_NormalizedEmail_Length", "\"NormalizedEmail\" IS NULL OR length(\"NormalizedEmail\") <= 254");
+                        });
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>

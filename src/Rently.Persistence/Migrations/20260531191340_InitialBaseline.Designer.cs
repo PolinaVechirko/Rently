@@ -11,8 +11,8 @@ using Rently.Persistence;
 namespace Rently.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260522203508_MakeCoverPhotoUnique")]
-    partial class MakeCoverPhotoUnique
+    [Migration("20260531191340_InitialBaseline")]
+    partial class InitialBaseline
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Rently.Persistence.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialFinal : Migration
+    public partial class InitialBaseline : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -64,6 +64,7 @@ namespace Rently.Persistence.Migrations
                     Id = table.Column<string>(type: "TEXT", nullable: false),
                     Role = table.Column<string>(type: "TEXT", nullable: false),
                     FullName = table.Column<string>(type: "TEXT", nullable: false),
+                    Bio = table.Column<string>(type: "TEXT", nullable: true),
                     ProfilePhotoUrl = table.Column<string>(type: "TEXT", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
                     UserName = table.Column<string>(type: "TEXT", maxLength: 256, nullable: true),
@@ -105,39 +106,6 @@ namespace Rently.Persistence.Migrations
                         principalTable: "AspNetRoles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Accommodations",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    HostId = table.Column<string>(type: "TEXT", nullable: false),
-                    AddressId = table.Column<int>(type: "INTEGER", nullable: false),
-                    PropertyType = table.Column<string>(type: "TEXT", nullable: false),
-                    PricePerNight = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    RoomsCount = table.Column<int>(type: "INTEGER", nullable: true),
-                    BedsCount = table.Column<int>(type: "INTEGER", nullable: true),
-                    Description = table.Column<string>(type: "TEXT", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    IsActive = table.Column<bool>(type: "INTEGER", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Accommodations", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Accommodations_Addresses_AddressId",
-                        column: x => x.AddressId,
-                        principalTable: "Addresses",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Accommodations_AspNetUsers_HostId",
-                        column: x => x.HostId,
-                        principalTable: "AspNetUsers",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -236,15 +204,68 @@ namespace Rently.Persistence.Migrations
                 {
                     table.PrimaryKey("PK_AccommodationAmenities", x => new { x.AccommodationId, x.AmenityId });
                     table.ForeignKey(
-                        name: "FK_AccommodationAmenities_Accommodations_AccommodationId",
-                        column: x => x.AccommodationId,
-                        principalTable: "Accommodations",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
                         name: "FK_AccommodationAmenities_Amenities_AmenityId",
                         column: x => x.AmenityId,
                         principalTable: "Amenities",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Accommodations",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    HostId = table.Column<string>(type: "TEXT", nullable: false),
+                    AddressId = table.Column<int>(type: "INTEGER", nullable: false),
+                    CoverPhotoId = table.Column<int>(type: "INTEGER", nullable: true),
+                    PropertyType = table.Column<string>(type: "TEXT", nullable: false),
+                    PricePerNight = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    RoomsCount = table.Column<int>(type: "INTEGER", nullable: false),
+                    BedsCount = table.Column<int>(type: "INTEGER", nullable: false),
+                    Description = table.Column<string>(type: "TEXT", nullable: true),
+                    Title = table.Column<string>(type: "TEXT", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    IsActive = table.Column<bool>(type: "INTEGER", nullable: false),
+                    VisibleFrom = table.Column<DateTime>(type: "TEXT", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Accommodations", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Accommodations_Addresses_AddressId",
+                        column: x => x.AddressId,
+                        principalTable: "Addresses",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Accommodations_AspNetUsers_HostId",
+                        column: x => x.HostId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "AvailabilityBlocks",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    AccommodationId = table.Column<int>(type: "INTEGER", nullable: false),
+                    StartDate = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    EndDate = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    Note = table.Column<string>(type: "TEXT", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AvailabilityBlocks", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_AvailabilityBlocks_Accommodations_AccommodationId",
+                        column: x => x.AccommodationId,
+                        principalTable: "Accommodations",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -285,11 +306,12 @@ namespace Rently.Persistence.Migrations
                 {
                     UserId = table.Column<string>(type: "TEXT", nullable: false),
                     AccommodationId = table.Column<int>(type: "INTEGER", nullable: false),
+                    Type = table.Column<int>(type: "INTEGER", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Favorites", x => new { x.UserId, x.AccommodationId });
+                    table.PrimaryKey("PK_Favorites", x => new { x.UserId, x.AccommodationId, x.Type });
                     table.ForeignKey(
                         name: "FK_Favorites_Accommodations_AccommodationId",
                         column: x => x.AccommodationId,
@@ -311,7 +333,8 @@ namespace Rently.Persistence.Migrations
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     AccommodationId = table.Column<int>(type: "INTEGER", nullable: false),
-                    Url = table.Column<string>(type: "TEXT", nullable: false)
+                    Url = table.Column<string>(type: "TEXT", nullable: false),
+                    SortOrder = table.Column<int>(type: "INTEGER", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -334,8 +357,9 @@ namespace Rently.Persistence.Migrations
                     GuestId = table.Column<string>(type: "TEXT", nullable: false),
                     Rating = table.Column<int>(type: "INTEGER", nullable: false),
                     Comment = table.Column<string>(type: "TEXT", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    ParentReviewId = table.Column<int>(type: "INTEGER", nullable: true)
+                    HostReply = table.Column<string>(type: "TEXT", nullable: true),
+                    HostReplyCreatedAt = table.Column<DateTime>(type: "TEXT", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -352,12 +376,6 @@ namespace Rently.Persistence.Migrations
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Reviews_Reviews_ParentReviewId",
-                        column: x => x.ParentReviewId,
-                        principalTable: "Reviews",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateIndex(
@@ -369,6 +387,12 @@ namespace Rently.Persistence.Migrations
                 name: "IX_Accommodations_AddressId",
                 table: "Accommodations",
                 column: "AddressId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Accommodations_CoverPhotoId",
+                table: "Accommodations",
+                column: "CoverPhotoId",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Accommodations_HostId",
@@ -425,6 +449,11 @@ namespace Rently.Persistence.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_AvailabilityBlocks_AccommodationId",
+                table: "AvailabilityBlocks",
+                column: "AccommodationId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Bookings_AccommodationId",
                 table: "Bookings",
                 column: "AccommodationId");
@@ -440,9 +469,9 @@ namespace Rently.Persistence.Migrations
                 column: "AccommodationId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Photos_AccommodationId",
+                name: "IX_Photos_AccommodationId_SortOrder",
                 table: "Photos",
-                column: "AccommodationId");
+                columns: new[] { "AccommodationId", "SortOrder" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_Reviews_AccommodationId",
@@ -454,15 +483,30 @@ namespace Rently.Persistence.Migrations
                 table: "Reviews",
                 column: "GuestId");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_Reviews_ParentReviewId",
-                table: "Reviews",
-                column: "ParentReviewId");
+            migrationBuilder.AddForeignKey(
+                name: "FK_AccommodationAmenities_Accommodations_AccommodationId",
+                table: "AccommodationAmenities",
+                column: "AccommodationId",
+                principalTable: "Accommodations",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Cascade);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_Accommodations_Photos_CoverPhotoId",
+                table: "Accommodations",
+                column: "CoverPhotoId",
+                principalTable: "Photos",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.SetNull);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropForeignKey(
+                name: "FK_Photos_Accommodations_AccommodationId",
+                table: "Photos");
+
             migrationBuilder.DropTable(
                 name: "AccommodationAmenities");
 
@@ -482,13 +526,13 @@ namespace Rently.Persistence.Migrations
                 name: "AspNetUserTokens");
 
             migrationBuilder.DropTable(
+                name: "AvailabilityBlocks");
+
+            migrationBuilder.DropTable(
                 name: "Bookings");
 
             migrationBuilder.DropTable(
                 name: "Favorites");
-
-            migrationBuilder.DropTable(
-                name: "Photos");
 
             migrationBuilder.DropTable(
                 name: "Reviews");
@@ -507,6 +551,9 @@ namespace Rently.Persistence.Migrations
 
             migrationBuilder.DropTable(
                 name: "AspNetUsers");
+
+            migrationBuilder.DropTable(
+                name: "Photos");
         }
     }
 }
