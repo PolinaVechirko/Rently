@@ -16,6 +16,7 @@ namespace Rently.Application.Interfaces
             AccommodationSearchQueryDto query,
             CancellationToken cancellationToken = default);
 
+        Task<IReadOnlyList<AmenityDto>> GetAmenitiesAsync(CancellationToken cancellationToken = default);
         Task<IReadOnlyList<AccommodationDto>> GetHomepageHighestRatedAsync(int count = 16, CancellationToken cancellationToken = default);
         Task<IReadOnlyList<AccommodationDto>> GetHomepageMostVisitedAsync(int count = 16, int skip = 0, CancellationToken cancellationToken = default);
         Task<AccommodationDto?> GetAccommodationByIdAsync(int id, CancellationToken cancellationToken = default);

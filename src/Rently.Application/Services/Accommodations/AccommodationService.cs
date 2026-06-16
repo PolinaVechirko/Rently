@@ -94,6 +94,19 @@ public class AccommodationService : IAccommodationService
         }
     }
 
+    public async Task<IReadOnlyList<AmenityDto>> GetAmenitiesAsync(CancellationToken cancellationToken = default)
+    {
+        return await _context.Amenities
+            .AsNoTracking()
+            .OrderBy(amenity => amenity.Name)
+            .Select(amenity => new AmenityDto
+            {
+                Id = amenity.Id,
+                Name = amenity.Name
+            })
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<AccommodationDto>> GetHomepageHighestRatedAsync(int count = 16, CancellationToken cancellationToken = default)
     {
         count = Math.Clamp(count, 1, 50);
@@ -163,6 +176,7 @@ public class AccommodationService : IAccommodationService
 
     public async Task<AccommodationDto> CreateAccommodationAsync(string hostId, CreateAccommodationDto dto, CancellationToken cancellationToken = default)
     {
+        await EnsureValidAmenitiesAsync(dto.AmenityIds, cancellationToken);
         var accommodation = AccommodationWriteModelMapper.Create(hostId, dto);
         _context.Accommodations.Add(accommodation);
         await _context.SaveChangesAsync(cancellationToken);
@@ -258,6 +272,8 @@ public class AccommodationService : IAccommodationService
             return null;
         }
 
+        await EnsureValidAmenitiesAsync(dto.AmenityIds, cancellationToken);
+
         if (dto.AmenityIds != null)
         {
             _context.RemoveRange(accommodation.AccommodationAmenities ?? []);
@@ -281,6 +297,34 @@ public class AccommodationService : IAccommodationService
     private static int CountGuestFavorites(Accommodation entity)
     {
         return entity.FavoritedBy?.Count(favorite => favorite.Type == FavoriteType.Guest) ?? 0;
+    }
+
+    private async Task EnsureValidAmenitiesAsync(IReadOnlyCollection<int>? amenityIds, CancellationToken cancellationToken)
+    {
+        if (amenityIds == null || amenityIds.Count == 0)
+        {
+            return;
+        }
+
+        var distinctAmenityIds = amenityIds
+            .Where(amenityId => amenityId > 0)
+            .Distinct()
+            .ToList();
+
+        if (distinctAmenityIds.Count != amenityIds.Count)
+        {
+            throw new AppValidationException("Amenity IDs must be unique positive values.");
+        }
+
+        var existingAmenityIds = await _context.Amenities
+            .Where(amenity => distinctAmenityIds.Contains(amenity.Id))
+            .Select(amenity => amenity.Id)
+            .ToListAsync(cancellationToken);
+
+        if (existingAmenityIds.Count != distinctAmenityIds.Count)
+        {
+            throw new AppValidationException("One or more selected amenities no longer exist. Refresh the form and try again.");
+        }
     }
 
     private void ClearHomepageCache()
