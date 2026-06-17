@@ -10,7 +10,6 @@ namespace Rently.Application.DTOs
         public int RoomsCount { get; set; }
         public int BedsCount { get; set; }
         public string? Description { get; set; }
-        [System.Text.Json.Serialization.JsonPropertyName("title")]
         public string Title { get; set; } = string.Empty;
         
         public string Country { get; set; } = string.Empty;
