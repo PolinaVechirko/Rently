@@ -44,8 +44,9 @@ public static class WebApplicationExtensions
             return;
         }
 
-        await db.Database.MigrateAsync();
         await LegacySqliteSchemaRepair.EnsureCompatibilityAsync(db);
+        await LegacySqliteSchemaRepair.EnsureBaselineMigrationRecordedAsync(db);
+        await db.Database.MigrateAsync();
         await SeedData.InitializeAsync(services);
     }
 

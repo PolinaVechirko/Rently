@@ -7,6 +7,9 @@ public class CreateAccommodationDtoValidator : AbstractValidator<CreateAccommoda
 {
     public CreateAccommodationDtoValidator()
     {
+        RuleFor(dto => dto.PropertyType)
+            .IsInEnum();
+
         RuleFor(dto => dto.PricePerNight)
             .GreaterThan(0);
 
@@ -27,5 +30,9 @@ public class CreateAccommodationDtoValidator : AbstractValidator<CreateAccommoda
         RuleForEach(dto => dto.PhotoUrls!)
             .NotEmpty()
             .When(dto => dto.PhotoUrls is { Count: > 0 });
+
+        RuleForEach(dto => dto.AmenityIds!)
+            .GreaterThan(0)
+            .When(dto => dto.AmenityIds is { Count: > 0 });
     }
 }

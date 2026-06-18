@@ -10,6 +10,8 @@ internal static class LegacySqliteSchemaRepair
     private const string SqliteProviderName = "Microsoft.EntityFrameworkCore.Sqlite";
     private const string SchemaFixesTable = "__RentlySchemaFixes";
     private const string LegacyHostFavoritesBackfilledFixId = "LegacyHostFavoritesBackfilled";
+    private const string BaselineMigrationId = "20260531191340_InitialBaseline";
+    private const string EfCoreProductVersion = "8.0.0";
 
     public static async Task EnsureCompatibilityAsync(ApplicationDbContext db)
     {
@@ -38,6 +40,29 @@ internal static class LegacySqliteSchemaRepair
         {
             await EnsureLegacyHostFavoritesBackfilledAsync(db);
         }
+    }
+
+    public static async Task EnsureBaselineMigrationRecordedAsync(ApplicationDbContext db)
+    {
+        if (!IsSqlite(db))
+        {
+            return;
+        }
+
+        if (!await TableExistsAsync(db, "AspNetUsers") || !await TableExistsAsync(db, "Accommodations"))
+        {
+            return;
+        }
+
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE IF NOT EXISTS ""__EFMigrationsHistory"" (
+    ""MigrationId"" TEXT NOT NULL CONSTRAINT ""PK___EFMigrationsHistory"" PRIMARY KEY,
+    ""ProductVersion"" TEXT NOT NULL
+);");
+
+        await db.Database.ExecuteSqlRawAsync($@"
+INSERT OR IGNORE INTO ""__EFMigrationsHistory"" (""MigrationId"", ""ProductVersion"")
+VALUES ('{BaselineMigrationId}', '{EfCoreProductVersion}');");
     }
 
     internal static async Task<bool> RequiresCompatibilityFixesAsync(ApplicationDbContext db)

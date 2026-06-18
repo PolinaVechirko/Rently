@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   const formShared = window.RentlyAccommodationFormShared;
   const authStorage = window.RentlyAuthStorage;
   const redirectToLogin = () => {
@@ -29,7 +29,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const amenitiesList = document.getElementById("amenities-list");
   if (formShared) {
-    formShared.seedAmenitiesList(amenitiesList);
+    try {
+      await formShared.loadAmenitiesCatalog?.(amenitiesList);
+    } catch (error) {
+      console.error("Failed to load amenities catalog:", error);
+    }
   }
 
   const cityInput = document.getElementById("city");
@@ -410,11 +414,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const typeEl = document.getElementById("prop-type");
       const propTypeLabel = formShared?.getPropertyTypeLabel(typeEl) || "Apartment";
       const propType = formShared?.propertyTypeToEnumValue(propTypeLabel) ?? 0;
-      const selectedAmenityNames = formShared
-        ? formShared.collectSelectedAmenityNames()
-        : [];
       const amenityIds = formShared
-        ? formShared.mapAmenityNamesToIds(selectedAmenityNames)
+        ? formShared.collectSelectedAmenityIds()
         : [];
 
       try {

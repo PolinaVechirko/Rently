@@ -20,15 +20,8 @@ namespace Rently.Api.Controllers
         [Authorize(Roles = "Host,Both")]
         public async Task<ActionResult<ImageUploadResultDto>> UploadImage([FromBody] UploadImageRequest request, CancellationToken cancellationToken)
         {
-            try
-            {
-                var result = await _imageService.UploadAccommodationImageAsync(request, cancellationToken);
-                return Ok(result);
-            }
-            catch (InvalidOperationException exception)
-            {
-                return BadRequest(new { message = exception.Message });
-            }
+            var result = await _imageService.UploadAccommodationImageAsync(request, cancellationToken);
+            return Ok(result);
         }
 
         [HttpGet("resize")]

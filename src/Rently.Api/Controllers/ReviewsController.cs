@@ -32,20 +32,8 @@ namespace Rently.Api.Controllers
         public async Task<ActionResult<ReviewDto>> CreateOrUpdate([FromBody] CreateReviewDto dto, CancellationToken cancellationToken)
         {
             var userId = _currentUser.GetRequiredUserId();
-
-            try
-            {
-                var result = await _service.UpsertReviewAsync(userId, dto, cancellationToken);
-                return Ok(result);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                return StatusCode(403, new { message = ex.Message });
-            }
+            var result = await _service.UpsertReviewAsync(userId, dto, cancellationToken);
+            return Ok(result);
         }
 
         [HttpPut("{id}/reply")]
@@ -53,18 +41,10 @@ namespace Rently.Api.Controllers
         public async Task<ActionResult<ReviewReplyResultDto>> Reply(int id, [FromBody] ReviewReplyDto dto, CancellationToken cancellationToken)
         {
             var userId = _currentUser.GetRequiredUserId();
+            var result = await _service.ReplyAsync(userId, id, dto, cancellationToken);
+            if (result == null) return NotFound();
 
-            try
-            {
-                var result = await _service.ReplyAsync(userId, id, dto, cancellationToken);
-                if (result == null) return NotFound();
-
-                return Ok(result);
-            }
-            catch (UnauthorizedAccessException)
-            {
-                return Forbid();
-            }
+            return Ok(result);
         }
     }
 }

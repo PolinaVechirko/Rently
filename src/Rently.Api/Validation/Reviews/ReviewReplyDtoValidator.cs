@@ -9,6 +9,6 @@ public class ReviewReplyDtoValidator : AbstractValidator<ReviewReplyDto>
     {
         RuleFor(dto => dto.Reply)
             .NotEmpty()
-            .MaximumLength(2000);
+            .MaximumLength(1000);
     }
 }

@@ -34,6 +34,13 @@ namespace Rently.Api.Controllers
             return Ok(result);
         }
 
+        [HttpGet("amenities")]
+        public async Task<ActionResult<IReadOnlyList<AmenityDto>>> GetAmenities(CancellationToken cancellationToken)
+        {
+            var result = await _service.GetAmenitiesAsync(cancellationToken);
+            return Ok(result);
+        }
+
         [HttpGet("homepage/highest-rated")]
         [ResponseCache(Duration = 300, Location = ResponseCacheLocation.Any)]
         public async Task<ActionResult<IReadOnlyList<AccommodationDto>>> GetHomepageHighestRated([FromQuery] int count = 16, CancellationToken cancellationToken = default)

@@ -2,28 +2,29 @@
   if (!window) return;
 
   const amenitiesModule = window.RentlyAccommodationFormAmenities || {};
+  let amenityOptions = [];
 
-  const amenitiesCatalog = [
-    "Wi-Fi — интернет",
-    "TV — телевизор",
-    "Kitchen — кухня (важно для длительного жилья)",
-    "Air Conditioning — кондиционер",
-    "Heating — отопление",
-    "Dedicated Workspace — рабочее место",
-    "Washer — стиральная машина",
-    "Free Parking — бесплатная парковка",
-    "Gym — спортзал",
-    "Pets Allowed — можно с животными",
-    "Balcony — балкон или терраса",
-    "Self Check-in — бесконтактное заселение",
-    "Crib — детская кроватка",
-    "Family Friendly — подойдет семьям",
-    "Meal Service — включено питание",
-    "Pool — бассейн (очень популярный фильтр для отдыха)",
-    "Dryer — сушилка для одежды (часто идет в паре с Washer)",
-    "Iron — утюг (базовая вещь для тех, кто приехал по работе)",
-    "Smoke Alarm — датчик дыма (показывает заботу о безопасности, стандарт для Airbnb)",
-    "First Aid Kit — аптечка (также важный пункт в разделе безопасности)",
+  const preferredAmenityOrder = [
+    "Wi-Fi",
+    "TV",
+    "Kitchen",
+    "Air Conditioning",
+    "Heating",
+    "Dedicated Workspace",
+    "Washer",
+    "Free Parking",
+    "Gym",
+    "Pets Allowed",
+    "Balcony",
+    "Self Check-in",
+    "Crib",
+    "Family Friendly",
+    "Meal Service",
+    "Pool",
+    "Dryer",
+    "Iron",
+    "Smoke Alarm",
+    "First Aid Kit",
   ];
 
   const propertyTypeMap = {
@@ -78,46 +79,74 @@
     "First Aid Kit":
       "First Aid Kit — аптечка (также важный пункт в разделе безопасности)",
   };
+  amenitiesModule.propertyTypeMap = propertyTypeMap;
 
-  const amenityIdMap = {
-    TV: 1,
-    Kitchen: 2,
-    Heating: 3,
-    "Dedicated Workspace": 4,
-    Washer: 5,
-    "Pets Allowed": 6,
-    Balcony: 7,
-    "Self Check-in": 8,
-    Crib: 9,
-    Pool: 10,
-    Dryer: 11,
-    Iron: 12,
-    "Smoke Alarm": 13,
-    "First Aid Kit": 14,
-    "Wi-Fi": 15,
-    "Free Parking": 16,
-    "Air Conditioning": 17,
-    Gym: 18,
-    "Meal Service": 19,
+  function getAmenityDisplayLabel(name) {
+    return amenityDisplayNameMap[name] || name;
+  }
+
+  function sortAmenityOptions(options) {
+    const orderMap = preferredAmenityOrder.reduce((map, name, index) => {
+      map[name] = index;
+      return map;
+    }, {});
+
+    return [...options].sort((left, right) => {
+      const leftOrder = orderMap[left.name] ?? Number.MAX_SAFE_INTEGER;
+      const rightOrder = orderMap[right.name] ?? Number.MAX_SAFE_INTEGER;
+      if (leftOrder !== rightOrder) {
+        return leftOrder - rightOrder;
+      }
+
+      return String(left.name || "").localeCompare(String(right.name || ""));
+    });
+  }
+
+  amenitiesModule.fetchAmenitiesCatalog = async function fetchAmenitiesCatalog() {
+    const response = await fetch("/api/Accommodations/amenities");
+    if (!response.ok) {
+      throw new Error("Failed to load amenities catalog.");
+    }
+
+    const payload = await response.json();
+    const options = (Array.isArray(payload) ? payload : [])
+      .map((item) => ({
+        id: item.id ?? item.Id,
+        name: item.name ?? item.Name,
+      }))
+      .filter((item) => Number.isInteger(item.id) && item.id > 0 && item.name);
+
+    amenityOptions = sortAmenityOptions(options);
+    return [...amenityOptions];
   };
 
-  amenitiesModule.amenitiesCatalog = amenitiesCatalog;
-  amenitiesModule.propertyTypeMap = propertyTypeMap;
+  amenitiesModule.loadAmenitiesCatalog = async function loadAmenitiesCatalog(
+    container,
+  ) {
+    const options = await amenitiesModule.fetchAmenitiesCatalog();
+    amenitiesModule.seedAmenitiesList(container, options);
+    return options;
+  };
 
   amenitiesModule.seedAmenitiesList = function seedAmenitiesList(
     container,
-    amenities = amenitiesCatalog,
+    amenities = amenityOptions,
   ) {
     if (!container) return;
 
     container.innerHTML = "";
-    amenities.forEach((item, index) => {
+    (Array.isArray(amenities) ? amenities : []).forEach((item, index) => {
+      const amenity =
+        typeof item === "string"
+          ? { id: index + 1, name: item }
+          : { id: item.id, name: item.name };
+      const displayLabel = getAmenityDisplayLabel(amenity.name);
       const column = document.createElement("div");
       column.className = "col-md-4 mb-2";
       column.innerHTML = `
         <div class="form-check">
-            <input class="form-check-input amenity-checkbox" type="checkbox" value="${item}" id="amenity-${index}">
-            <label class="form-check-label text-muted" for="amenity-${index}">${item}</label>
+            <input class="form-check-input amenity-checkbox" type="checkbox" value="${amenity.name}" data-amenity-id="${amenity.id}" id="amenity-${index}">
+            <label class="form-check-label text-muted" for="amenity-${index}">${displayLabel}</label>
         </div>
       `;
       container.appendChild(column);
@@ -149,7 +178,10 @@
     };
 
   amenitiesModule.getAmenityIdMap = function getAmenityIdMap() {
-    return { ...amenityIdMap };
+    return amenityOptions.reduce((map, amenity) => {
+      map[amenity.name] = amenity.id;
+      return map;
+    }, {});
   };
 
   amenitiesModule.applySelectedAmenities = function applySelectedAmenities(
@@ -159,7 +191,7 @@
     const selectedNames = Array.isArray(amenityNames) ? amenityNames : [];
 
     selectedNames.forEach((name) => {
-      const displayValue = amenityDisplayNameMap[name] || name;
+      const displayValue = name;
       const checkbox = document.querySelector(
         `${selector}[value="${displayValue}"]`,
       );
@@ -178,9 +210,21 @@
       selector = ".amenity-checkbox:checked",
     ) {
       return Array.from(document.querySelectorAll(selector))
-        .map((checkbox) => amenitiesModule.normalizeAmenityName(checkbox.value))
+        .map((checkbox) =>
+          amenitiesModule.normalizeAmenityName(checkbox.value),
+        )
         .filter(Boolean);
     };
+
+  amenitiesModule.collectSelectedAmenityIds = function collectSelectedAmenityIds(
+    selector = ".amenity-checkbox:checked",
+  ) {
+    return Array.from(document.querySelectorAll(selector))
+      .map((checkbox) =>
+        Number.parseInt(checkbox.getAttribute("data-amenity-id") || "", 10),
+      )
+      .filter((id) => Number.isInteger(id) && id > 0);
+  };
 
   amenitiesModule.collectSelectedAmenityValues =
     function collectSelectedAmenityValues(
@@ -193,7 +237,7 @@
 
   amenitiesModule.mapAmenityNamesToIds = function mapAmenityNamesToIds(names) {
     return (Array.isArray(names) ? names : [])
-      .map((name) => amenityIdMap[name])
+      .map((name) => amenitiesModule.getAmenityIdMap()[name])
       .filter(Boolean);
   };
 

@@ -15,6 +15,6 @@ public class CreateReviewDtoValidator : AbstractValidator<CreateReviewDto>
 
         RuleFor(dto => dto.Comment)
             .NotEmpty()
-            .MaximumLength(2000);
+            .MaximumLength(1000);
     }
 }
