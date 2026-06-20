@@ -12,7 +12,6 @@ Rently is an ASP.NET Core 8 application for listing rental accommodations, brows
 - FluentValidation
 - AutoMapper
 - Serilog
-- xUnit for tests
 
 ## Solution structure
 
@@ -27,9 +26,6 @@ Rently is an ASP.NET Core 8 application for listing rental accommodations, brows
 
 - `src/Rently.Persistence`  
   Data access infrastructure: `ApplicationDbContext`, EF Core model configuration, ASP.NET Identity user model, migrations, and development seed data.
-
-- `tests/Rently.Api.Tests`  
-  Unit and integration tests for API behavior, validation, application services, image handling, favorites, bookings, accommodations, and review rules.
 
 ## Architecture notes
 
@@ -151,21 +147,6 @@ This includes pages for:
 - favorites
 - host dashboard
 - adding and editing accommodations
-
-## Tests
-
-Run all tests from the repository root:
-
-```bash
-dotnet test
-```
-
-Testing setup notes:
-
-- integration tests use `WebApplicationFactory<Program>`
-- the test host runs in the `Testing` environment
-- tests replace the production SQLite registration with EF Core InMemory databases
-- in the `Testing` environment, database startup uses `EnsureDeleted`/`EnsureCreated` instead of migrations
 
 ## Persistence layer in this project
 
