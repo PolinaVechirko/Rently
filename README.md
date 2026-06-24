@@ -1,5 +1,19 @@
 # Rently
 
+## Quick start after unpacking the ZIP
+
+After extracting the archive, open a terminal in the project root and run:
+
+```bash
+cd src/Rently.Api/wwwroot
+npm install
+cd ../../..
+dotnet restore
+dotnet run --project src/Rently.Api
+```
+
+This installs frontend dependencies used by some static pages and then starts the application locally.
+
 Rently is my bachelor's project: a web application for publishing, searching, and booking rental accommodations.
 
 The project was built as a full-stack application in the .NET ecosystem and combines:
