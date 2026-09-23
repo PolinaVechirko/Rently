@@ -1,7 +1,6 @@
-namespace Rently.Application.DTOs
+namespace Rently.Application.DTOs;
+
+public class ReviewReplyDto
 {
-    public class ReviewReplyDto
-    {
-        public string Reply { get; set; } = string.Empty;
-    }
+    public string Reply { get; set; } = string.Empty;
 }

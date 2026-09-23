@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Rently.Application.DTOs;
 using Rently.Application.Exceptions;
 using Rently.Application.Interfaces;
+using Rently.Application.Mappers;
 using Rently.Domain.Entities;
 using Rently.Persistence;
 using ApplicationUser = Rently.Persistence.ApplicationUser;
@@ -60,15 +61,7 @@ public class AuthService : IAuthService
         return new AuthResponseDto
         {
             Token = _jwtTokenService.CreateToken(user),
-            User = new UserInfoDto
-            {
-                Id = user.Id,
-                Email = user.Email!,
-                FullName = user.FullName,
-                Bio = user.Bio,
-                Role = user.Role.ToString(),
-                ProfilePhotoUrl = user.ProfilePhotoUrl ?? "/icons/user.svg"
-            }
+            User = UserMapper.ToUserInfoDto(user)
         };
     }
 
@@ -84,7 +77,7 @@ public class AuthService : IAuthService
                 FullName = u.FullName,
                 Role = u.Role.ToString(),
                 PhoneNumber = u.PhoneNumber,
-                ProfilePhotoUrl = u.ProfilePhotoUrl ?? "/icons/user.svg",
+                ProfilePhotoUrl = u.ProfilePhotoUrl ?? UserMapper.DefaultAvatarUrl,
                 Bio = u.Bio
             })
             .FirstOrDefaultAsync(cancellationToken);
@@ -145,16 +138,7 @@ public class AuthService : IAuthService
             throw new AppValidationException(BuildIdentityErrorMessage("Could not update profile", updateResult));
         }
 
-        return new UserInfoDto
-        {
-            Id = user.Id,
-            Email = user.Email!,
-            FullName = user.FullName,
-            Bio = user.Bio,
-            Role = user.Role.ToString(),
-            PhoneNumber = user.PhoneNumber,
-            ProfilePhotoUrl = user.ProfilePhotoUrl
-        };
+        return UserMapper.ToUserInfoDto(user);
     }
 
     private static UserRole ParseUserRole(string role)

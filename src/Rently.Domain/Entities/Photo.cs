@@ -1,19 +1,18 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Rently.Domain.Entities
+namespace Rently.Domain.Entities;
+
+public class Photo
 {
-    public class Photo
-    {
-        [Key]
-        public int Id { get; set; }
+    [Key]
+    public int Id { get; set; }
 
-        [Required]
-        public int AccommodationId { get; set; }
-        public Accommodation? Accommodation { get; set; }
+    [Required]
+    public int AccommodationId { get; set; }
+    public Accommodation? Accommodation { get; set; }
 
-        [Required]
-        public string Url { get; set; } = string.Empty;
+    [Required]
+    public string Url { get; set; } = string.Empty;
 
-        public int SortOrder { get; set; }
-    }
+    public int SortOrder { get; set; }
 }

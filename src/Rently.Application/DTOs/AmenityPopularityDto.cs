@@ -1,8 +1,7 @@
-namespace Rently.Application.DTOs
+namespace Rently.Application.DTOs;
+
+public class AmenityPopularityDto
 {
-    public class AmenityPopularityDto
-    {
-        public string Name { get; set; } = string.Empty;
-        public int BookingCount { get; set; }
-    }
+    public string Name { get; set; } = string.Empty;
+    public int BookingCount { get; set; }
 }

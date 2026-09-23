@@ -4,13 +4,23 @@ using System.Text.Json.Serialization;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using Rently.Api.Abstractions;
 using Rently.Api.Configuration;
+using Rently.Api.Services;
 using Rently.Application.Configuration;
 using Rently.Application.Interfaces;
+using Rently.Application.Services.Accommodations;
+using Rently.Application.Services.Analytics;
+using Rently.Application.Services.Auth;
+using Rently.Application.Services.Availability;
+using Rently.Application.Services.Bookings;
+using Rently.Application.Services.Favorites;
+using Rently.Application.Services.Images;
+using Rently.Application.Services.Reviews;
 using Rently.Persistence;
 
 namespace Rently.Api.Extensions;
@@ -33,25 +43,25 @@ public static class ServiceCollectionExtensions
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
         services.Configure<ImageUploadOptions>(configuration.GetSection(ImageUploadOptions.SectionName));
         services.Configure<CorsOptions>(configuration.GetSection(CorsOptions.SectionName));
-        services.AddIdentity<ApplicationUser, Microsoft.AspNetCore.Identity.IdentityRole>(options =>
+        services.AddIdentity<ApplicationUser, IdentityRole>(options =>
         {
             options.User.RequireUniqueEmail = true;
         })
             .AddEntityFrameworkStores<ApplicationDbContext>();
 
-        services.AddScoped<ICurrentUserService, Rently.Api.Services.CurrentUserService>();
-        services.AddScoped<IJwtTokenService, Rently.Api.Services.JwtTokenService>();
-        services.AddScoped<Rently.Application.Interfaces.IAuthService, Rently.Application.Services.Auth.AuthService>();
-        services.AddScoped<Rently.Application.Interfaces.IAccommodationService, Rently.Application.Services.Accommodations.AccommodationService>();
-        services.AddScoped<Rently.Application.Services.Availability.AvailabilityBlockRulesService>();
-        services.AddScoped<Rently.Application.Interfaces.IAvailabilityBlockService, Rently.Application.Services.Availability.AvailabilityBlockService>();
-        services.AddScoped<Rently.Application.Services.Bookings.BookingAvailabilityService>();
-        services.AddScoped<Rently.Application.Interfaces.IBookingService, Rently.Application.Services.Bookings.BookingService>();
-        services.AddScoped<Rently.Application.Interfaces.IFavoriteService, Rently.Application.Services.Favorites.FavoriteService>();
-        services.AddScoped<Rently.Application.Interfaces.IAnalyticsService, Rently.Application.Services.Analytics.AnalyticsService>();
-        services.AddScoped<Rently.Application.Interfaces.IImageService, Rently.Application.Services.Images.ImageService>();
-        services.AddScoped<Rently.Application.Services.Reviews.ReviewEligibilityService>();
-        services.AddScoped<Rently.Application.Interfaces.IReviewService, Rently.Application.Services.Reviews.ReviewService>();
+        services.AddScoped<ICurrentUserService, CurrentUserService>();
+        services.AddScoped<IJwtTokenService, JwtTokenService>();
+        services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IAccommodationService, AccommodationService>();
+        services.AddScoped<AvailabilityBlockRulesService>();
+        services.AddScoped<IAvailabilityBlockService, AvailabilityBlockService>();
+        services.AddScoped<BookingAvailabilityService>();
+        services.AddScoped<IBookingService, BookingService>();
+        services.AddScoped<IFavoriteService, FavoriteService>();
+        services.AddScoped<IAnalyticsService, AnalyticsService>();
+        services.AddScoped<IImageService, ImageService>();
+        services.AddScoped<ReviewEligibilityService>();
+        services.AddScoped<IReviewService, ReviewService>();
 
         services.AddAuthentication(options =>
         {

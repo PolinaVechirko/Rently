@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Logging;
 using Rently.Application.DTOs;
 using Rently.Application.Exceptions;
 using Rently.Application.Interfaces;
@@ -17,16 +16,11 @@ public class AccommodationService : IAccommodationService
 
     private readonly ApplicationDbContext _context;
     private readonly IMemoryCache _cache;
-    private readonly ILogger<AccommodationService> _logger;
 
-    public AccommodationService(
-        ApplicationDbContext context,
-        IMemoryCache cache,
-        ILogger<AccommodationService> logger)
+    public AccommodationService(ApplicationDbContext context, IMemoryCache cache)
     {
         _context = context;
         _cache = cache;
-        _logger = logger;
     }
 
     public async Task<IEnumerable<AccommodationDto>> GetAllAccommodationsAsync(
@@ -69,29 +63,21 @@ public class AccommodationService : IAccommodationService
 
         var total = await accommodationsQuery.CountAsync(cancellationToken);
 
-        try
-        {
-            var allFilteredItems = await AccommodationQueries.LoadSearchResultsAsync(accommodationsQuery, cancellationToken);
-            var sortedItems = AccommodationSorting.ApplySearchSorting(allFilteredItems, filters.SortBy);
+        var allFilteredItems = await AccommodationQueries.LoadSearchResultsAsync(accommodationsQuery, cancellationToken);
+        var sortedItems = AccommodationSorting.ApplySearchSorting(allFilteredItems, filters.SortBy);
 
-            var items = sortedItems
-                .Skip(filters.Skip)
-                .Take(filters.Limit)
-                .ToList();
+        var items = sortedItems
+            .Skip(filters.Skip)
+            .Take(filters.Limit)
+            .ToList();
 
-            return new PagedResultDto<AccommodationDto>
-            {
-                Items = items.Select(accommodation => AccommodationMapper.ToListDto(accommodation)).ToList(),
-                Total = total,
-                Limit = filters.Limit,
-                Skip = filters.Skip
-            };
-        }
-        catch (Exception ex)
+        return new PagedResultDto<AccommodationDto>
         {
-            _logger.LogError(ex, "Accommodation search failed.");
-            throw;
-        }
+            Items = items.Select(accommodation => AccommodationMapper.ToListDto(accommodation)).ToList(),
+            Total = total,
+            Limit = filters.Limit,
+            Skip = filters.Skip
+        };
     }
 
     public async Task<IReadOnlyList<AmenityDto>> GetAmenitiesAsync(CancellationToken cancellationToken = default)
@@ -169,9 +155,7 @@ public class AccommodationService : IAccommodationService
             .Where(block => block.AccommodationId == id)
             .ToListAsync(cancellationToken);
 
-        var dto = AccommodationMapper.ToDto(accommodation, host, reviewersDict, availabilityBlocks);
-        dto.FavoritesCount = CountGuestFavorites(accommodation);
-        return dto;
+        return AccommodationMapper.ToDto(accommodation, host, reviewersDict, availabilityBlocks);
     }
 
     public async Task<AccommodationDto> CreateAccommodationAsync(string hostId, CreateAccommodationDto dto, CancellationToken cancellationToken = default)
@@ -251,12 +235,7 @@ public class AccommodationService : IAccommodationService
             .OrderByDescending(a => a.CreatedAt)
             .ToListAsync(cancellationToken);
 
-        return accommodations.Select(accommodation =>
-        {
-            var dto = AccommodationMapper.ToDto(accommodation);
-            dto.FavoritesCount = CountGuestFavorites(accommodation);
-            return dto;
-        });
+        return accommodations.Select(accommodation => AccommodationMapper.ToDto(accommodation));
     }
 
     public async Task<AccommodationDto?> UpdateAccommodationAsync(int id, string hostId, UpdateAccommodationDto dto, CancellationToken cancellationToken = default)
@@ -292,11 +271,6 @@ public class AccommodationService : IAccommodationService
         ClearHomepageCache();
 
         return await GetAccommodationByIdAsync(id, cancellationToken);
-    }
-
-    private static int CountGuestFavorites(Accommodation entity)
-    {
-        return entity.FavoritedBy?.Count(favorite => favorite.Type == FavoriteType.Guest) ?? 0;
     }
 
     private async Task EnsureValidAmenitiesAsync(IReadOnlyCollection<int>? amenityIds, CancellationToken cancellationToken)

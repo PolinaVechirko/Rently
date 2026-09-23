@@ -42,7 +42,8 @@ public class AvailabilityBlockService : IAvailabilityBlockService
             return null;
         }
 
-        var (startDate, endDate) = AvailabilityBlockValidation.NormalizeDates(dto.StartDate, dto.EndDate);
+        var startDate = dto.StartDate.Date;
+        var endDate = dto.EndDate.Date;
 
         await _rulesService.EnsureNoConfirmedBookingOverlapAsync(accommodationId, startDate, endDate, cancellationToken);
         await _rulesService.CancelOverlappingPendingBookingsAsync(accommodationId, startDate, endDate, cancellationToken);

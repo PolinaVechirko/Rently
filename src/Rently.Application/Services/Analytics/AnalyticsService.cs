@@ -9,6 +9,9 @@ namespace Rently.Application.Services.Analytics;
 public class AnalyticsService : IAnalyticsService
 {
     private const int DefaultTopAmenitiesCount = 10;
+    private const int DefaultCityStatsCount = 10;
+    private const int MaxCityStatsCount = 50;
+    private static readonly TimeSpan CityStatsCacheDuration = TimeSpan.FromMinutes(5);
 
     private readonly ApplicationDbContext _context;
     private readonly IMemoryCache _cache;
@@ -25,10 +28,10 @@ public class AnalyticsService : IAnalyticsService
         return await AnalyticsQueries.GetTopAmenitiesAsync(_context, thirtyDaysAgo, count, cancellationToken);
     }
 
-    public async Task<IEnumerable<CityStatsDto>> GetCityStatsAsync(int count = DefaultTopAmenitiesCount, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<CityStatsDto>> GetCityStatsAsync(int count = DefaultCityStatsCount, CancellationToken cancellationToken = default)
     {
-        var normalizedCount = AnalyticsCache.NormalizeCityStatsCount(count);
-        var cacheKey = AnalyticsCache.BuildCityStatsCacheKey(normalizedCount);
+        var normalizedCount = Math.Clamp(count, 1, MaxCityStatsCount);
+        var cacheKey = $"analytics:city-stats:v1:{normalizedCount}";
 
         if (_cache.TryGetValue(cacheKey, out List<CityStatsDto>? cached) && cached != null)
         {
@@ -36,7 +39,7 @@ public class AnalyticsService : IAnalyticsService
         }
 
         var stats = await AnalyticsQueries.GetCityStatsAsync(_context, normalizedCount, cancellationToken);
-        AnalyticsCache.CacheCityStats(_cache, cacheKey, stats);
+        _cache.Set(cacheKey, stats, CityStatsCacheDuration);
 
         return stats;
     }

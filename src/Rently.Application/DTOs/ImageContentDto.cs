@@ -1,8 +1,7 @@
-namespace Rently.Application.DTOs
+namespace Rently.Application.DTOs;
+
+public class ImageContentDto
 {
-    public class ImageContentDto
-    {
-        public byte[] Content { get; set; } = [];
-        public string ContentType { get; set; } = "image/jpeg";
-    }
+    public byte[] Content { get; set; } = [];
+    public string ContentType { get; set; } = "image/jpeg";
 }

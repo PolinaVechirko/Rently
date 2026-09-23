@@ -1,7 +1,6 @@
-namespace Rently.Application.DTOs
+namespace Rently.Application.DTOs;
+
+public class UploadImageRequest
 {
-    public class UploadImageRequest
-    {
-        public string DataUrl { get; set; } = string.Empty;
-    }
+    public string DataUrl { get; set; } = string.Empty;
 }

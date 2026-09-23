@@ -5,8 +5,6 @@ namespace Rently.Application.Services.Accommodations;
 
 internal static class AccommodationHomepageMapper
 {
-    private const string DefaultHostAvatarUrl = "/icons/user.svg";
-
     public static List<AccommodationDto> ToDtos(IEnumerable<HomepageAccommodationRow> rows)
     {
         return rows.Select(ToDto).ToList();
@@ -23,7 +21,7 @@ internal static class AccommodationHomepageMapper
             RoomsCount = row.RoomsCount,
             BedsCount = row.BedsCount,
             Description = row.Description,
-            Title = AccommodationMapper.BuildTitle(row.Title, row.Description, "Property"),
+            Title = AccommodationMapper.BuildTitle(row.Title, row.Description, AccommodationMapper.DefaultTitle),
             CreatedAt = row.CreatedAt,
             IsActive = row.IsActive,
             VisibleFrom = row.VisibleFrom,
@@ -38,7 +36,7 @@ internal static class AccommodationHomepageMapper
             NextAvailableDate = DateTime.UtcNow.Date,
             Reviews = null,
             HostName = null,
-            HostAvatarUrl = DefaultHostAvatarUrl,
+            HostAvatarUrl = UserMapper.DefaultAvatarUrl,
             HostCreatedAt = null
         };
     }

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Rently.Application.DTOs;
 using Rently.Application.Interfaces;
+using Rently.Application.Mappers;
 using Rently.Domain.Entities;
 using Rently.Persistence;
 
@@ -27,7 +28,6 @@ public class ReviewService : IReviewService
         await _eligibilityService.EnsureGuestCanReviewAsync(guestId, dto.AccommodationId, cancellationToken);
 
         var review = await _db.Reviews
-            .Include(existingReview => existingReview.Accommodation)
             .FirstOrDefaultAsync(existingReview =>
                 existingReview.GuestId == guestId &&
                 existingReview.AccommodationId == dto.AccommodationId, cancellationToken);
@@ -55,25 +55,9 @@ public class ReviewService : IReviewService
 
         var reviewer = await _db.Users
             .AsNoTracking()
-            .Where(user => user.Id == guestId)
-            .Select(user => new
-            {
-                user.FullName,
-                user.ProfilePhotoUrl
-            })
-            .FirstOrDefaultAsync(cancellationToken);
+            .FirstOrDefaultAsync(user => user.Id == guestId, cancellationToken);
 
-        return new ReviewDto
-        {
-            Id = review.Id,
-            ReviewerName = reviewer?.FullName ?? "Anonymous",
-            ReviewerAvatarUrl = reviewer?.ProfilePhotoUrl ?? "/icons/user.svg",
-            Rating = review.Rating,
-            Comment = review.Comment,
-            HostReply = review.HostReply,
-            HostReplyCreatedAt = review.HostReplyCreatedAt,
-            CreatedAt = review.CreatedAt
-        };
+        return ReviewMapper.ToDto(review, reviewer);
     }
 
     public async Task<ReviewReplyResultDto?> ReplyAsync(string hostId, int reviewId, ReviewReplyDto dto, CancellationToken cancellationToken = default)

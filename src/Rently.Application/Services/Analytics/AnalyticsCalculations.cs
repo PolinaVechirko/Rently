@@ -1,4 +1,5 @@
 using Rently.Application.DTOs;
+using Rently.Application.Mappers;
 using Rently.Domain.Entities;
 using Rently.Persistence;
 
@@ -21,7 +22,7 @@ internal static class AnalyticsCalculations
             PhoneNumber = host.PhoneNumber,
             ProfilePhotoUrl = host.ProfilePhotoUrl,
             AverageRating = CalculateAverageRating(reviews),
-            Earnings = CalculateEarnings(accommodations, now),
+            Earnings = accommodations.Sum(accommodation => EarningsCalculator.ForAccommodation(accommodation, now)),
             ResponseRate = CalculateResponseRate(bookings),
             ReviewsCount = reviews.Count,
             ListingsCount = accommodations.Count,
@@ -57,28 +58,5 @@ internal static class AnalyticsCalculations
 
         var confirmedBookingsCount = bookings.Count(booking => booking.Status == BookingStatus.Confirmed);
         return (double)confirmedBookingsCount / allBookingsCount * 100.0;
-    }
-
-    private static decimal CalculateEarnings(IEnumerable<Accommodation> accommodations, DateTime now)
-    {
-        decimal earnings = 0;
-
-        foreach (var accommodation in accommodations)
-        {
-            var confirmedPastBookings = accommodation.Bookings?
-                .Where(booking => booking.Status == BookingStatus.Confirmed && booking.CheckInDate < now)
-                .ToList() ?? [];
-
-            foreach (var booking in confirmedPastBookings)
-            {
-                var nights = (decimal)(booking.CheckOutDate - booking.CheckInDate).TotalDays;
-                if (nights > 0)
-                {
-                    earnings += nights * accommodation.PricePerNight;
-                }
-            }
-        }
-
-        return earnings;
     }
 }

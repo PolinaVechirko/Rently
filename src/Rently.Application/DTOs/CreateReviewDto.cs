@@ -1,9 +1,8 @@
-namespace Rently.Application.DTOs
+namespace Rently.Application.DTOs;
+
+public class CreateReviewDto
 {
-    public class CreateReviewDto
-    {
-        public int AccommodationId { get; set; }
-        public int Rating { get; set; }
-        public string? Comment { get; set; }
-    }
+    public int AccommodationId { get; set; }
+    public int Rating { get; set; }
+    public string? Comment { get; set; }
 }

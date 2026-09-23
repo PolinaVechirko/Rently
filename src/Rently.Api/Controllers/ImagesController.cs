@@ -3,42 +3,41 @@ using Microsoft.AspNetCore.Authorization;
 using Rently.Application.DTOs;
 using Rently.Application.Interfaces;
 
-namespace Rently.Api.Controllers
+namespace Rently.Api.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class ImagesController : ControllerBase
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    public class ImagesController : ControllerBase
+    private readonly IImageService _imageService;
+
+    public ImagesController(IImageService imageService)
     {
-        private readonly IImageService _imageService;
+        _imageService = imageService;
+    }
 
-        public ImagesController(IImageService imageService)
+    [HttpPost("upload")]
+    [Authorize(Roles = "Host,Both")]
+    public async Task<ActionResult<ImageUploadResultDto>> UploadImage([FromBody] UploadImageRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _imageService.UploadAccommodationImageAsync(request, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpGet("resize")]
+    public async Task<IActionResult> GetResizedImage([FromQuery] string url, [FromQuery] int width, [FromQuery] int? quality, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(url))
         {
-            _imageService = imageService;
+            return BadRequest();
         }
 
-        [HttpPost("upload")]
-        [Authorize(Roles = "Host,Both")]
-        public async Task<ActionResult<ImageUploadResultDto>> UploadImage([FromBody] UploadImageRequest request, CancellationToken cancellationToken)
+        var result = await _imageService.GetResizedImageAsync(url, width, quality, cancellationToken);
+        if (result == null)
         {
-            var result = await _imageService.UploadAccommodationImageAsync(request, cancellationToken);
-            return Ok(result);
+            return NotFound();
         }
 
-        [HttpGet("resize")]
-        public async Task<IActionResult> GetResizedImage([FromQuery] string url, [FromQuery] int width, [FromQuery] int? quality, CancellationToken cancellationToken)
-        {
-            if (string.IsNullOrWhiteSpace(url))
-            {
-                return BadRequest();
-            }
-
-            var result = await _imageService.GetResizedImageAsync(url, width, quality, cancellationToken);
-            if (result == null)
-            {
-                return NotFound();
-            }
-
-            return File(result.Content, result.ContentType);
-        }
+        return File(result.Content, result.ContentType);
     }
 }

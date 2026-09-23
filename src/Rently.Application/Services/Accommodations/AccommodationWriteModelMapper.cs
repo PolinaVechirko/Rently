@@ -16,7 +16,7 @@ internal static class AccommodationWriteModelMapper
             RoomsCount = NormalizeCount(dto.RoomsCount),
             BedsCount = NormalizeCount(dto.BedsCount),
             Description = dto.Description,
-            Title = AccommodationMapper.BuildTitle(dto.Title, dto.Description, "Property"),
+            Title = AccommodationMapper.BuildTitle(dto.Title, dto.Description, AccommodationMapper.DefaultTitle),
             IsActive = dto.IsActive,
             VisibleFrom = dto.VisibleFrom?.Date,
             CreatedAt = DateTime.UtcNow,
@@ -37,7 +37,7 @@ internal static class AccommodationWriteModelMapper
         accommodation.RoomsCount = NormalizeCount(dto.RoomsCount);
         accommodation.BedsCount = NormalizeCount(dto.BedsCount);
         accommodation.Description = dto.Description;
-        accommodation.Title = BuildUpdatedTitle(dto);
+        accommodation.Title = AccommodationMapper.BuildTitle(dto.Title, dto.Description, AccommodationMapper.DefaultTitle);
         accommodation.IsActive = dto.IsActive;
         accommodation.VisibleFrom = dto.VisibleFrom?.Date;
 
@@ -57,18 +57,7 @@ internal static class AccommodationWriteModelMapper
         }
     }
 
-    private static void ApplyAddress(Address address, CreateAccommodationDto dto)
-    {
-        address.Country = dto.Country;
-        address.City = dto.City;
-        address.Street = dto.Street;
-        address.PostalCode = dto.PostalCode;
-        address.BuildingNumber = dto.BuildingNumber;
-        address.Latitude = dto.Latitude;
-        address.Longitude = dto.Longitude;
-    }
-
-    private static void ApplyAddress(Address address, UpdateAccommodationDto dto)
+    private static void ApplyAddress(Address address, AccommodationWriteDto dto)
     {
         address.Country = dto.Country;
         address.City = dto.City;
@@ -76,6 +65,7 @@ internal static class AccommodationWriteModelMapper
         address.PostalCode = dto.PostalCode;
         address.BuildingNumber = dto.BuildingNumber;
 
+        // Coordinates are optional on update: keep the stored ones when the form did not resolve new ones.
         if (dto.Latitude.HasValue)
         {
             address.Latitude = dto.Latitude.Value;
@@ -118,13 +108,6 @@ internal static class AccommodationWriteModelMapper
                 SortOrder = index
             })
             .ToList();
-    }
-
-    private static string BuildUpdatedTitle(UpdateAccommodationDto dto)
-    {
-        return string.IsNullOrWhiteSpace(dto.Title)
-            ? AccommodationMapper.BuildTitle(null, dto.Description, "Beautiful Property")
-            : dto.Title;
     }
 
     private static int NormalizeCount(int count)

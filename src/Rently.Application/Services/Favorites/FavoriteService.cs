@@ -89,7 +89,6 @@ public class FavoriteService : IFavoriteService
             var reviewers = BuildReviewersDictionary(accommodation, usersById);
             var blocks = availabilityBlocksByAccommodationId.GetValueOrDefault(accommodation.Id);
             var accommodationDto = AccommodationMapper.ToDto(accommodation, host, reviewers, blocks);
-            accommodationDto.FavoritesCount = CountGuestFavorites(accommodation);
 
             results.Add(new FavoriteItemDto
             {
@@ -210,11 +209,6 @@ public class FavoriteService : IFavoriteService
         }
 
         return reviewers;
-    }
-
-    private static int CountGuestFavorites(Accommodation accommodation)
-    {
-        return accommodation.FavoritedBy?.Count(favorite => favorite.Type == FavoriteType.Guest) ?? 0;
     }
 
     private static FavoriteType ParseRequiredFavoriteType(string type)

@@ -22,8 +22,8 @@ public class BookingService : IBookingService
 
     public async Task<BookingDto> CreateBookingAsync(string guestId, CreateBookingDto dto, CancellationToken cancellationToken = default)
     {
-        var (normalizedCheckIn, normalizedCheckOut) =
-            BookingValidation.NormalizeDates(dto.CheckInDate, dto.CheckOutDate);
+        var normalizedCheckIn = dto.CheckInDate.Date;
+        var normalizedCheckOut = dto.CheckOutDate.Date;
 
         await _availabilityService.EnsureAccommodationBookableAsync(dto.AccommodationId, cancellationToken);
         await _availabilityService.EnsureAvailableAsync(dto.AccommodationId, normalizedCheckIn, normalizedCheckOut, cancellationToken: cancellationToken);

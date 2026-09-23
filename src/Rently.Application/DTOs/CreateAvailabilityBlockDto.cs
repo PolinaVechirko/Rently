@@ -1,11 +1,8 @@
-using System;
+namespace Rently.Application.DTOs;
 
-namespace Rently.Application.DTOs
+public class CreateAvailabilityBlockDto
 {
-    public class CreateAvailabilityBlockDto
-    {
-        public DateTime StartDate { get; set; }
-        public DateTime EndDate { get; set; }
-        public string? Note { get; set; }
-    }
+    public DateTime StartDate { get; set; }
+    public DateTime EndDate { get; set; }
+    public string? Note { get; set; }
 }
