@@ -9,27 +9,26 @@
 
   function computeStats(selected, bookings) {
     const confirmed = (bookings || []).filter(
-      (booking) => (booking.status || booking.Status) === "Confirmed",
+      (booking) => (booking.status) === "Confirmed",
     );
     const now = new Date();
     const thirtyDaysLater = new Date(now);
     thirtyDaysLater.setDate(now.getDate() + 30);
 
     const futureConfirmed = confirmed.filter(
-      (booking) => new Date(booking.checkInDate || booking.CheckInDate) >= now,
+      (booking) => new Date(booking.checkInDate) >= now,
     );
 
     const alreadyEarned = Number(selected.totalEarnings || 0);
     const pendingEarned = futureConfirmed.reduce((sum, booking) => {
-      const checkIn = new Date(booking.checkInDate || booking.CheckInDate);
-      const checkOut = new Date(booking.checkOutDate || booking.CheckOutDate);
+      const checkIn = new Date(booking.checkInDate);
+      const checkOut = new Date(booking.checkOutDate);
       const nights = Math.max(
         1,
         Math.round((checkOut - checkIn) / (24 * 60 * 60 * 1000)),
       );
       const price = Number(
         booking.pricePerNight ||
-          booking.PricePerNight ||
           selected.pricePerNight ||
           0,
       );
@@ -37,8 +36,8 @@
     }, 0);
 
     const occupiedNights = confirmed.reduce((sum, booking) => {
-      const checkIn = new Date(booking.checkInDate || booking.CheckInDate);
-      const checkOut = new Date(booking.checkOutDate || booking.CheckOutDate);
+      const checkIn = new Date(booking.checkInDate);
+      const checkOut = new Date(booking.checkOutDate);
       if (checkOut < now || checkIn > thirtyDaysLater) return sum;
       const start = checkIn > now ? checkIn : now;
       const end = checkOut < thirtyDaysLater ? checkOut : thirtyDaysLater;

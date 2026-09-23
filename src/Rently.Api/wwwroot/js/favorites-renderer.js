@@ -1,15 +1,6 @@
 (function createFavoritesRenderer(window) {
   const renderHelpers = window.RentlyRenderHelpers || {};
-  const escapeHtml =
-    renderHelpers.escapeHtml ||
-    function fallbackEscapeHtml(value) {
-      return String(value ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#39;");
-    };
+  const escapeHtml = renderHelpers.escapeHtml;
 
   function normalizeAccommodation(item) {
     if (!item || typeof item !== "object") {
@@ -18,20 +9,20 @@
 
     return {
       ...item,
-      id: item.id ?? item.Id ?? "",
-      propertyType: item.propertyType ?? item.PropertyType ?? "Accommodation",
+      id: item.id ?? "",
+      propertyType: item.propertyType ?? "Accommodation",
       photos: Array.isArray(item.photos)
         ? item.photos
         : Array.isArray(item.Photos)
           ? item.Photos
           : [],
-      country: item.country ?? item.Country ?? "",
-      city: item.city ?? item.City ?? "",
-      street: item.street ?? item.Street ?? "",
-      pricePerNight: item.pricePerNight ?? item.PricePerNight ?? 0,
-      averageRating: item.averageRating ?? item.AverageRating ?? 0,
-      reviewsCount: item.reviewsCount ?? item.ReviewsCount ?? 0,
-      description: item.description ?? item.Description ?? "",
+      country: item.country ?? "",
+      city: item.city ?? "",
+      street: item.street ?? "",
+      pricePerNight: item.pricePerNight ?? 0,
+      averageRating: item.averageRating ?? 0,
+      reviewsCount: item.reviewsCount ?? 0,
+      description: item.description ?? "",
     };
   }
 

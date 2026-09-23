@@ -83,8 +83,8 @@
     const payload = await response.json();
     const options = (Array.isArray(payload) ? payload : [])
       .map((item) => ({
-        id: item.id ?? item.Id,
-        name: item.name ?? item.Name,
+        id: item.id,
+        name: item.name,
       }))
       .filter((item) => Number.isInteger(item.id) && item.id > 0 && item.name);
 

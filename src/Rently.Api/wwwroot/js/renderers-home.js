@@ -52,13 +52,13 @@
       console.error("Failed to load city stats:", e);
     }
 
-    const byCity = new Map((stats || []).map((s) => [s.city || s.City, s]));
+    const byCity = new Map((stats || []).map((s) => [s.city, s]));
 
     let html = "";
     citiesOrder.forEach((name) => {
       const s = byCity.get(name) || {};
-      const homes = s.activeHomesCount ?? s.ActiveHomesCount ?? 0;
-      const visitors = s.visitorsCount ?? s.VisitorsCount ?? 0;
+      const homes = s.activeHomesCount ?? 0;
+      const visitors = s.visitorsCount ?? 0;
 
       html += `
             <div class="city-card" style="background-image: url('${cityImages[name]}')">

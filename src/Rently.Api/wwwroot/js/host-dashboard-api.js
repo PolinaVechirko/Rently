@@ -159,16 +159,16 @@
   function buildVisibilityDto(selected, nextIsActive, nextVisibleFrom) {
     return {
       propertyType: propertyTypeToEnumValue(
-        selected.propertyType || selected.PropertyType,
+        selected.propertyType,
       ),
-      pricePerNight: Number(selected.pricePerNight || selected.PricePerNight || 0),
-      roomsCount: Number(selected.roomsCount ?? selected.RoomsCount ?? 0),
-      bedsCount: Number(selected.bedsCount ?? selected.BedsCount ?? 0),
-      description: selected.description || selected.Description || "",
-      title: selected.title || selected.Title || "",
-      country: selected.country || selected.Country || "",
-      city: selected.city || selected.City || "",
-      street: selected.street || selected.Street || "",
+      pricePerNight: Number(selected.pricePerNight || 0),
+      roomsCount: Number(selected.roomsCount ?? 0),
+      bedsCount: Number(selected.bedsCount ?? 0),
+      description: selected.description || "",
+      title: selected.title || "",
+      country: selected.country || "",
+      city: selected.city || "",
+      street: selected.street || "",
       isActive: nextIsActive,
       visibleFrom: nextVisibleFrom,
     };
@@ -196,7 +196,7 @@
   }
 
   async function updateListingVisibility(selected, nextIsActive, nextVisibleFrom) {
-    const accommodationId = selected?.id || selected?.Id;
+    const accommodationId = selected?.id;
     if (!accommodationId) return;
 
     await fetchJson(`/api/Accommodations/${encodeURIComponent(accommodationId)}`, {

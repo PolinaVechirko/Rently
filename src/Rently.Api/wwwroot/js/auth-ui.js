@@ -189,7 +189,7 @@
     }
 
     const photo =
-      user.profilePhotoUrl ?? user.ProfilePhotoUrl ?? user.profilePhotoURL ?? "";
+      user.profilePhotoUrl ?? user.profilePhotoURL ?? "";
     authUi.setAllAvatars(photo);
 
     const name = user.fullName || user.userName || user.email || "";
@@ -269,7 +269,7 @@
   authUi.applyLoggedInHeaderShell = function applyLoggedInHeaderShell() {
     const path = root.location.pathname || "";
     if (/login\.html|signup\.html/i.test(path)) return;
-    if (!root.localStorage?.getItem("auth_token")) return;
+    if (!root.RentlyAuthStorage?.getAuthToken()) return;
 
     const signInBtn = document.getElementById("header-signin-btn");
     const userWrapper = document.getElementById("header-user-wrapper");

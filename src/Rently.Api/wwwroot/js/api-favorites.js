@@ -18,7 +18,7 @@
     if (!client) {
       return root.fetch(`/api/Favorites${cacheBust}`, {
         headers: {
-          Authorization: `Bearer ${root.localStorage?.getItem("auth_token") || ""}`,
+          Authorization: `Bearer ${root.RentlyAuthStorage?.getAuthToken() || ""}`,
           ...(options.cacheBust ? { "Cache-Control": "no-cache" } : {}),
         },
       });
@@ -31,7 +31,7 @@
     if (!client) {
       return root.fetch(`/api/Favorites/${encodeURIComponent(id)}`, {
         headers: {
-          Authorization: `Bearer ${root.localStorage?.getItem("auth_token") || ""}`,
+          Authorization: `Bearer ${root.RentlyAuthStorage?.getAuthToken() || ""}`,
         },
       });
     }
@@ -46,7 +46,7 @@
         {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${root.localStorage?.getItem("auth_token") || ""}`,
+            Authorization: `Bearer ${root.RentlyAuthStorage?.getAuthToken() || ""}`,
           },
         },
       );
@@ -68,7 +68,7 @@
         {
           method: "DELETE",
           headers: {
-            Authorization: `Bearer ${root.localStorage?.getItem("auth_token") || ""}`,
+            Authorization: `Bearer ${root.RentlyAuthStorage?.getAuthToken() || ""}`,
           },
         },
       );

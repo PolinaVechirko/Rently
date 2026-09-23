@@ -2,14 +2,6 @@
  * Authentication orchestration and backward-compatible wrappers.
  */
 
-const RentlyAuthCache = window.RentlyAuthStorage
-  ? window.RentlyAuthStorage.cacheKeys
-  : {
-      user: "rently_host_data",
-      avatar: "rently_host_avatar",
-      avatarThumb: "rently_header_avatar_thumb",
-    };
-
 function resolveAuthInit(isAuthenticated) {
   if (window.RentlyAuthInit) {
     window.RentlyAuthInit.resolveAuthInit(isAuthenticated);
@@ -17,11 +9,7 @@ function resolveAuthInit(isAuthenticated) {
 }
 
 function getCachedAvatarUrl() {
-  return window.RentlyAuthStorage
-    ? window.RentlyAuthStorage.getCachedAvatarUrl()
-    : localStorage.getItem(RentlyAuthCache.avatarThumb) ||
-        localStorage.getItem(RentlyAuthCache.avatar) ||
-        "";
+  return window.RentlyAuthStorage.getCachedAvatarUrl();
 }
 
 function cacheUserSnapshot(user) {

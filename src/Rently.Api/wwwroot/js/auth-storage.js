@@ -28,111 +28,91 @@
     storage.cacheKeys.avatarThumb,
   ]);
 
-  storage.patchScopedAuthStorage = function patchScopedAuthStorage() {
-    const local = root.localStorage;
-    const session = root.sessionStorage;
-    const storageProto = root.Storage && root.Storage.prototype;
-    if (
-      !local ||
-      !session ||
-      !storageProto ||
-      storageProto.__rentlyScopedAuthPatched
-    ) {
-      return;
+  // Sign-in state lives in sessionStorage (per tab); other preferences stay in localStorage.
+  function storageFor(key) {
+    return storage.scopedKeys.has(key) ? root.sessionStorage : root.localStorage;
+  }
+
+  function read(key) {
+    try {
+      return storageFor(key)?.getItem(key) ?? null;
+    } catch {
+      return null;
     }
+  }
 
-    const originalGetItem = storageProto.getItem;
-    const originalSetItem = storageProto.setItem;
-    const originalRemoveItem = storageProto.removeItem;
-
-    for (const key of storage.scopedKeys) {
-      try {
-        originalRemoveItem.call(local, key);
-      } catch {
-        return;
-      }
+  function write(key, value) {
+    try {
+      storageFor(key)?.setItem(key, String(value));
+    } catch {
+      /* storage can be unavailable in private contexts */
     }
+  }
 
-    storageProto.getItem = function getScopedItem(key) {
-      const normalizedKey = String(key);
-      if (this === local && storage.scopedKeys.has(normalizedKey)) {
-        return originalGetItem.call(session, normalizedKey);
+  function remove(key) {
+    try {
+      storageFor(key)?.removeItem(key);
+    } catch {
+      /* storage can be unavailable in private contexts */
+    }
+  }
+
+  // Older versions kept sign-in data in localStorage; drop it so it cannot leak into new tabs.
+  function removeLegacyLocalAuthKeys() {
+    try {
+      for (const key of storage.scopedKeys) {
+        root.localStorage?.removeItem(key);
       }
-      return originalGetItem.call(this, normalizedKey);
-    };
-
-    storageProto.setItem = function setScopedItem(key, value) {
-      const normalizedKey = String(key);
-      const normalizedValue = String(value);
-      if (this === local && storage.scopedKeys.has(normalizedKey)) {
-        originalSetItem.call(session, normalizedKey, normalizedValue);
-        return;
-      }
-      originalSetItem.call(this, normalizedKey, normalizedValue);
-    };
-
-    storageProto.removeItem = function removeScopedItem(key) {
-      const normalizedKey = String(key);
-      if (this === local && storage.scopedKeys.has(normalizedKey)) {
-        originalRemoveItem.call(session, normalizedKey);
-        return;
-      }
-      originalRemoveItem.call(this, normalizedKey);
-    };
-
-    Object.defineProperty(storageProto, "__rentlyScopedAuthPatched", {
-      value: true,
-      configurable: false,
-      enumerable: false,
-      writable: false,
-    });
-  };
+    } catch {
+      /* storage can be unavailable in private contexts */
+    }
+  }
 
   storage.getAuthToken = function getAuthToken() {
-    return root.localStorage?.getItem("auth_token") || "";
+    return read("auth_token") || "";
   };
 
   storage.isLoggedIn = function isLoggedIn() {
     return (
-      root.localStorage?.getItem("isLoggedIn") === "true" ||
+      read("isLoggedIn") === "true" ||
       !!storage.getAuthToken()
     );
   };
 
   storage.setAuthenticated = function setAuthenticated(token) {
     if (token) {
-      root.localStorage?.setItem("auth_token", token);
+      write("auth_token", token);
     }
-    root.localStorage?.setItem("isLoggedIn", "true");
+    write("isLoggedIn", "true");
   };
 
   storage.clearAuthentication = function clearAuthentication() {
-    root.localStorage?.removeItem("auth_token");
-    root.localStorage?.removeItem("isLoggedIn");
+    remove("auth_token");
+    remove("isLoggedIn");
   };
 
   storage.setRedirectAfterAuth = function setRedirectAfterAuth(url) {
     if (!url) return;
-    root.localStorage?.setItem("redirectAfterAuth", String(url));
+    write("redirectAfterAuth", String(url));
   };
 
   storage.getRedirectAfterAuth = function getRedirectAfterAuth() {
-    return root.localStorage?.getItem("redirectAfterAuth") || "";
+    return read("redirectAfterAuth") || "";
   };
 
   storage.clearRedirectAfterAuth = function clearRedirectAfterAuth() {
-    root.localStorage?.removeItem("redirectAfterAuth");
+    remove("redirectAfterAuth");
   };
 
   storage.getRememberedLoginEmail = function getRememberedLoginEmail() {
-    return root.localStorage?.getItem(storage.cacheKeys.rememberedLoginEmail) || "";
+    return read(storage.cacheKeys.rememberedLoginEmail) || "";
   };
 
   storage.setRememberedLoginEmail =
     function setRememberedLoginEmail(email) {
       const normalizedEmail = String(email || "").trim();
       if (!normalizedEmail) return;
-      root.localStorage?.setItem(
+      write(
         storage.cacheKeys.rememberedLoginEmail,
         normalizedEmail,
       );
@@ -140,13 +120,13 @@
 
   storage.clearRememberedLoginEmail =
     function clearRememberedLoginEmail() {
-      root.localStorage?.removeItem(storage.cacheKeys.rememberedLoginEmail);
+      remove(storage.cacheKeys.rememberedLoginEmail);
     };
 
   storage.getStoredUserData = function getStoredUserData() {
     try {
       return JSON.parse(
-        root.localStorage?.getItem(storage.cacheKeys.user) || "{}",
+        read(storage.cacheKeys.user) || "{}",
       );
     } catch {
       return {};
@@ -155,8 +135,8 @@
 
   storage.getCachedAvatarUrl = function getCachedAvatarUrl() {
     return (
-      root.localStorage?.getItem(storage.cacheKeys.avatarThumb) ||
-      root.localStorage?.getItem(storage.cacheKeys.avatar) ||
+      read(storage.cacheKeys.avatarThumb) ||
+      read(storage.cacheKeys.avatar) ||
       ""
     );
   };
@@ -167,31 +147,30 @@
   ) {
     if (!user) return;
 
-    root.localStorage?.setItem(storage.cacheKeys.user, JSON.stringify(user));
+    write(storage.cacheKeys.user, JSON.stringify(user));
 
     const photo =
       user.profilePhotoUrl ??
-      user.ProfilePhotoUrl ??
       user.profilePhotoURL ??
       "";
 
     if (photo) {
-      root.localStorage?.setItem(storage.cacheKeys.avatar, photo);
-      root.localStorage?.setItem(
+      write(storage.cacheKeys.avatar, photo);
+      write(
         storage.cacheKeys.avatarThumb,
         typeof thumbUrlFactory === "function" ? thumbUrlFactory(photo) : photo,
       );
       return;
     }
 
-    root.localStorage?.removeItem(storage.cacheKeys.avatar);
-    root.localStorage?.removeItem(storage.cacheKeys.avatarThumb);
+    remove(storage.cacheKeys.avatar);
+    remove(storage.cacheKeys.avatarThumb);
   };
 
   storage.clearUserSnapshot = function clearUserSnapshot() {
-    root.localStorage?.removeItem(storage.cacheKeys.avatar);
-    root.localStorage?.removeItem(storage.cacheKeys.avatarThumb);
-    root.localStorage?.removeItem(storage.cacheKeys.user);
+    remove(storage.cacheKeys.avatar);
+    remove(storage.cacheKeys.avatarThumb);
+    remove(storage.cacheKeys.user);
   };
 
   profileStorage.getStoredUserData = function getStoredUserData() {
@@ -199,7 +178,7 @@
   };
 
   profileStorage.setStoredUserData = function setStoredUserData(userData) {
-    root.localStorage?.setItem(
+    write(
       storage.cacheKeys.profileDraft,
       JSON.stringify(userData || {}),
     );
@@ -212,7 +191,7 @@
   profileStorage.getStoredProfileDraft = function getStoredProfileDraft() {
     try {
       return JSON.parse(
-        root.localStorage?.getItem(storage.cacheKeys.profileDraft) || "{}",
+        read(storage.cacheKeys.profileDraft) || "{}",
       );
     } catch {
       return {};
@@ -220,39 +199,39 @@
   };
 
   profileStorage.clearStoredProfileDraft = function clearStoredProfileDraft() {
-    root.localStorage?.removeItem(storage.cacheKeys.profileDraft);
+    remove(storage.cacheKeys.profileDraft);
   };
 
   profileStorage.getAvatarUrl = function getAvatarUrl() {
     return (
-      root.localStorage?.getItem("rently_avatar") ||
+      read("rently_avatar") ||
       storage.getCachedAvatarUrl()
     );
   };
 
   profileStorage.setAvatarUrls = function setAvatarUrls(url, thumbUrl = "") {
     if (!url) return;
-    root.localStorage?.setItem("rently_avatar", url);
-    root.localStorage?.setItem(storage.cacheKeys.avatar, url);
-    root.localStorage?.setItem(
+    write("rently_avatar", url);
+    write(storage.cacheKeys.avatar, url);
+    write(
       storage.cacheKeys.avatarThumb,
       thumbUrl || url,
     );
   };
 
   profileStorage.clearAvatarUrls = function clearAvatarUrls() {
-    root.localStorage?.removeItem("rently_avatar");
-    root.localStorage?.removeItem(storage.cacheKeys.avatar);
-    root.localStorage?.removeItem(storage.cacheKeys.avatarThumb);
+    remove("rently_avatar");
+    remove(storage.cacheKeys.avatar);
+    remove(storage.cacheKeys.avatarThumb);
   };
 
   pageState.getSelectedAccommodationId = function getSelectedAccommodationId() {
-    return root.localStorage?.getItem(pageState.keys.selectedAccommodationId) || "";
+    return read(pageState.keys.selectedAccommodationId) || "";
   };
 
   pageState.setSelectedAccommodationId = function setSelectedAccommodationId(id) {
     if (id === null || id === undefined || id === "") return;
-    root.localStorage?.setItem(
+    write(
       pageState.keys.selectedAccommodationId,
       String(id),
     );
@@ -260,12 +239,12 @@
 
   pageState.clearSelectedAccommodationId =
     function clearSelectedAccommodationId() {
-      root.localStorage?.removeItem(pageState.keys.selectedAccommodationId);
+      remove(pageState.keys.selectedAccommodationId);
     };
 
   pageState.setFavoritesChanged = function setFavoritesChanged(payload) {
     if (!payload) return;
-    root.localStorage?.setItem(
+    write(
       pageState.keys.favoritesChanged,
       JSON.stringify(payload),
     );
@@ -274,7 +253,7 @@
   pageState.getFavoritesChanged = function getFavoritesChanged() {
     try {
       return JSON.parse(
-        root.localStorage?.getItem(pageState.keys.favoritesChanged) || "null",
+        read(pageState.keys.favoritesChanged) || "null",
       );
     } catch {
       return null;
@@ -282,10 +261,10 @@
   };
 
   pageState.clearFavoritesChanged = function clearFavoritesChanged() {
-    root.localStorage?.removeItem(pageState.keys.favoritesChanged);
+    remove(pageState.keys.favoritesChanged);
   };
 
-  storage.patchScopedAuthStorage();
+  removeLegacyLocalAuthKeys();
   root.RentlyAuthStorage = storage;
   root.RentlyProfileStorage = profileStorage;
   root.RentlyPageStateStorage = pageState;

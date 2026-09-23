@@ -176,7 +176,6 @@
         profilePhotoUrl:
           cachedHostAvatar ||
           cachedHostData.profilePhotoUrl ||
-          cachedHostData.ProfilePhotoUrl ||
           root.RentlyAuthUi?.rootStaticUrl("icons/user.svg") ||
           "/icons/user.svg",
         fullName: cachedHostData.fullName || cachedHostData.name || "",

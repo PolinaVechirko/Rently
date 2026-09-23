@@ -69,7 +69,7 @@
 
       return data.some(
         (item) =>
-          String(item?.id ?? item?.Id ?? "") === String(accommodationId),
+          String(item?.id ?? "") === String(accommodationId),
       );
     } catch {
       return false;

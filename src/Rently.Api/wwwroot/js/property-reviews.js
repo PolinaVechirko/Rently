@@ -23,7 +23,6 @@
         const avatar = avatarUtils.resolveAvatarUrl(
           review.reviewerAvatarUrl ||
             review.profilePhotoUrl ||
-            review.ProfilePhotoUrl ||
             review.reviewerPhotoUrl ||
             review.userAvatarUrl,
           assetBase,
@@ -31,8 +30,7 @@
         const hostAvatar = avatarUtils.resolveAvatarUrl(
           property.hostAvatarUrl ||
             property.hostPhoto ||
-            property.profilePhotoUrl ||
-            property.ProfilePhotoUrl,
+            property.profilePhotoUrl,
           assetBase,
         );
         const reviewId = `review-avatar-${index}`;

@@ -1,14 +1,5 @@
 (function createSearchLocationAutocomplete(window) {
-  const escapeHtml =
-    window.RentlyRenderHelpers?.escapeHtml ||
-    function fallbackEscapeHtml(value) {
-      return String(value ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#39;");
-    };
+  const escapeHtml = window.RentlyRenderHelpers.escapeHtml;
 
   function normalizeLocationLabel(result) {
     const address = result?.address || {};

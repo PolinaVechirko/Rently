@@ -4,7 +4,7 @@
   const api = root.RentlyApi || {};
 
   api.getAuthToken = function getAuthToken() {
-    return root.localStorage?.getItem("auth_token") || "";
+    return root.RentlyAuthStorage?.getAuthToken() || "";
   };
 
   api.createAuthHeaders = function createAuthHeaders(headers = {}) {

@@ -115,7 +115,7 @@
     today.setHours(0, 0, 0, 0);
 
     const isActive = item.isActive === true;
-    const visibleFrom = parseLocalDate(item.visibleFrom || item.VisibleFrom);
+    const visibleFrom = parseLocalDate(item.visibleFrom);
     const isUpcoming = isActive && visibleFrom && visibleFrom > today;
 
     if (!isActive) return { key: "hidden", label: "Hidden" };

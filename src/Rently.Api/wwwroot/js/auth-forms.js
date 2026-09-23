@@ -123,19 +123,14 @@
 
         const data = await response.json();
         const token =
-          data?.token ?? data?.Token ?? data?.accessToken ?? data?.AccessToken;
+          data?.token ?? data?.accessToken;
         if (!token) {
           throw new Error(
             "Login succeeded, but the server did not return a token.",
           );
         }
 
-        if (root.RentlyAuthStorage) {
-          root.RentlyAuthStorage.setAuthenticated(token);
-        } else {
-          root.localStorage?.setItem("auth_token", token);
-          root.localStorage?.setItem("isLoggedIn", "true");
-        }
+        root.RentlyAuthStorage.setAuthenticated(token);
 
         cacheUserSnapshot(data.user);
 
@@ -212,12 +207,7 @@
         }
 
         const data = await response.json();
-        if (root.RentlyAuthStorage) {
-          root.RentlyAuthStorage.setAuthenticated(data.token);
-        } else {
-          root.localStorage?.setItem("auth_token", data.token);
-          root.localStorage?.setItem("isLoggedIn", "true");
-        }
+        root.RentlyAuthStorage.setAuthenticated(data.token);
 
         cacheUserSnapshot(data.user);
 

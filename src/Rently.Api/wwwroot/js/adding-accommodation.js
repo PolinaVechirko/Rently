@@ -85,7 +85,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         return (
           items.find(
             (item) =>
-              String(item?.id ?? item?.Id ?? "") === String(editAccommodationId),
+              String(item?.id ?? "") === String(editAccommodationId),
           ) || null
         );
       })
@@ -106,27 +106,25 @@ document.addEventListener("DOMContentLoaded", async () => {
         const descEl = document.getElementById("listing-desc");
         const priceEl = document.getElementById("price-night");
 
-        if (typeEl && (data.propertyType || data.PropertyType))
-          typeEl.value = data.propertyType || data.PropertyType;
-        if (countryEl) countryEl.value = data.country || data.Country || "";
-        if (cityEl) cityEl.value = data.city || data.City || "";
-        if (streetEl) streetEl.value = data.street || data.Street || "";
+        if (typeEl && (data.propertyType))
+          typeEl.value = data.propertyType;
+        if (countryEl) countryEl.value = data.country || "";
+        if (cityEl) cityEl.value = data.city || "";
+        if (streetEl) streetEl.value = data.street || "";
         if (guestsEl)
           guestsEl.value =
             data.guestsCount ||
-            data.GuestsCount ||
             data.maxGuests ||
-            data.MaxGuests ||
             1;
         if (bedroomsEl)
-          bedroomsEl.value = data.roomsCount ?? data.RoomsCount ?? 0;
-        if (bedsEl) bedsEl.value = data.bedsCount ?? data.BedsCount ?? 0;
-        if (titleEl) titleEl.value = data.title || data.Title || "";
-        if (descEl) descEl.value = data.description || data.Description || "";
+          bedroomsEl.value = data.roomsCount ?? 0;
+        if (bedsEl) bedsEl.value = data.bedsCount ?? 0;
+        if (titleEl) titleEl.value = data.title || "";
+        if (descEl) descEl.value = data.description || "";
         if (priceEl)
-          priceEl.value = data.pricePerNight || data.PricePerNight || 0;
+          priceEl.value = data.pricePerNight || 0;
 
-        const amenities = data.amenities || data.Amenities || [];
+        const amenities = data.amenities || [];
         if (amenities.length > 0) {
           setTimeout(() => {
             if (formShared?.applySelectedAmenities) {

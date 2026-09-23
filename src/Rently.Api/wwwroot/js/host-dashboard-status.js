@@ -3,19 +3,19 @@
   const listingHideCalendarHeadingText = "Hide from guests from today until this date";
 
   function getListingState(selected, bookings = []) {
-    const isActive = (selected?.isActive ?? selected?.IsActive ?? false) === true;
-    const visibleFromRaw = selected?.visibleFrom ?? selected?.VisibleFrom ?? "";
+    const isActive = (selected?.isActive ?? false) === true;
+    const visibleFromRaw = selected?.visibleFrom ?? "";
     const visibleFrom = api.parseDateOnlyAsLocal(visibleFromRaw);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     const activeBooking = (Array.isArray(bookings) ? bookings : []).find((booking) => {
-      const status = String(booking.status || booking.Status || "").toLowerCase();
+      const status = String(booking.status || "").toLowerCase();
       const checkIn = api.parseDateOnlyAsLocal(
-        booking.checkInDate || booking.CheckInDate,
+        booking.checkInDate,
       );
       const checkOut = api.parseDateOnlyAsLocal(
-        booking.checkOutDate || booking.CheckOutDate,
+        booking.checkOutDate,
       );
       if (status !== "confirmed" || !checkIn || !checkOut) return false;
       return checkIn <= today && checkOut >= today;
@@ -48,7 +48,7 @@
     const rentedUntil = activeBooking
       ? ` It is currently rented until ${api.dateFormatter.format(
           api.parseDateOnlyAsLocal(
-            activeBooking.checkOutDate || activeBooking.CheckOutDate,
+            activeBooking.checkOutDate,
           ),
         )}.`
       : "";
@@ -68,7 +68,7 @@
     if (!photo) return "";
     if (typeof photo === "string") return photo;
     if (typeof photo === "object") {
-      return photo.url || photo.Url || "";
+      return photo.url || "";
     }
 
     return "";
@@ -97,10 +97,10 @@
         ? selected.Photos
         : [];
     const propertyType =
-      selected?.propertyType || selected?.PropertyType || "Property";
-    const city = selected?.city || selected?.City || "";
-    const country = selected?.country || selected?.Country || "";
-    const title = selected.title || selected.Title || "Beautiful Property";
+      selected?.propertyType || "Property";
+    const city = selected?.city || "";
+    const country = selected?.country || "";
+    const title = selected.title || "Beautiful Property";
 
     api.setText("dashboard-property-title", title);
 
@@ -128,7 +128,7 @@
 
     api.setText(
       "dashboard-saved-count",
-      String(selected.favoritesCount ?? selected.FavoritesCount ?? 0),
+      String(selected.favoritesCount ?? 0),
     );
     api.setText(
       "dashboard-property-status-note",

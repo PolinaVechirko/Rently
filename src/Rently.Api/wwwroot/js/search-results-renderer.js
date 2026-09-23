@@ -1,15 +1,6 @@
 (function createSearchResultsRenderer(window) {
   const renderHelpers = window.RentlyRenderHelpers || {};
-  const escapeHtml =
-    renderHelpers.escapeHtml ||
-    function fallbackEscapeHtml(value) {
-      return String(value ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#39;");
-    };
+  const escapeHtml = renderHelpers.escapeHtml;
 
   async function renderSearchResultsRows(containerId, rowsCount = 8, cardsPerRow = 6) {
     const container = document.getElementById(containerId);
@@ -56,8 +47,8 @@
 
       const response = await fetch(apiUrl);
       const payload = await response.json();
-      const data = payload.items || payload.Items || [];
-      const total = payload.total ?? payload.Total ?? 0;
+      const data = payload.items || [];
+      const total = payload.total ?? 0;
 
       if (!data || data.length === 0) {
         container.innerHTML = `
@@ -128,7 +119,7 @@
           const favoriteIconSrc = renderHelpers.getFavoriteIconSrc
             ? renderHelpers.getFavoriteIconSrc(isFavorite)
             : `${assetBase}icons/${isFavorite ? "favorite-filled" : "favorite"}.svg`;
-          const propertyId = escapeHtml(item.id || item.Id || "");
+          const propertyId = escapeHtml(item.id || "");
           const altText = escapeHtml(item.propertyType || "Accommodation");
           const propertyType = escapeHtml(item.propertyType || "Accommodation");
           const safeLocation = escapeHtml(loc);

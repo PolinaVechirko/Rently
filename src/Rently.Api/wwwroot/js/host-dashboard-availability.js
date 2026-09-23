@@ -8,13 +8,13 @@
     today.setHours(0, 0, 0, 0);
 
     const bookingRanges = (Array.isArray(bookings) ? bookings : [])
-      .filter((booking) => (booking.status || booking.Status) === "Confirmed")
+      .filter((booking) => (booking.status) === "Confirmed")
       .map((booking) => {
         const from = api.parseDateOnlyAsLocal(
-          booking.checkInDate || booking.CheckInDate,
+          booking.checkInDate,
         );
         const to = api.parseDateOnlyAsLocal(
-          booking.checkOutDate || booking.CheckOutDate,
+          booking.checkOutDate,
         );
         if (!from || !to || to < today) return null;
         return { from, to };
@@ -23,8 +23,8 @@
 
     const blockRanges = (Array.isArray(blocks) ? blocks : [])
       .map((block) => {
-        const from = api.parseDateOnlyAsLocal(block.startDate || block.StartDate);
-        const to = api.parseDateOnlyAsLocal(block.endDate || block.EndDate);
+        const from = api.parseDateOnlyAsLocal(block.startDate);
+        const to = api.parseDateOnlyAsLocal(block.endDate);
         if (!from || !to || to < today) return null;
         return { from, to };
       })
@@ -44,10 +44,10 @@
 
     container.innerHTML = blocks
       .map((block) => {
-        const blockId = block.id || block.Id;
-        const start = block.startDate || block.StartDate;
-        const end = block.endDate || block.EndDate;
-        const note = block.note || block.Note || "";
+        const blockId = block.id;
+        const start = block.startDate;
+        const end = block.endDate;
+        const note = block.note || "";
         const startDate = api.parseDateOnlyAsLocal(start);
         const endDate = api.parseDateOnlyAsLocal(end);
         const formattedStart = startDate ? api.dateFormatter.format(startDate) : start;

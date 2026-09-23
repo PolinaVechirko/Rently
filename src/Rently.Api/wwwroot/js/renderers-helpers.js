@@ -106,9 +106,9 @@
         })
         .map((fav) => {
           if (fav.accommodation) {
-            return fav.accommodation.id ?? fav.accommodation.Id;
+            return fav.accommodation.id;
           }
-          return fav.id ?? fav.Id;
+          return fav.id;
         })
         .filter((value) => value !== null && value !== undefined);
     } catch (error) {
@@ -202,11 +202,8 @@
 
     return String(
       photo.url ||
-        photo.Url ||
         photo.src ||
-        photo.Src ||
         photo.path ||
-        photo.Path ||
         "",
     ).trim();
   };
@@ -246,10 +243,10 @@
     const fallbackCountry = options.fallbackCountry ?? "";
     const fallbackCity = options.fallbackCity ?? "";
     const country = typeof locationSource === "object" && locationSource
-      ? locationSource.country || locationSource.Country || fallbackCountry
+      ? locationSource.country || fallbackCountry
       : locationSource || fallbackCountry;
     const city = typeof locationSource === "object" && locationSource
-      ? locationSource.city || locationSource.City || fallbackCity
+      ? locationSource.city || fallbackCity
       : options.city || fallbackCity;
 
     return [country, city].map((value) => String(value || "").trim()).join(", ");

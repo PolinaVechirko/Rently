@@ -660,7 +660,7 @@
         const favoriteBtn = document.querySelector(".favorite-btn");
         if (favoriteBtn) {
           const propertyId = new URLSearchParams(window.location.search).get("id");
-          const token = localStorage.getItem("auth_token");
+          const token = window.RentlyAuthStorage.getAuthToken();
           const heartIcon = favoriteBtn.querySelector("img");
 
           const setFavoriteState = (isActive) => {
@@ -747,9 +747,8 @@
             e.preventDefault();
             e.stopPropagation();
             
-            const isLoggedIn = localStorage.getItem("isLoggedIn") === "true" || !!localStorage.getItem("auth_token");
-            if (!isLoggedIn) {
-              localStorage.setItem("redirectAfterAuth", window.location.href);
+            if (!window.RentlyAuthStorage.isLoggedIn()) {
+              window.RentlyAuthStorage.setRedirectAfterAuth(window.location.href);
               window.location.href = "../login.html";
               return;
             }

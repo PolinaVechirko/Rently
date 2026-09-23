@@ -31,16 +31,16 @@
 
     return {
       ...property,
-      id: property.id ?? property.Id ?? "",
-      title: property.title ?? property.Title ?? property.propertyType ?? property.PropertyType ?? "Accommodation",
-      propertyType: property.propertyType ?? property.PropertyType ?? "Accommodation",
-      country: property.country ?? property.Country ?? "",
-      city: property.city ?? property.City ?? "",
-      street: property.street ?? property.Street ?? "",
-      pricePerNight: property.pricePerNight ?? property.PricePerNight ?? 0,
-      description: property.description ?? property.Description ?? "",
-      averageRating: property.averageRating ?? property.AverageRating ?? 0,
-      reviewsCount: property.reviewsCount ?? property.ReviewsCount ?? 0,
+      id: property.id ?? "",
+      title: property.title ?? property.propertyType ?? "Accommodation",
+      propertyType: property.propertyType ?? "Accommodation",
+      country: property.country ?? "",
+      city: property.city ?? "",
+      street: property.street ?? "",
+      pricePerNight: property.pricePerNight ?? 0,
+      description: property.description ?? "",
+      averageRating: property.averageRating ?? 0,
+      reviewsCount: property.reviewsCount ?? 0,
       amenities: Array.isArray(property.amenities)
         ? property.amenities
         : Array.isArray(property.Amenities)
@@ -56,10 +56,10 @@
         : Array.isArray(property.Reviews)
           ? property.Reviews
           : [],
-      hostName: property.hostName ?? property.HostName ?? "Host",
-      hostAvatarUrl: property.hostAvatarUrl ?? property.HostAvatarUrl ?? property.hostPhoto ?? property.HostPhoto ?? property.profilePhotoUrl ?? property.ProfilePhotoUrl ?? "",
-      hostCreatedAt: property.hostCreatedAt ?? property.HostCreatedAt ?? "",
-      hostEmail: property.hostEmail ?? property.HostEmail ?? "",
+      hostName: property.hostName ?? "Host",
+      hostAvatarUrl: property.hostAvatarUrl ?? property.hostPhoto ?? property.profilePhotoUrl ?? "",
+      hostCreatedAt: property.hostCreatedAt ?? "",
+      hostEmail: property.hostEmail ?? "",
       unavailableDateRanges: Array.isArray(property.unavailableDateRanges)
         ? property.unavailableDateRanges
         : Array.isArray(property.UnavailableDateRanges)
@@ -245,8 +245,7 @@
       const avatar = avatarUtils.resolveAvatarUrl(
         property.hostAvatarUrl ||
           property.hostPhoto ||
-          property.profilePhotoUrl ||
-          property.ProfilePhotoUrl,
+          property.profilePhotoUrl,
         assetBase,
       );
       image.src = avatar.src;

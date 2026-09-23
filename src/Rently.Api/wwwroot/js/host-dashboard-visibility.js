@@ -9,7 +9,7 @@
     guestButton.disabled = !listingState.guestViewEnabled;
     guestButton.onclick = () => {
       if (!listingState.guestViewEnabled) return;
-      window.location.href = `../property.html?id=${selected.id || selected.Id}`;
+      window.location.href = `../property.html?id=${selected.id}`;
     };
   }
 
@@ -18,7 +18,7 @@
     if (!editButton) return;
 
     editButton.onclick = () => {
-      window.location.href = `../adding-accommodation.html?id=${selected.id || selected.Id}`;
+      window.location.href = `../adding-accommodation.html?id=${selected.id}`;
     };
   }
 
@@ -34,16 +34,16 @@
     hiddenEnd.setHours(0, 0, 0, 0);
 
     return (Array.isArray(bookings) ? bookings : []).some((booking) => {
-      const status = String(booking.status || booking.Status || "").toLowerCase();
+      const status = String(booking.status || "").toLowerCase();
       if (status !== "confirmed") {
         return false;
       }
 
       const checkIn = api.parseDateOnlyAsLocal(
-        booking.checkInDate || booking.CheckInDate,
+        booking.checkInDate,
       );
       const checkOut = api.parseDateOnlyAsLocal(
-        booking.checkOutDate || booking.CheckOutDate,
+        booking.checkOutDate,
       );
       if (!checkIn || !checkOut) {
         return false;

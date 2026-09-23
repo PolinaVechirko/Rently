@@ -2,16 +2,7 @@
  * Inspiration mode for host - similar to search-logic but for host mode
  */
 
-const escapeHtml =
-  window.RentlyRenderHelpers?.escapeHtml ||
-  function fallbackEscapeHtml(value) {
-    return String(value ?? "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;");
-  };
+const escapeHtml = window.RentlyRenderHelpers.escapeHtml;
 
 function initInspirationMode() {
   const resultsContainer = document.getElementById("search-results-container");
@@ -135,11 +126,7 @@ async function getSafeFavoriteIds() {
 }
 
 function isUserLoggedIn() {
-  return (
-    window.RentlyAuthStorage?.isLoggedIn?.() ||
-    localStorage.getItem("isLoggedIn") === "true" ||
-    !!localStorage.getItem("auth_token")
-  );
+  return window.RentlyAuthStorage.isLoggedIn();
 }
 
 async function renderInspirationResultsRows(
@@ -182,8 +169,8 @@ async function renderInspirationResultsRows(
 
     const response = await fetch(apiUrl);
     const payload = await response.json();
-    const data = payload.items || payload.Items || [];
-    const total = payload.total ?? payload.Total ?? 0;
+    const data = payload.items || [];
+    const total = payload.total ?? 0;
 
     if (!data || data.length === 0) {
       container.innerHTML = `
@@ -243,7 +230,7 @@ async function renderInspirationResultsRows(
 
         // Check if this property is in favorites
         const isFavorite = favoriteIds.includes(item.id);
-        const propertyId = escapeHtml(item.id || item.Id || "");
+        const propertyId = escapeHtml(item.id || "");
         const safeTitle = escapeHtml(title);
         const safeHousingType = escapeHtml(housingType || "Property");
         const safeLocation = escapeHtml(loc);

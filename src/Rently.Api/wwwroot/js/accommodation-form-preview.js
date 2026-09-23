@@ -141,9 +141,8 @@
 
   preview.populatePreviewHostInfoFromStorage =
     function populatePreviewHostInfoFromStorage() {
-      const savedData = JSON.parse(
-        localStorage.getItem("rently_host_data") || "{}",
-      );
+      const authStorage = window.RentlyAuthStorage;
+      const savedData = authStorage.getStoredUserData();
       const hostName =
         savedData.fullName ||
         savedData.name ||
@@ -151,10 +150,7 @@
         savedData.email ||
         "Host";
       const hostLabel = savedData.email || "";
-      const hostAvatar =
-        localStorage.getItem("rently_header_avatar_thumb") ||
-        localStorage.getItem("rently_host_avatar") ||
-        "./icons/user.svg";
+      const hostAvatar = authStorage.getCachedAvatarUrl() || "./icons/user.svg";
 
       const hostNameElement = document.querySelector(".host-name");
       if (hostNameElement) {

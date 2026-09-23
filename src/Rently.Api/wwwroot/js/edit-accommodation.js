@@ -152,7 +152,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         return (
           items.find(
             (item) =>
-              String(item?.id ?? item?.Id ?? "") === String(editAccommodationId),
+              String(item?.id ?? "") === String(editAccommodationId),
           ) || null
         );
       })
@@ -172,20 +172,20 @@ document.addEventListener("DOMContentLoaded", async () => {
         const bedroomsEl = document.getElementById("bedrooms-count");
         const priceEl = document.getElementById("price-night");
 
-        if (titleEl) titleEl.value = data.title || data.Title || "";
-        if (descEl) descEl.value = data.description || data.Description || "";
-        if (typeEl) typeEl.value = data.propertyType || data.PropertyType || "";
-        if (cityEl) cityEl.value = data.city || data.City || "";
-        if (countryEl) countryEl.value = data.country || data.Country || "";
-        if (streetEl) streetEl.value = data.street || data.Street || "";
-        if (bedsEl) bedsEl.value = data.bedsCount ?? data.BedsCount ?? 0;
+        if (titleEl) titleEl.value = data.title || "";
+        if (descEl) descEl.value = data.description || "";
+        if (typeEl) typeEl.value = data.propertyType || "";
+        if (cityEl) cityEl.value = data.city || "";
+        if (countryEl) countryEl.value = data.country || "";
+        if (streetEl) streetEl.value = data.street || "";
+        if (bedsEl) bedsEl.value = data.bedsCount ?? 0;
         if (bedroomsEl)
-          bedroomsEl.value = data.roomsCount ?? data.RoomsCount ?? 0;
+          bedroomsEl.value = data.roomsCount ?? 0;
         if (priceEl)
-          priceEl.value = data.pricePerNight || data.PricePerNight || "";
+          priceEl.value = data.pricePerNight || "";
 
-        const visibleFrom = data.visibleFrom || data.VisibleFrom || "";
-        const isActive = (data.isActive ?? data.IsActive ?? true) === true;
+        const visibleFrom = data.visibleFrom || "";
+        const isActive = (data.isActive ?? true) === true;
         loadedVisibilityState = {
           isActive,
           visibleFrom,
@@ -204,7 +204,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           photoController?.setPhotos(existingPhotos);
         }
 
-        const amenities = data.amenities || data.Amenities || [];
+        const amenities = data.amenities || [];
         if (amenities && amenities.length > 0) {
           setTimeout(() => {
             if (formShared?.applySelectedAmenities) {

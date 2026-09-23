@@ -101,7 +101,7 @@
               ? fav.isHostFavorite === true
               : fav.isGuestFavorite === true,
           )
-          .map((fav) => fav.accommodation?.id ?? fav.accommodation?.Id ?? fav.id ?? fav.Id)
+          .map((fav) => fav.accommodation?.id ?? fav.id)
           .filter((id) => id !== null && id !== undefined)
           .map(String),
       );

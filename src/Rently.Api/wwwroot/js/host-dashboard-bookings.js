@@ -1,14 +1,6 @@
 (function createHostDashboardBookings(window) {
   const api = window.RentlyHostDashboardApi;
-
-  function escapeHtml(value) {
-    return String(value ?? "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;");
-  }
+  const { escapeHtml } = window.RentlyRenderHelpers;
 
   function formatStayNights(checkIn, checkOut) {
     const oneDay = 24 * 60 * 60 * 1000;
@@ -20,7 +12,7 @@
   }
 
   function formatBookingGuest(booking) {
-    const guestId = booking.guestId || booking.GuestId || "";
+    const guestId = booking.guestId || "";
     return guestId ? `Guest ${guestId.slice(0, 8)}` : "Guest";
   }
 
@@ -28,21 +20,21 @@
     return (bookings || [])
       .filter(
         (booking) =>
-          String(booking.accommodationId || booking.AccommodationId) ===
+          String(booking.accommodationId) ===
           String(selectedAccommodationId),
       )
       .sort(
         (left, right) =>
-          new Date(left.checkInDate || left.CheckInDate) -
-          new Date(right.checkInDate || right.CheckInDate),
+          new Date(left.checkInDate) -
+          new Date(right.checkInDate),
       );
   }
 
   function buildBookingsRows(bookings, includeActions) {
     return bookings
       .map((booking) => {
-        const checkIn = new Date(booking.checkInDate || booking.CheckInDate);
-        const status = booking.status || booking.Status || "Pending";
+        const checkIn = new Date(booking.checkInDate);
+        const status = booking.status || "Pending";
         const normalizedStatus = String(status).toLowerCase();
         const statusClass =
           normalizedStatus === "confirmed"
@@ -53,8 +45,8 @@
         const actions =
           normalizedStatus === "pending"
             ? `
-              <button class="btn btn-sm rounded-pill px-3 text-white host-booking-confirm-btn" style="background-color: #2986FE; border-color: #2986FE;" data-booking-id="${booking.id || booking.Id}">Confirm</button>
-              <button class="btn btn-sm btn-outline-dark rounded-pill px-3 host-booking-decline-btn" data-booking-id="${booking.id || booking.Id}">Decline</button>
+              <button class="btn btn-sm rounded-pill px-3 text-white host-booking-confirm-btn" style="background-color: #2986FE; border-color: #2986FE;" data-booking-id="${booking.id}">Confirm</button>
+              <button class="btn btn-sm btn-outline-dark rounded-pill px-3 host-booking-decline-btn" data-booking-id="${booking.id}">Decline</button>
             `
             : "";
         const actionsCell = includeActions
@@ -70,10 +62,10 @@
         <tr>
           <td>
             <div class="fw-bold">${formatBookingGuest(booking)}</div>
-            <div class="text-muted small">${booking.guestId || booking.GuestId || ""}</div>
+            <div class="text-muted small">${booking.guestId || ""}</div>
           </td>
           <td class="fw-bold">${api.dateFormatter.format(checkIn)}</td>
-          <td>${formatStayNights(booking.checkInDate || booking.CheckInDate, booking.checkOutDate || booking.CheckOutDate)}</td>
+          <td>${formatStayNights(booking.checkInDate, booking.checkOutDate)}</td>
           <td><span class="badge ${statusClass} px-2 py-1">${status}</span></td>
           ${actionsCell}
         </tr>
@@ -126,12 +118,12 @@
 
     const upcoming = getSelectedBookings(selectedAccommodationId, bookings).filter(
       (booking) => {
-        const status = String(booking.status || booking.Status || "").toLowerCase();
+        const status = String(booking.status || "").toLowerCase();
         const checkIn = api.parseDateOnlyAsLocal(
-          booking.checkInDate || booking.CheckInDate,
+          booking.checkInDate,
         );
         const checkOut = api.parseDateOnlyAsLocal(
-          booking.checkOutDate || booking.CheckOutDate,
+          booking.checkOutDate,
         );
         if (status === "pending") return true;
         return status === "confirmed" && (
@@ -162,9 +154,9 @@
 
     const history = getSelectedBookings(selectedAccommodationId, bookings).filter(
       (booking) => {
-        const status = String(booking.status || booking.Status || "").toLowerCase();
+        const status = String(booking.status || "").toLowerCase();
         const checkOut = api.parseDateOnlyAsLocal(
-          booking.checkOutDate || booking.CheckOutDate,
+          booking.checkOutDate,
         );
         return status === "cancelled" || (checkOut && checkOut < today);
       },
@@ -190,12 +182,12 @@
 
     const currentStay = getSelectedBookings(selectedAccommodationId, bookings).find(
       (booking) => {
-        const status = String(booking.status || booking.Status || "").toLowerCase();
+        const status = String(booking.status || "").toLowerCase();
         const checkIn = api.parseDateOnlyAsLocal(
-          booking.checkInDate || booking.CheckInDate,
+          booking.checkInDate,
         );
         const checkOut = api.parseDateOnlyAsLocal(
-          booking.checkOutDate || booking.CheckOutDate,
+          booking.checkOutDate,
         );
         if (status !== "confirmed" || !checkIn || !checkOut) return false;
         return checkIn <= today && checkOut >= today;
@@ -209,10 +201,10 @@
     }
 
     const checkout = api.parseDateOnlyAsLocal(
-      currentStay.checkOutDate || currentStay.CheckOutDate,
+      currentStay.checkOutDate,
     );
     const checkin = api.parseDateOnlyAsLocal(
-      currentStay.checkInDate || currentStay.CheckInDate,
+      currentStay.checkInDate,
     );
 
     emptyState.classList.add("d-none");
@@ -220,13 +212,13 @@
     content.innerHTML = `
       <div class="border rounded-4 p-3 bg-light-subtle">
         <div class="fw-bold mb-1">${formatBookingGuest(currentStay)}</div>
-        <div class="text-muted small mb-3">${currentStay.guestId || currentStay.GuestId || ""}</div>
+        <div class="text-muted small mb-3">${currentStay.guestId || ""}</div>
         <div class="mb-2"><strong>Status:</strong> Currently rented</div>
         <div class="mb-2"><strong>Check-in:</strong> ${checkin ? api.dateFormatter.format(checkin) : "—"}</div>
         <div class="mb-2"><strong>Check-out:</strong> ${checkout ? api.dateFormatter.format(checkout) : "—"}</div>
         <div><strong>Stay:</strong> ${formatStayNights(
-          currentStay.checkInDate || currentStay.CheckInDate,
-          currentStay.checkOutDate || currentStay.CheckOutDate,
+          currentStay.checkInDate,
+          currentStay.checkOutDate,
         )}</div>
       </div>
     `;
@@ -247,19 +239,19 @@
     emptyState.classList.add("d-none");
     reviewsContainer.innerHTML = reviews
       .map((review, index) => {
-        const replyValue = review.hostReply || review.HostReply || "";
-        const replyDate = review.hostReplyCreatedAt || review.HostReplyCreatedAt;
-        const createdAt = review.createdAt || review.CreatedAt;
+        const replyValue = review.hostReply || "";
+        const replyDate = review.hostReplyCreatedAt;
+        const createdAt = review.createdAt;
         const reviewerName =
-          review.reviewerName || review.ReviewerName || "Anonymous";
-        const rating = Number(review.rating || review.Rating || 0);
-        const commentValue = review.comment || review.Comment || "No comment provided.";
+          review.reviewerName || "Anonymous";
+        const rating = Number(review.rating || 0);
+        const commentValue = review.comment || "No comment provided.";
         const replyBox = replyValue
           ? `<div class="host-reply bg-light p-3 rounded-3 mb-3"><div class="fw-bold small mb-1 text-primary">Your Reply${replyDate ? " · " + api.dateFormatter.format(new Date(replyDate)) : ""}</div><p class="small mb-0 text-muted">${escapeHtml(replyValue)}</p></div>`
           : "";
 
         return `
-        <div class="review-item mb-4 pb-4 border-bottom" data-review-id="${review.id || review.Id}">
+        <div class="review-item mb-4 pb-4 border-bottom" data-review-id="${review.id}">
           <div class="d-flex justify-content-between align-items-start mb-2">
             <div>
               <h6 class="fw-bold mb-0">${escapeHtml(reviewerName)}</h6>
@@ -287,7 +279,7 @@
       const review = Number.isInteger(reviewIndex) ? reviews[reviewIndex] : null;
       if (!review) return;
 
-      textarea.value = review.hostReply || review.HostReply || "";
+      textarea.value = review.hostReply || "";
     });
 
     reviewsContainer.querySelectorAll(".review-reply-toggle").forEach((button) => {

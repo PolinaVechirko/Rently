@@ -75,7 +75,7 @@
     const accommodations = unwrapCollection(await api.fetchMyAccommodations());
     const accommodationId = api.getAccommodationId();
     let selected = accommodations.find(
-      (item) => String(item?.id || item?.Id) === String(accommodationId),
+      (item) => String(item?.id) === String(accommodationId),
     );
 
     if (!selected && accommodationId) {
@@ -98,14 +98,14 @@
     }
 
     window.RentlyPageStateStorage?.setSelectedAccommodationId(
-      String(selected.id || selected.Id),
+      String(selected.id),
     );
 
     statusModule.renderHero(selected);
 
     let hostBookings = [];
     try {
-      hostBookings = await api.fetchHostBookings(selected.id || selected.Id);
+      hostBookings = await api.fetchHostBookings(selected.id);
     } catch (error) {
       console.warn(
         "Host bookings are unavailable for selected accommodation",
@@ -116,7 +116,7 @@
 
     const listingState = statusModule.getListingState(selected, hostBookings);
     statsModule.renderStats(selected, hostBookings);
-    bookingsModule.renderUpcomingBookings(selected.id || selected.Id, hostBookings, {
+    bookingsModule.renderUpcomingBookings(selected.id, hostBookings, {
       async onConfirm(bookingId) {
         await api.confirmBooking(bookingId);
         await loadDashboard();
@@ -126,11 +126,11 @@
         await loadDashboard();
       },
     });
-    bookingsModule.renderCurrentStay(selected.id || selected.Id, hostBookings);
-    bookingsModule.renderBookingHistory(selected.id || selected.Id, hostBookings);
+    bookingsModule.renderCurrentStay(selected.id, hostBookings);
+    bookingsModule.renderBookingHistory(selected.id, hostBookings);
     api.setText("dashboard-property-status-note", listingState.note);
 
-    await refreshAvailabilitySection(selected.id || selected.Id, hostBookings);
+    await refreshAvailabilitySection(selected.id, hostBookings);
 
     bookingsModule.renderReviews(selected, {
       async onReply(reviewId, reply) {

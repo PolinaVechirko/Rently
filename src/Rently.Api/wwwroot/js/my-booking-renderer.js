@@ -56,7 +56,7 @@
     let html = "";
     bookings.forEach((booking, index) => {
       const accommodationPhotoUrl =
-        booking.accommodationPhotoUrl || booking.AccommodationPhotoUrl || "";
+        booking.accommodationPhotoUrl || "";
       const photo = renderHelpers.getCardImageUrl
         ? renderHelpers.getCardImageUrl(accommodationPhotoUrl, {
             assetBase,
@@ -78,7 +78,7 @@
         ),
       );
       const totalPrice = (Number(pricePerNight) * stayNights).toFixed(2);
-      const status = normalizeBookingStatus(booking.status || booking.Status);
+      const status = normalizeBookingStatus(booking.status);
       const statusClass = statusClassMap[status] || "status-pending";
       const isPending = status === "Pending";
       const cardClass = booking.__section === "history"
@@ -184,7 +184,7 @@
       const assetBase = renderHelpers.getAssetBase?.() || "./";
 
       const activeBookings = safeBookings.filter((booking) => {
-        const status = normalizeBookingStatus(booking.status || booking.Status);
+        const status = normalizeBookingStatus(booking.status);
         const checkIn = new Date(booking.checkInDate);
         const checkOut = new Date(booking.checkOutDate);
         if (status !== "Confirmed") return false;
@@ -196,7 +196,7 @@
 
       const upcomingBookings = safeBookings.filter((booking) => {
         if (activeBookings.includes(booking)) return false;
-        const status = normalizeBookingStatus(booking.status || booking.Status);
+        const status = normalizeBookingStatus(booking.status);
         const checkIn = new Date(booking.checkInDate);
         if (status === "Pending") return true;
         if (status === "Confirmed") {

@@ -32,8 +32,8 @@
     function normalizeUnavailableRanges(ranges) {
       return (Array.isArray(ranges) ? ranges : [])
         .map((range) => {
-          const startDate = parseDateOnlyAsLocal(range.startDate || range.StartDate);
-          const endDate = parseDateOnlyAsLocal(range.endDate || range.EndDate);
+          const startDate = parseDateOnlyAsLocal(range.startDate);
+          const endDate = parseDateOnlyAsLocal(range.endDate);
           if (!startDate || !endDate) return null;
           return { startDate, endDate };
         })
