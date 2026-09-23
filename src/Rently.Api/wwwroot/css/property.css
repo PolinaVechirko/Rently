@@ -660,7 +660,7 @@
   flex-shrink: 0;
 }
 
-/* звезда в бейдже комментария — белая */
+/* White star in the review badge */
 .review-rating img {
   width: 14px !important;
   height: 14px !important;

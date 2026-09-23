@@ -48,7 +48,7 @@
     });
   }
 
-  // Drag scroll (мышь + touch)
+  // Drag scroll (mouse + touch)
   let isDown = false;
   let startX = 0;
   let startScrollLeft = 0;

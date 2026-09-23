@@ -55,35 +55,7 @@
     Houseboat: 24,
   };
 
-  const amenityDisplayNameMap = {
-    "Wi-Fi": "Wi-Fi — интернет",
-    TV: "TV — телевизор",
-    Kitchen: "Kitchen — кухня (важно для длительного жилья)",
-    "Air Conditioning": "Air Conditioning — кондиционер",
-    Heating: "Heating — отопление",
-    "Dedicated Workspace": "Dedicated Workspace — рабочее место",
-    Washer: "Washer — стиральная машина",
-    "Free Parking": "Free Parking — бесплатная парковка",
-    Gym: "Gym — спортзал",
-    "Pets Allowed": "Pets Allowed — можно с животными",
-    Balcony: "Balcony — балкон или терраса",
-    "Self Check-in": "Self Check-in — бесконтактное заселение",
-    Crib: "Crib — детская кроватка",
-    "Family Friendly": "Family Friendly — подойдет семьям",
-    "Meal Service": "Meal Service — включено питание",
-    Pool: "Pool — бассейн (очень популярный фильтр для отдыха)",
-    Dryer: "Dryer — сушилка для одежды (часто идет в паре с Washer)",
-    Iron: "Iron — утюг (базовая вещь для тех, кто приехал по работе)",
-    "Smoke Alarm":
-      "Smoke Alarm — датчик дыма (показывает заботу о безопасности, стандарт для Airbnb)",
-    "First Aid Kit":
-      "First Aid Kit — аптечка (также важный пункт в разделе безопасности)",
-  };
   amenitiesModule.propertyTypeMap = propertyTypeMap;
-
-  function getAmenityDisplayLabel(name) {
-    return amenityDisplayNameMap[name] || name;
-  }
 
   function sortAmenityOptions(options) {
     const orderMap = preferredAmenityOrder.reduce((map, name, index) => {
@@ -141,7 +113,7 @@
           ? { id: index + 1, name: item }
           : { id: item.id, name: item.name };
       const escapeHtml = window.RentlyRenderHelpers.escapeHtml;
-      const displayLabel = escapeHtml(getAmenityDisplayLabel(amenity.name));
+      const displayLabel = escapeHtml(amenity.name);
       const column = document.createElement("div");
       column.className = "col-md-4 mb-2";
       column.innerHTML = `
@@ -171,11 +143,6 @@
     function propertyTypeToEnumValue(typeOrLabel) {
       const normalized = String(typeOrLabel || "").split(" — ")[0].trim();
       return propertyTypeMap[normalized] ?? propertyTypeMap.Apartment;
-    };
-
-  amenitiesModule.getAmenityDisplayNameMap =
-    function getAmenityDisplayNameMap() {
-      return { ...amenityDisplayNameMap };
     };
 
   amenitiesModule.getAmenityIdMap = function getAmenityIdMap() {

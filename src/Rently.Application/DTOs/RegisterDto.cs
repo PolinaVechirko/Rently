@@ -1,8 +1,5 @@
 namespace Rently.Application.DTOs
 {
-    /// <summary>
-    /// DTO for user registration (request from client)
-    /// </summary>
     public class RegisterDto
     {
         public string Email { get; set; } = string.Empty;

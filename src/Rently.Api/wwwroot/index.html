@@ -11,10 +11,9 @@
   <link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon_io/favicon-32x32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="./icons/favicon_io/favicon-16x16.png" />
   <link rel="shortcut icon" href="./icons/favicon_io/favicon.ico" />
-  <link rel="manifest" href="./icons/favicon_io/site.webmanifest?v=20260515_manifest_fix" />
+  <link rel="manifest" href="./icons/favicon_io/site.webmanifest" />
 
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
-    integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -22,21 +21,16 @@
     href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap"
     rel="stylesheet" />
 
-  <link href="node_modules/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" />
-
-  <link rel="stylesheet" href="./css/global.css?v=20260511_drop" />
+  <link rel="stylesheet" href="./css/global.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-  <link rel="stylesheet" href="./css/home.css?v=20260519_home_focus_soften" />
-  <!-- Flatpickr для календаря -->
+  <link rel="stylesheet" href="./css/home.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" />
 </head>
 
 <body>
-  <!-- Пустой блок 20px, чтобы хедер изначально был ниже -->
   <div style="height: 20px"></div>
 
-  <!-- Добавили sticky-top (прилипание) и bg-white (белый фон, чтобы текст не сливался) -->
   <header class="header sticky-top bg-white">
     <nav class="navbar navbar-expand-md">
       <div class="container">
@@ -48,7 +42,6 @@
         <div class="collapse navbar-collapse" id="navbarNav">
           <ul class="navbar-nav custom-nav-spacing">
             <li class="nav-item">
-              <!-- Ссылка на #top заставит браузер прокрутить страницу в самый верх -->
               <a class="nav-link nav-link-custom active" href="#top">HOME</a>
             </li>
             <li class="nav-item">
@@ -61,7 +54,6 @@
               <a class="nav-link nav-link-custom" href="./become-host.html">BECOME A HOST</a>
             </li>
           </ul>
-          <!-- Выровнена по правому краю через ms-auto -->
           <div class="header-auth-container ms-auto">
             <a href="./login.html" class="sign-in-btn" id="header-signin-btn">SIGN IN</a>
             <div class="user-profile-wrapper hidden" id="header-user-wrapper">
@@ -85,12 +77,10 @@
     </nav>
   </header>
   <div class="container-wide mt-4">
-    <!-- Серая заглушка для картинки -->
     <div id="hero-image" class="hero-image-placeholder">
       <div class="search-card">
         <h2 class="search-title">Find Your Apartment</h2>
 
-        <!-- Верхнее поле: Локация -->
         <div class="search-input-group location-group">
           <label class="input-label">Set Location</label>
           <input type="text" class="input-field" id="location-input" list="city-suggestions"
@@ -98,7 +88,6 @@
           <datalist id="city-suggestions"></datalist>
         </div>
 
-        <!-- Нижнее поле: Даты -->
         <div class="search-input-group dates-group">
           <div class="date-half left-half">
             <label class="input-label">Check In</label>
@@ -119,7 +108,6 @@
     </div>
   </div>
 
-  <!-- Блок 2: Сюда вы позже добавите надписи и скролл -->
   <div class="container-wide section-spacing">
     <h2 class="section-heading section-heading-link" id="highest-rated-heading">
       Highest rated accommodations
@@ -131,7 +119,6 @@
 
     <div class="horizontal-scroll-container mt-4">
       <div id="accommodations-track" class="horizontal-scroll-track">
-        <!-- Сюда сгенерируются карточки из файла js/main.js -->
       </div>
     </div>
   </div>
@@ -139,7 +126,6 @@
   <div class="container-wide section-spacing">
     <h2 class="section-heading">Top amenities</h2>
     <div id="amenities-grid" class="amenities-grid">
-      <!-- Сюда сгенерируются удобства из файла js/main.js -->
     </div>
   </div>
 
@@ -150,14 +136,11 @@
 
     <div class="horizontal-scroll-container mt-4">
       <div id="most-visited-track-1" class="horizontal-scroll-track">
-        <!-- Сюда сгенерируются карточки из файла js/main.js -->
       </div>
     </div>
 
-    <!-- Второй ряд с отступом -->
     <div class="horizontal-scroll-container mt-3">
       <div id="most-visited-track-2" class="horizontal-scroll-track">
-        <!-- Сюда сгенерируются карточки из файла js/main.js -->
       </div>
     </div>
   </div>
@@ -165,14 +148,12 @@
   <div class="container-wide section-spacing">
     <h2 class="section-heading">Discover These Cities</h2>
     <div id="cities-grid" class="cities-grid">
-      <!-- Сюда сгенерируются карточки из файла js/main.js -->
     </div>
   </div>
 
   <div id="about-us" class="container-wide section-spacing">
     <h2 class="section-heading">About us</h2>
     <div class="about-box">
-      <!-- Левая часть: Статичный текст -->
       <div class="about-content">
         <h3 class="about-title">Your Comfort is Our Priority</h3>
         <p class="about-desc">
@@ -183,13 +164,10 @@
         </p>
       </div>
 
-      <!-- Правая часть: Горизонтальный слайдер -->
       <div class="about-slider-container">
-        <!-- Стрелки навигации -->
         <img src="./icons/arrow-left.svg" alt="prev" class="about-arrow about-arrow-left" />
 
         <div class="about-slider-wrapper">
-          <!-- Слайд 1: Why Guests Love Us -->
           <div class="about-slide">
             <h4 class="slide-title">Why Guests Love Us:</h4>
             <ul class="slide-list">
@@ -220,7 +198,6 @@
             </ul>
           </div>
 
-          <!-- Слайд 2: Become a Host -->
           <div class="about-slide">
             <h4 class="slide-title">
               Become a Host: Turn Your Space into Income
@@ -325,40 +302,40 @@
     </div>
   </footer>
 
-  <script src="node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
   <!-- Flatpickr JS -->
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="./js/app-context.js?v=20260515_frontend_foundation"></script>
-  <script src="./js/api-client.js?v=20260515_frontend_foundation"></script>
-  <script src="./js/renderers-helpers.js?v=20260515_render_helpers_split"></script>
-  <script src="./js/renderers-home.js?v=20260515_render_home_split"></script>
-  <script src="./js/accommodations-renderer.js?v=20260515_renderers_big_split"></script>
-  <script src="./js/learn-more.js?v=20260515_learn_more_split"></script>
-  <script src="./js/favorite-interactions.js?v=20260515_favorite_interactions_split"></script>
-  <script src="./js/main-navigation.js?v=20260515_main_navigation_split"></script>
-  <script src="./js/auth-storage.js?v=20260515_auth_storage_split"></script>
-  <script src="./js/auth-redirects.js?v=20260515_auth_redirects_split"></script>
-  <script src="./js/auth-ui.js?v=20260515_auth_ui_split"></script>
-  <script src="./js/auth-profile-return.js?v=20260515_auth_profile_return_split"></script>
-  <script src="./js/auth-forms.js?v=20260515_auth_forms_split"></script>
-  <script src="./js/auth-dropdown.js?v=20260515_auth_dropdown_split"></script>
-  <script src="./js/auth-init.js?v=20260515_auth_init_split"></script>
-  <script src="./js/api-auth.js?v=20260515_frontend_auth_favorites_api"></script>
-  <script src="./js/api-favorites.js?v=20260515_frontend_auth_favorites_api"></script>
-  <script src="./js/renderers.js?v=20260513_host_favorite_paths"></script>
-  <script src="./js/ui-shared.js?v=20260515_ui_shared_split"></script>
-  <script src="./js/ui-utils.js?v=20260509_2"></script>
-  <script src="./js/auth.js?v=20260513_profile_return"></script>
-  <script src="./js/search-query-state.js?v=20260518_search_split_1"></script>
-  <script src="./js/search-date-range.js?v=20260518_search_split_1"></script>
-  <script src="./js/search-price-filters.js?v=20260518_search_split_1"></script>
-  <script src="./js/search-advanced-filters.js?v=20260518_search_split_1"></script>
-  <script src="./js/search-location-autocomplete.js?v=20260518_search_split_1"></script>
-  <script src="./js/search-page.js?v=20260518_search_split_1"></script>
-  <script src="./js/home-search-panel.js?v=20260519_home_location_blur_fix"></script>
-  <script src="./js/main.js?v=20260514_home_date_fallback"></script>
+  <script src="./js/app-context.js"></script>
+  <script src="./js/api-client.js"></script>
+  <script src="./js/renderers-helpers.js"></script>
+  <script src="./js/renderers-home.js"></script>
+  <script src="./js/accommodations-renderer.js"></script>
+  <script src="./js/learn-more.js"></script>
+  <script src="./js/favorite-interactions.js"></script>
+  <script src="./js/main-navigation.js"></script>
+  <script src="./js/auth-storage.js"></script>
+  <script src="./js/auth-redirects.js"></script>
+  <script src="./js/auth-ui.js"></script>
+  <script src="./js/auth-profile-return.js"></script>
+  <script src="./js/auth-forms.js"></script>
+  <script src="./js/auth-dropdown.js"></script>
+  <script src="./js/auth-init.js"></script>
+  <script src="./js/api-auth.js"></script>
+  <script src="./js/api-favorites.js"></script>
+  <script src="./js/renderers.js"></script>
+  <script src="./js/ui-shared.js"></script>
+  <script src="./js/ui-utils.js"></script>
+  <script src="./js/auth.js"></script>
+  <script src="./js/search-query-state.js"></script>
+  <script src="./js/search-date-range.js"></script>
+  <script src="./js/search-price-filters.js"></script>
+  <script src="./js/search-advanced-filters.js"></script>
+  <script src="./js/search-location-autocomplete.js"></script>
+  <script src="./js/search-page.js"></script>
+  <script src="./js/home-search-panel.js"></script>
+  <script src="./js/main.js"></script>
 </body>
 
 </html>

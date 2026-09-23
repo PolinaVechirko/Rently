@@ -16,7 +16,18 @@ public static class WebApplicationExtensions
         }
 
         app.UseDefaultFiles();
-        app.UseStaticFiles();
+        app.UseStaticFiles(new StaticFileOptions
+        {
+            // Pages and scripts are revalidated on every load, so a new deploy is picked up without cache-busting query strings.
+            OnPrepareResponse = context =>
+            {
+                var extension = Path.GetExtension(context.File.Name);
+                if (extension is ".html" or ".js" or ".css")
+                {
+                    context.Context.Response.Headers.CacheControl = "no-cache";
+                }
+            }
+        });
 
         app.UseSerilogRequestLogging();
         app.UseMiddleware<ApiExceptionHandlingMiddleware>();
@@ -44,8 +55,6 @@ public static class WebApplicationExtensions
             return;
         }
 
-        await LegacySqliteSchemaRepair.EnsureCompatibilityAsync(db);
-        await LegacySqliteSchemaRepair.EnsureBaselineMigrationRecordedAsync(db);
         await db.Database.MigrateAsync();
         await SeedData.InitializeAsync(services, app.Environment.WebRootPath);
     }

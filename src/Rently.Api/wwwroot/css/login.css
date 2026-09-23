@@ -55,7 +55,6 @@
 
 .login-input-group+.login-input-group {
     margin-top: 10px;
-    /* Заменили mt-4 на более компактный отступ */
 }
 
 .login-label {

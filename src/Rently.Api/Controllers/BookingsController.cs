@@ -8,7 +8,7 @@ namespace Rently.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize] // All booking actions require authentication
+    [Authorize]
     public class BookingsController : ControllerBase
     {
         private readonly IBookingService _service;

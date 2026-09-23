@@ -1,6 +1,5 @@
 html {
   scroll-behavior: smooth;
-  /* Делает прокрутку плавной, а не мгновенным прыжком */
 }
 
 body {
@@ -11,7 +10,7 @@ body {
   margin: 0;
 }
 
-/* Расстояние между надписями в хедере (на больших экранах) */
+/* Header link spacing on large screens */
 @media (min-width: 768px) {
   .custom-nav-spacing {
     margin-left: 20px;
@@ -48,13 +47,11 @@ body {
   font-style: normal;
 }
 
-/* --- Стили для хедера --- */
+/* --- Header --- */
 .header {
   height: 80px;
-  /* Фиксированная высота 80 пикселей */
   display: flex;
   align-items: center;
-  /* Вертикальное центрирование всего внутри хедера */
 }
 
 .header.sticky-top {
@@ -248,7 +245,7 @@ body:not(.auth-ready) #header-user-wrapper {
   visibility: hidden;
 }
 
-/* --- Широкий контейнер для контента --- */
+/* --- Wide content container --- */
 .container-wide {
   width: 100%;
   padding-right: var(--bs-gutter-x, 0.75rem);
@@ -640,14 +637,12 @@ body:not(.auth-ready) #header-user-wrapper {
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-/* При наведении: легкое приподнятие и изменение цвета (розоватый оттенок) */
 .favorite-btn:hover img {
   transform: translateY(-2px) scale(1.05);
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3)) brightness(1.1) sepia(0.3)
     hue-rotate(-50deg) saturate(2);
 }
 
-/* Удалено старое @keyframes */
 
 .favorite-btn.active img {
   content: url("../icons/favorite-filled.svg");

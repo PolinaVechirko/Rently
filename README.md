@@ -5,14 +5,11 @@
 After extracting the archive, open a terminal in the project root and run:
 
 ```bash
-cd src/Rently.Api/wwwroot
-npm install
-cd ../../..
 dotnet restore
 dotnet run --project src/Rently.Api
 ```
 
-This installs frontend dependencies used by some static pages and then starts the application locally.
+This starts the application locally. Frontend libraries (Bootstrap, Flatpickr, Leaflet) are loaded from a CDN, so no npm install is needed.
 
 Rently is my bachelor's project: a web application for publishing, searching, and booking rental accommodations.
 

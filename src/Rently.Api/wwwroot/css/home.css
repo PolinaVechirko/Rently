@@ -1,4 +1,4 @@
-/* --- Главная картинка (заглушка) --- */
+/* --- Hero image --- */
 .hero-image-placeholder {
   width: 100%;
   height: 800px;
@@ -197,7 +197,7 @@
   box-shadow: 0 4px 15px 5px #d5d5d6;
 }
 
-/* --- Секция горизонтального скролла --- */
+/* --- Horizontal scroll section --- */
 .horizontal-scroll-container {
   overflow-x: auto;
   padding-bottom: 20px;
@@ -300,7 +300,7 @@
   box-shadow: 0 4px 15px 5px #d5d5d6;
 }
 
-/* --- Секция Top Amenities --- */
+/* --- Top Amenities section --- */
 .amenities-grid {
   display: flex;
   gap: 20px;
@@ -359,7 +359,7 @@
   text-align: center;
 }
 
-/* --- Секция Discover These Cities --- */
+/* --- Discover These Cities section --- */
 .cities-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
@@ -451,7 +451,7 @@
   }
 }
 
-/* --- Секция About Us --- */
+/* --- About Us section --- */
 .about-box {
   width: 100%;
   height: 500px;

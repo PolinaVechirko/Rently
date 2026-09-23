@@ -133,8 +133,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   let existingPhotos = [];
 
-  const amenityNameMap = formShared?.getAmenityDisplayNameMap() || {};
-
   if (editAccommodationId && editToken) {
     fetch("/api/Accommodations/my", {
       headers: {
@@ -215,9 +213,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
 
             amenities.forEach((name) => {
-              const label = amenityNameMap[name] || name;
               const cb = document.querySelector(
-                `.amenity-checkbox[value="${label}"]`,
+                `.amenity-checkbox[value="${CSS.escape(name)}"]`,
               );
               if (cb) cb.checked = true;
             });
