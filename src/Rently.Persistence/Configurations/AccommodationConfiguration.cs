@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Rently.Domain.Constants;
 using Rently.Domain.Entities;
 
 namespace Rently.Persistence.Configurations;
@@ -9,16 +10,16 @@ internal class AccommodationConfiguration : IEntityTypeConfiguration<Accommodati
     public void Configure(EntityTypeBuilder<Accommodation> builder)
     {
         builder.Property(accommodation => accommodation.PropertyType).HasConversion<string>();
-        builder.Property(accommodation => accommodation.Title).HasMaxLength(100);
-        builder.Property(accommodation => accommodation.Description).HasMaxLength(2000);
+        builder.Property(accommodation => accommodation.Title).HasMaxLength(FieldLengths.AccommodationTitle);
+        builder.Property(accommodation => accommodation.Description).HasMaxLength(FieldLengths.AccommodationDescription);
         builder.ToTable(tableBuilder =>
         {
             tableBuilder.HasCheckConstraint(
                 "CK_Accommodations_Title_Length",
-                "length(\"Title\") <= 100");
+                $"length(\"Title\") <= {FieldLengths.AccommodationTitle}");
             tableBuilder.HasCheckConstraint(
                 "CK_Accommodations_Description_Length",
-                "\"Description\" IS NULL OR length(\"Description\") <= 2000");
+                $"\"Description\" IS NULL OR length(\"Description\") <= {FieldLengths.AccommodationDescription}");
         });
 
         builder.HasOne<ApplicationUser>()

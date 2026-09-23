@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using FluentValidation;
 using Rently.Application.DTOs;
+using Rently.Domain.Constants;
 
 namespace Rently.Api.Validation.Auth;
 
@@ -10,11 +11,12 @@ public partial class UpdateProfileDtoValidator : AbstractValidator<UpdateProfile
     {
         RuleFor(dto => dto.FullName)
             .NotEmpty()
-            .MaximumLength(100);
+            .MaximumLength(FieldLengths.FullName);
 
         RuleFor(dto => dto.Email)
             .NotEmpty()
-            .EmailAddress();
+            .EmailAddress()
+            .MaximumLength(FieldLengths.Email);
 
         RuleFor(dto => dto.PhoneNumber)
             .Must(BeARealisticPhoneNumber)

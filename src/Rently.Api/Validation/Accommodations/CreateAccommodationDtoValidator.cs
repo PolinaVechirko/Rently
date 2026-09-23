@@ -7,32 +7,6 @@ public class CreateAccommodationDtoValidator : AbstractValidator<CreateAccommoda
 {
     public CreateAccommodationDtoValidator()
     {
-        RuleFor(dto => dto.PropertyType)
-            .IsInEnum();
-
-        RuleFor(dto => dto.PricePerNight)
-            .GreaterThan(0);
-
-        RuleFor(dto => dto.RoomsCount)
-            .GreaterThanOrEqualTo(0);
-
-        RuleFor(dto => dto.BedsCount)
-            .GreaterThanOrEqualTo(0);
-
-        RuleFor(dto => dto.Country)
-            .NotEmpty()
-            .MaximumLength(100);
-
-        RuleFor(dto => dto.City)
-            .NotEmpty()
-            .MaximumLength(100);
-
-        RuleForEach(dto => dto.PhotoUrls!)
-            .NotEmpty()
-            .When(dto => dto.PhotoUrls is { Count: > 0 });
-
-        RuleForEach(dto => dto.AmenityIds!)
-            .GreaterThan(0)
-            .When(dto => dto.AmenityIds is { Count: > 0 });
+        Include(new AccommodationWriteDtoValidator());
     }
 }

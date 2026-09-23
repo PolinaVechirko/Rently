@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Rently.Domain.Constants;
 using Rently.Domain.Entities;
 
 namespace Rently.Persistence.Configurations;
@@ -8,16 +9,16 @@ internal class ReviewConfiguration : IEntityTypeConfiguration<Review>
 {
     public void Configure(EntityTypeBuilder<Review> builder)
     {
-        builder.Property(review => review.Comment).HasMaxLength(1000);
-        builder.Property(review => review.HostReply).HasMaxLength(1000);
+        builder.Property(review => review.Comment).HasMaxLength(FieldLengths.ReviewComment);
+        builder.Property(review => review.HostReply).HasMaxLength(FieldLengths.ReviewReply);
         builder.ToTable(tableBuilder =>
         {
             tableBuilder.HasCheckConstraint(
                 "CK_Reviews_Comment_Length",
-                "\"Comment\" IS NULL OR length(\"Comment\") <= 1000");
+                $"\"Comment\" IS NULL OR length(\"Comment\") <= {FieldLengths.ReviewComment}");
             tableBuilder.HasCheckConstraint(
                 "CK_Reviews_HostReply_Length",
-                "\"HostReply\" IS NULL OR length(\"HostReply\") <= 1000");
+                $"\"HostReply\" IS NULL OR length(\"HostReply\") <= {FieldLengths.ReviewReply}");
         });
 
         builder.HasOne<ApplicationUser>()

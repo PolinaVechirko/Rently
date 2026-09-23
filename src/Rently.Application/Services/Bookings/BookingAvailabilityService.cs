@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Rently.Application.Exceptions;
+using Rently.Application.Services.Accommodations;
 using Rently.Persistence;
 
 namespace Rently.Application.Services.Bookings;
@@ -13,12 +14,21 @@ public class BookingAvailabilityService
         _dbContext = dbContext;
     }
 
-    public async Task EnsureAccommodationExistsAsync(int accommodationId, CancellationToken cancellationToken = default)
+    public async Task EnsureAccommodationBookableAsync(int accommodationId, CancellationToken cancellationToken = default)
     {
         var exists = await _dbContext.Accommodations.AnyAsync(accommodation => accommodation.Id == accommodationId, cancellationToken);
         if (!exists)
         {
             throw new NotFoundException("Accommodation not found.");
+        }
+
+        var isVisible = await _dbContext.Accommodations
+            .Where(accommodation => accommodation.Id == accommodationId)
+            .AnyAsync(AccommodationQueries.IsVisibleOnDate(DateTime.UtcNow.Date), cancellationToken);
+
+        if (!isVisible)
+        {
+            throw new AppValidationException("This accommodation is not available for booking.");
         }
     }
 

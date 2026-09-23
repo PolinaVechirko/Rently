@@ -106,6 +106,19 @@ public class AuthService : IAuthService
             throw new ConflictException("This email is already used by another account.");
         }
 
+        var normalizedPhoneNumber = string.IsNullOrWhiteSpace(dto.PhoneNumber) ? null : dto.PhoneNumber.Trim();
+        if (normalizedPhoneNumber != null)
+        {
+            var phoneNumberTaken = await _userManager.Users.AnyAsync(
+                existing => existing.PhoneNumber == normalizedPhoneNumber && existing.Id != user.Id,
+                cancellationToken);
+
+            if (phoneNumberTaken)
+            {
+                throw new ConflictException("This phone number is already used by another account.");
+            }
+        }
+
         if (!string.Equals(user.Email, normalizedEmail, StringComparison.OrdinalIgnoreCase))
         {
             var emailResult = await _userManager.SetEmailAsync(user, normalizedEmail);
@@ -123,7 +136,7 @@ public class AuthService : IAuthService
 
         user.FullName = dto.FullName.Trim();
         user.Bio = string.IsNullOrWhiteSpace(dto.Bio) ? null : dto.Bio.Trim();
-        user.PhoneNumber = string.IsNullOrWhiteSpace(dto.PhoneNumber) ? null : dto.PhoneNumber.Trim();
+        user.PhoneNumber = normalizedPhoneNumber;
         user.ProfilePhotoUrl = string.IsNullOrWhiteSpace(dto.ProfilePhotoUrl) ? null : dto.ProfilePhotoUrl.Trim();
 
         var updateResult = await _userManager.UpdateAsync(user);

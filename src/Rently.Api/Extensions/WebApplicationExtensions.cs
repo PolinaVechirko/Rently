@@ -47,7 +47,7 @@ public static class WebApplicationExtensions
         await LegacySqliteSchemaRepair.EnsureCompatibilityAsync(db);
         await LegacySqliteSchemaRepair.EnsureBaselineMigrationRecordedAsync(db);
         await db.Database.MigrateAsync();
-        await SeedData.InitializeAsync(services);
+        await SeedData.InitializeAsync(services, app.Environment.WebRootPath);
     }
 
     public static void ConfigureRentlyLogging(this WebApplicationBuilder builder)

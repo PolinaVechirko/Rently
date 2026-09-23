@@ -132,7 +132,7 @@
         html += `
           <div class="accommodation-card type-2 inspiration-clickable-card" data-id="${propertyId}" style="cursor:pointer;">
               <div class="acc-img-wrapper">
-                  <img src="${photo}" class="acc-img" alt="${propertyType}">
+                  <img src="${escapeHtml(photo)}" class="acc-img" alt="${propertyType}">
                   <div class="price-tag-overlay">${priceDisplay}</div>
                   <button class="favorite-btn active" data-id="${propertyId}" aria-label="Remove from favorites"><img src="${favoriteIconSrc}" alt="heart"></button>
               </div>

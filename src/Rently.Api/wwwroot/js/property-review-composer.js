@@ -41,7 +41,7 @@
           </div>
           <div class="mb-3">
             <label class="form-label fw-semibold">Comment</label>
-            <textarea id="review-comment-input" class="form-control review-composer-textarea" rows="5" placeholder="Tell others about your stay...">${currentComment}</textarea>
+            <textarea id="review-comment-input" class="form-control review-composer-textarea" rows="5" placeholder="Tell others about your stay...">${window.RentlyRenderHelpers.escapeHtml(currentComment)}</textarea>
           </div>
           <button id="review-submit-btn" class="btn btn-primary rounded-pill px-4" type="button">${eligibility.hasExistingReview ? "Update review" : "Publish review"}</button>
         </div>

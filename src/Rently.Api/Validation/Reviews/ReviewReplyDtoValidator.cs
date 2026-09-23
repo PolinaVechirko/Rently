@@ -1,5 +1,6 @@
 using FluentValidation;
 using Rently.Application.DTOs;
+using Rently.Domain.Constants;
 
 namespace Rently.Api.Validation.Reviews;
 
@@ -9,6 +10,6 @@ public class ReviewReplyDtoValidator : AbstractValidator<ReviewReplyDto>
     {
         RuleFor(dto => dto.Reply)
             .NotEmpty()
-            .MaximumLength(1000);
+            .MaximumLength(FieldLengths.ReviewReply);
     }
 }

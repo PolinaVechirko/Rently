@@ -18,7 +18,7 @@
 
     datalist.innerHTML = values
       .filter((value, index, list) => value && list.indexOf(value) === index)
-      .map((value) => `<option value="${value}">`)
+      .map((value) => `<option value="${window.RentlyRenderHelpers.escapeHtml(value)}">`)
       .join("");
   }
 

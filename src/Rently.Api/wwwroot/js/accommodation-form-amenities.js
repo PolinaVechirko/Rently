@@ -140,12 +140,13 @@
         typeof item === "string"
           ? { id: index + 1, name: item }
           : { id: item.id, name: item.name };
-      const displayLabel = getAmenityDisplayLabel(amenity.name);
+      const escapeHtml = window.RentlyRenderHelpers.escapeHtml;
+      const displayLabel = escapeHtml(getAmenityDisplayLabel(amenity.name));
       const column = document.createElement("div");
       column.className = "col-md-4 mb-2";
       column.innerHTML = `
         <div class="form-check">
-            <input class="form-check-input amenity-checkbox" type="checkbox" value="${amenity.name}" data-amenity-id="${amenity.id}" id="amenity-${index}">
+            <input class="form-check-input amenity-checkbox" type="checkbox" value="${escapeHtml(amenity.name)}" data-amenity-id="${escapeHtml(amenity.id)}" id="amenity-${index}">
             <label class="form-check-label text-muted" for="amenity-${index}">${displayLabel}</label>
         </div>
       `;

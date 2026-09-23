@@ -45,7 +45,7 @@
     thumbnailContainer.innerHTML = photos
       .map(
         (photo, index) => `
-          <img src="${getPropertyImageUrl(photo, 200)}" class="thumb ${index === 0 ? "active" : ""}" data-index="${index}" alt="property thumb">
+          <img src="${window.RentlyRenderHelpers.escapeHtml(getPropertyImageUrl(photo, 200))}" class="thumb ${index === 0 ? "active" : ""}" data-index="${index}" alt="property thumb">
         `,
       )
       .join("");
@@ -77,7 +77,7 @@
       lightboxCarousel.innerHTML = photos
         .map(
           (photo, index) => `
-            <img src="${getPropertyImageUrl(photo, 200)}" class="lightbox-thumb ${index === currentIndex ? "active" : ""}" data-index="${index}">
+            <img src="${window.RentlyRenderHelpers.escapeHtml(getPropertyImageUrl(photo, 200))}" class="lightbox-thumb ${index === currentIndex ? "active" : ""}" data-index="${index}">
           `,
         )
         .join("");

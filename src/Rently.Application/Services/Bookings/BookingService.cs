@@ -25,7 +25,7 @@ public class BookingService : IBookingService
         var (normalizedCheckIn, normalizedCheckOut) =
             BookingValidation.NormalizeDates(dto.CheckInDate, dto.CheckOutDate);
 
-        await _availabilityService.EnsureAccommodationExistsAsync(dto.AccommodationId, cancellationToken);
+        await _availabilityService.EnsureAccommodationBookableAsync(dto.AccommodationId, cancellationToken);
         await _availabilityService.EnsureAvailableAsync(dto.AccommodationId, normalizedCheckIn, normalizedCheckOut, cancellationToken: cancellationToken);
 
         var booking = new Booking

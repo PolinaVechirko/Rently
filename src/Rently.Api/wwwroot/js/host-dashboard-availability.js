@@ -53,7 +53,7 @@
         const formattedStart = startDate ? api.dateFormatter.format(startDate) : start;
         const formattedEnd = endDate ? api.dateFormatter.format(endDate) : end;
 
-        return `<div class="d-flex justify-content-between align-items-center py-2 border-top gap-3"><div><strong>${formattedStart}</strong> to <strong>${formattedEnd}</strong>${note ? `<div class="text-muted small">${note}</div>` : ""}</div><button class="btn btn-link p-0 text-decoration-none text-danger availability-block-delete-btn d-inline-flex align-items-center justify-content-center" type="button" data-block-id="${blockId}" aria-label="Remove blocked dates" style="width: 32px; height: 32px; font-size: 28px; line-height: 1;">×</button></div>`;
+        return `<div class="d-flex justify-content-between align-items-center py-2 border-top gap-3"><div><strong>${formattedStart}</strong> to <strong>${formattedEnd}</strong>${note ? `<div class="text-muted small">${window.RentlyRenderHelpers.escapeHtml(note)}</div>` : ""}</div><button class="btn btn-link p-0 text-decoration-none text-danger availability-block-delete-btn d-inline-flex align-items-center justify-content-center" type="button" data-block-id="${blockId}" aria-label="Remove blocked dates" style="width: 32px; height: 32px; font-size: 28px; line-height: 1;">×</button></div>`;
       })
       .join("");
 

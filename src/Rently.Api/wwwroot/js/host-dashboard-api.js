@@ -95,13 +95,6 @@
     }
   }
 
-  function setHTML(id, value) {
-    const element = document.getElementById(id);
-    if (element) {
-      element.innerHTML = value;
-    }
-  }
-
   function propertyTypeToEnumValue(type) {
     const propertyTypeMap = {
       Apartment: 0,
@@ -270,7 +263,6 @@
     redirectToHostHome,
     redirectToLogin,
     saveReviewReply,
-    setHTML,
     setText,
     updateListingVisibility,
     confirmBooking,

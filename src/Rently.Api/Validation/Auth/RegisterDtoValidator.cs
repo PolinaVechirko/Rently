@@ -1,5 +1,6 @@
 using FluentValidation;
 using Rently.Application.DTOs;
+using Rently.Domain.Constants;
 
 namespace Rently.Api.Validation.Auth;
 
@@ -9,7 +10,8 @@ public class RegisterDtoValidator : AbstractValidator<RegisterDto>
     {
         RuleFor(dto => dto.Email)
             .NotEmpty()
-            .EmailAddress();
+            .EmailAddress()
+            .MaximumLength(FieldLengths.Email);
 
         RuleFor(dto => dto.Password)
             .NotEmpty()
@@ -17,7 +19,7 @@ public class RegisterDtoValidator : AbstractValidator<RegisterDto>
 
         RuleFor(dto => dto.FullName)
             .NotEmpty()
-            .MaximumLength(100);
+            .MaximumLength(FieldLengths.FullName);
 
         RuleFor(dto => dto.Role)
             .NotEmpty()

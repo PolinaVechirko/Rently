@@ -256,7 +256,7 @@ async function renderInspirationResultsRows(
         html += `
                     <div class="accommodation-card type-2 inspiration-clickable-card" data-id="${propertyId}" style="cursor: pointer;">
                         <div class="acc-img-wrapper">
-                            <img src="${photo}" class="acc-img" alt="${safeTitle}">
+                            <img src="${escapeHtml(photo)}" class="acc-img" alt="${safeTitle}">
                             <div class="price-tag-overlay">
                                 ${priceDisplay}
                                 ${priceSubtext}

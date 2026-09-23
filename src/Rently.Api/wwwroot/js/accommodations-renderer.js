@@ -91,14 +91,16 @@
     const ratingText = renderHelpers.formatRating
       ? renderHelpers.formatRating(item.averageRating, item.reviewsCount)
       : `${item.averageRating?.toFixed(2) || "5.00"}(${item.reviewsCount || 0})`;
+    const escapeHtml = renderHelpers.escapeHtml;
+    const propertyId = escapeHtml(item.id);
     const favoriteIconSrc = renderHelpers.getFavoriteIconSrc
       ? renderHelpers.getFavoriteIconSrc(isFavorite)
       : `${assetBase}icons/${isFavorite ? "favorite-filled" : "favorite"}.svg`;
 
     return `
-      <div class="${cardClass}${showHostActions ? " host-clickable-card" : " inspiration-clickable-card"}" style="cursor:pointer;" data-id="${item.id}">
+      <div class="${cardClass}${showHostActions ? " host-clickable-card" : " inspiration-clickable-card"}" style="cursor:pointer;" data-id="${propertyId}">
           <div class="acc-img-wrapper">
-              <img src="${photo}" class="acc-img" alt="${housingType}">
+              <img src="${escapeHtml(photo)}" class="acc-img" alt="${escapeHtml(housingType)}">
               <div class="price-tag-overlay">
                   ${priceParts.priceDisplay}
                   ${nights > 0 ? priceParts.priceSubtext : ""}
@@ -107,10 +109,10 @@
                 showHostActions
                   ? `
                 <div class="host-card-actions">
-                    <button class="host-action-btn edit-btn" title="Edit Listing" data-id="${item.id}">
+                    <button class="host-action-btn edit-btn" title="Edit Listing" data-id="${propertyId}">
                         <span style="font-size: 18px;">✎</span>
                     </button>
-                    <button class="host-action-btn delete-btn" title="Delete Listing" data-id="${item.id}">
+                    <button class="host-action-btn delete-btn" title="Delete Listing" data-id="${propertyId}">
                         <img src="${assetBase}icons/x.svg" alt="delete">
                     </button>
                 </div>
@@ -120,7 +122,7 @@
               ${
                 !hideHeart && !showHostActions
                   ? `
-                <button class="favorite-btn ${isFavorite ? "active" : ""}" data-id="${item.id || item.Id}" aria-label="${isFavorite ? "Remove from favorites" : "Add to favorites"}">
+                <button class="favorite-btn ${isFavorite ? "active" : ""}" data-id="${propertyId}" aria-label="${isFavorite ? "Remove from favorites" : "Add to favorites"}">
                     <img src="${favoriteIconSrc}" alt="heart">
                 </button>
               `
@@ -130,13 +132,13 @@
           <div class="acc-info">
               <div class="acc-header">
                   <div class="acc-type-group">
-                      <div class="acc-type">${housingType}</div>
+                      <div class="acc-type">${escapeHtml(housingType)}</div>
                       ${
                         useType2
                           ? `
                         <div class="acc-location">
                             <img src="${assetBase}icons/locationIcon.svg" class="acc-loc-icon" alt="loc">
-                            <span class="acc-loc-text">${location}</span>
+                            <span class="acc-loc-text">${escapeHtml(location)}</span>
                         </div>
                       `
                           : ""
@@ -144,10 +146,10 @@
                   </div>
                   <div class="acc-rating">
                       <img src="${assetBase}icons/star.svg" class="star-icon" alt="star">
-                      <span>${ratingText}</span>
+                      <span>${escapeHtml(ratingText)}</span>
                   </div>
               </div>
-              ${useType2 ? `<div class="acc-desc">${description}</div>` : ""}
+              ${useType2 ? `<div class="acc-desc">${escapeHtml(description)}</div>` : ""}
           </div>
       </div>
     `;
@@ -210,10 +212,10 @@
           <div class="accommodation-card learn-more-card inspiration-learn-more">
               <div class="acc-img-wrapper learn-more-photo-wrapper">
                   <div class="learn-more-collage">
-                      <img src="${collageImages[0]}" alt="">
-                      <img src="${collageImages[1]}" alt="">
-                      <img src="${collageImages[2]}" alt="">
-                      <img src="${collageImages[3]}" alt="">
+                      <img src="${renderHelpers.escapeHtml(collageImages[0])}" alt="">
+                      <img src="${renderHelpers.escapeHtml(collageImages[1])}" alt="">
+                      <img src="${renderHelpers.escapeHtml(collageImages[2])}" alt="">
+                      <img src="${renderHelpers.escapeHtml(collageImages[3])}" alt="">
                   </div>
                   <button type="button" class="learn-more-btn">Learn more</button>
               </div>

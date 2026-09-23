@@ -168,7 +168,7 @@
     }
 
     if (descriptionElement) {
-      descriptionElement.innerHTML = `<p>${property.description}</p>`;
+      descriptionElement.innerHTML = `<p>${renderHelpers.escapeHtml(property.description)}</p>`;
     }
 
     if (ratingHeader) {
@@ -208,10 +208,11 @@
     amenitiesList.innerHTML = property.amenities
       .map((amenity) => {
         const iconName = amenityIconMap[amenity] || "wifi.svg";
+        const safeAmenity = renderHelpers.escapeHtml(amenity);
         return `
           <div class="amenity-item">
-            <img src="${assetBase}icons/${iconName}" onerror="this.src='${assetBase}icons/wifi.svg'; this.onerror=null;" alt="${amenity}">
-            <span>${amenity}</span>
+            <img src="${assetBase}icons/${iconName}" onerror="this.src='${assetBase}icons/wifi.svg'; this.onerror=null;" alt="${safeAmenity}">
+            <span>${safeAmenity}</span>
           </div>
         `;
       })

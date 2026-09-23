@@ -149,7 +149,7 @@
     element.innerHTML = `
       <div class="host-empty-card">
         <div class="host-empty-card-content">
-          <span class="host-empty-card-title">${message}</span>
+          <span class="host-empty-card-title">${renderHelpers.escapeHtml(message)}</span>
         </div>
       </div>
     `;
@@ -193,16 +193,19 @@
     const ratingText = renderHelpers.formatRating
       ? renderHelpers.formatRating(item.averageRating, item.reviewsCount)
       : `${item.averageRating?.toFixed(2) || "5.00"}(${item.reviewsCount || 0})`;
+    const escapeHtml = renderHelpers.escapeHtml;
+    const propertyId = escapeHtml(item.id);
+    const propertyType = escapeHtml(item.propertyType);
 
     return `
-      <div class="accommodation-card type-2 host-clickable-card" style="cursor:pointer;" data-id="${item.id}">
+      <div class="accommodation-card type-2 host-clickable-card" style="cursor:pointer;" data-id="${propertyId}">
         <div class="acc-img-wrapper">
-          <img src="${photo}" class="acc-img" alt="${item.propertyType}">
+          <img src="${escapeHtml(photo)}" class="acc-img" alt="${propertyType}">
           <div class="host-card-actions">
-            <button class="host-action-btn edit-btn" title="Edit Listing" data-id="${item.id}">
+            <button class="host-action-btn edit-btn" title="Edit Listing" data-id="${propertyId}">
               <span style="font-size: 18px;">✎</span>
             </button>
-            <button class="host-action-btn delete-btn" title="Delete Listing" data-id="${item.id}">
+            <button class="host-action-btn delete-btn" title="Delete Listing" data-id="${propertyId}">
               <img src="${assetBase}icons/x.svg" alt="delete">
             </button>
           </div>
@@ -210,18 +213,18 @@
         <div class="acc-info">
           <div class="acc-header">
             <div class="acc-type-group">
-              <div class="acc-type">${item.propertyType}</div>
+              <div class="acc-type">${propertyType}</div>
               <div class="acc-location">
                 <img src="${assetBase}icons/locationIcon.svg" class="acc-loc-icon" alt="loc">
-                <span class="acc-loc-text">${location}</span>
+                <span class="acc-loc-text">${escapeHtml(location)}</span>
               </div>
             </div>
             <div class="acc-rating">
               <img src="${assetBase}icons/star.svg" class="star-icon" alt="star">
-              <span>${ratingText}</span>
+              <span>${escapeHtml(ratingText)}</span>
             </div>
           </div>
-          <div class="acc-desc">${item.description || ""}</div>
+          <div class="acc-desc">${escapeHtml(item.description)}</div>
         </div>
       </div>
     `;

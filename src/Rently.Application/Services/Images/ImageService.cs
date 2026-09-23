@@ -17,6 +17,8 @@ public class ImageService : IImageService
         @"^data:(?<mime>image\/[a-zA-Z0-9.+-]+);base64,(?<data>.+)$",
         RegexOptions.Compiled);
 
+    private const int MaxResizeWidth = 2400;
+
     private readonly IWebHostEnvironment _environment;
     private readonly ImageUploadOptions _imageUploadOptions;
 
@@ -97,42 +99,69 @@ public class ImageService : IImageService
         }
 
         var filePath = ResolveImagePath(url);
-        if (filePath == null || !File.Exists(filePath))
+        if (filePath == null)
         {
             return null;
         }
 
-        var normalizedQuality = NormalizeImageQuality(quality);
-        using var image = await Image.LoadAsync(filePath, cancellationToken);
-        if (width > 0 && image.Width > width)
+        Image image;
+        try
         {
-            image.Mutate(x => x.Resize(new ResizeOptions
-            {
-                Size = new Size(width, 0),
-                Mode = ResizeMode.Max
-            }));
+            image = await Image.LoadAsync(filePath, cancellationToken);
+        }
+        catch (ImageFormatException)
+        {
+            return null;
         }
 
-        if (normalizedQuality == null)
+        using (image)
         {
+            var targetWidth = Math.Min(width, MaxResizeWidth);
+            var shouldResize = targetWidth > 0 && image.Width > targetWidth;
+            var normalizedQuality = NormalizeImageQuality(quality);
+
+            if (!shouldResize && normalizedQuality == null)
+            {
+                return new ImageContentDto
+                {
+                    Content = await File.ReadAllBytesAsync(filePath, cancellationToken),
+                    ContentType = GetContentTypeFromPath(filePath)
+                };
+            }
+
+            if (shouldResize)
+            {
+                image.Mutate(x => x.Resize(new ResizeOptions
+                {
+                    Size = new Size(targetWidth, 0),
+                    Mode = ResizeMode.Max
+                }));
+            }
+
+            await using var output = new MemoryStream();
+            if (normalizedQuality != null)
+            {
+                await image.SaveAsJpegAsync(
+                    output,
+                    new JpegEncoder { Quality = normalizedQuality.Value },
+                    cancellationToken);
+
+                return new ImageContentDto
+                {
+                    Content = output.ToArray(),
+                    ContentType = "image/jpeg"
+                };
+            }
+
+            var format = image.Metadata.DecodedImageFormat ?? JpegFormat.Instance;
+            await image.SaveAsync(output, format, cancellationToken);
+
             return new ImageContentDto
             {
-                Content = await File.ReadAllBytesAsync(filePath, cancellationToken),
-                ContentType = GetContentTypeFromPath(filePath)
+                Content = output.ToArray(),
+                ContentType = format.DefaultMimeType
             };
         }
-
-        await using var output = new MemoryStream();
-        await image.SaveAsJpegAsync(
-            output,
-            new JpegEncoder { Quality = normalizedQuality.Value },
-            cancellationToken);
-
-        return new ImageContentDto
-        {
-            Content = output.ToArray(),
-            ContentType = "image/jpeg"
-        };
     }
 
     private static int? NormalizeImageQuality(int? quality)
@@ -147,20 +176,20 @@ public class ImageService : IImageService
 
     private string? ResolveImagePath(string url)
     {
-        var cleanUrl = url.TrimStart('.', '/');
-        var filePath = Path.Combine(_environment.WebRootPath, cleanUrl);
+        var webRootPath = Path.GetFullPath(_environment.WebRootPath);
+        var webRootWithSeparator = webRootPath.EndsWith(Path.DirectorySeparatorChar)
+            ? webRootPath
+            : webRootPath + Path.DirectorySeparatorChar;
 
-        if (File.Exists(filePath))
+        var relativePath = url.TrimStart('.', '/', '\\');
+        var filePath = Path.GetFullPath(Path.Combine(webRootPath, relativePath));
+
+        if (!filePath.StartsWith(webRootWithSeparator, StringComparison.Ordinal))
         {
-            return filePath;
+            return null;
         }
 
-        if (Path.IsPathRooted(url) && url.StartsWith(_environment.WebRootPath, StringComparison.Ordinal))
-        {
-            return url;
-        }
-
-        return null;
+        return File.Exists(filePath) ? filePath : null;
     }
 
     private static string? GetSupportedExtension(string mimeType) =>

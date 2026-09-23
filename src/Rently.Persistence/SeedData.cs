@@ -20,7 +20,9 @@ namespace Rently.Persistence
             "Family Friendly"
         };
 
-        public static async Task InitializeAsync(IServiceProvider serviceProvider)
+        private static readonly string[] AccommodationPhotoExtensions = { ".jpg", ".jpeg", ".png", ".webp" };
+
+        public static async Task InitializeAsync(IServiceProvider serviceProvider, string webRootPath)
         {
             var context = serviceProvider.GetRequiredService<ApplicationDbContext>();
             var userManager = serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
@@ -109,10 +111,7 @@ namespace Rently.Persistence
                 await context.SaveChangesAsync();
                 Console.WriteLine("Users seeded.");
 
-                var imageDir = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot", "images");
-                var allImageFiles = System.IO.Directory.Exists(imageDir) 
-                    ? System.IO.Directory.GetFiles(imageDir).Select(f => $"./images/{System.IO.Path.GetFileName(f)}").ToList() 
-                    : new List<string> { "./images/hero1.png" };
+                var allImageFiles = GetAccommodationPhotoUrls(webRootPath);
 
                 int aCount = 0;
                 foreach (var hId in hosts)
@@ -137,12 +136,11 @@ namespace Rently.Persistence
                         context.Accommodations.Add(acc);
 
                         // Add some related data
-                        acc.Photos =
-                        [
-                            new Photo { Url = allImageFiles[random.Next(allImageFiles.Count)], SortOrder = 0 },
-                            new Photo { Url = allImageFiles[random.Next(allImageFiles.Count)], SortOrder = 1 },
-                            new Photo { Url = allImageFiles[random.Next(allImageFiles.Count)], SortOrder = 2 }
-                        ];
+                        acc.Photos = allImageFiles.Count == 0
+                            ? []
+                            : Enumerable.Range(0, 3)
+                                .Select(index => new Photo { Url = allImageFiles[random.Next(allImageFiles.Count)], SortOrder = index })
+                                .ToList();
                         
                         var selectedAmenities = amenities.OrderBy(x => random.Next()).Take(random.Next(5, 10)).ToList();
                         foreach (var am in selectedAmenities) 
@@ -184,6 +182,21 @@ namespace Rently.Persistence
                 Console.WriteLine(ex.StackTrace);
                 // Do not rethrow - allow the application to continue running even if seeding fails.
             }
+        }
+
+        // Demo listing photos live in their own folder so page assets (hero, footer, cities, avatars) are never picked.
+        private static List<string> GetAccommodationPhotoUrls(string webRootPath)
+        {
+            var photosDirectory = System.IO.Path.Combine(webRootPath, "images", "accommodations");
+            if (!System.IO.Directory.Exists(photosDirectory))
+            {
+                return [];
+            }
+
+            return System.IO.Directory.GetFiles(photosDirectory)
+                .Where(file => AccommodationPhotoExtensions.Contains(System.IO.Path.GetExtension(file), StringComparer.OrdinalIgnoreCase))
+                .Select(file => $"/images/accommodations/{System.IO.Path.GetFileName(file)}")
+                .ToList();
         }
 
         private static async Task EnsureAccommodationCoverPhotosAsync(ApplicationDbContext context)

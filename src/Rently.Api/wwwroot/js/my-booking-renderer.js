@@ -88,18 +88,20 @@
         ? renderHelpers.getPropertyHref(booking.accommodationId)
         : `./property.html?id=${booking.accommodationId}`;
       const priceLine = `$${pricePerNight} / night · Total: $${totalPrice}`;
+      const escapeHtml = renderHelpers.escapeHtml;
+      const accommodationType = escapeHtml(booking.accommodationType || "");
       const actionButton = isPending && booking.__section === "upcoming"
         ? `
-          <button class="booking-cancel-btn" data-booking-id="${booking.id}">
+          <button class="booking-cancel-btn" data-booking-id="${escapeHtml(booking.id)}">
               <span>Cancel booking</span>
           </button>
-          <a class="add-comment-btn" href="${stayHref}">
+          <a class="add-comment-btn" href="${escapeHtml(stayHref)}">
               <span>View stay</span>
               <img src="${assetBase}icons/arrowDown.svg" alt="go">
           </a>
         `
         : `
-          <a class="add-comment-btn" href="${stayHref}">
+          <a class="add-comment-btn" href="${escapeHtml(stayHref)}">
               <span>View stay</span>
               <img src="${assetBase}icons/arrowDown.svg" alt="go">
           </a>
@@ -108,14 +110,14 @@
       html += `
         <div class="${cardClass}">
             <div class="history-card-img">
-                <img src="${photo}" alt="${booking.accommodationType || "Property"}">
+                <img src="${escapeHtml(photo)}" alt="${accommodationType || "Property"}">
             </div>
             <div class="history-card-info">
                 <div class="history-card-top">
-                    <h3 class="history-card-name">${booking.accommodationType || "Booked stay"}</h3>
+                    <h3 class="history-card-name">${accommodationType || "Booked stay"}</h3>
                     <div class="history-card-location">
                         <img src="${assetBase}icons/locationIcon.svg" alt="loc">
-                        <span>${place || booking.accommodationTitle || "Unknown location"}</span>
+                        <span>${escapeHtml(place || booking.accommodationTitle || "Unknown location")}</span>
                     </div>
                     <div class="history-dates">
                         <img src="${assetBase}icons/calendar.svg" alt="cal" class="history-cal-icon">

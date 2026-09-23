@@ -1,5 +1,6 @@
 (function createPropertyReviews(window) {
   const avatarUtils = window.RentlyAvatarUtils;
+  const { escapeHtml } = window.RentlyRenderHelpers;
 
   function renderPropertyReviews(property, assetBase = "./") {
     const reviewsGrid = document.querySelector(".reviews-grid");
@@ -40,24 +41,24 @@
         return `
           <div class="review-item ${index >= 4 ? "extra-review" : ""}">
             <div class="review-header">
-              <img id="${reviewId}" src="${avatar.src}" alt="User" class="${avatar.isFallback ? "avatar-fallback" : ""}">
+              <img id="${reviewId}" src="${escapeHtml(avatar.src)}" alt="User" class="${avatar.isFallback ? "avatar-fallback" : ""}">
               <div class="review-meta">
-                <div class="reviewer-name">${review.reviewerName || "Anonymous"}</div>
+                <div class="reviewer-name">${escapeHtml(review.reviewerName || "Anonymous")}</div>
                 <div class="review-date">${new Date(review.createdAt).toLocaleDateString("en-US", { month: "long", year: "numeric" })}</div>
               </div>
               <div class="review-rating"><img src="${assetBase}icons/star.svg" alt="star"> ${Number(review.rating || 0).toFixed(1)}</div>
             </div>
-            <p class="review-text">${review.comment || "No comment left."}</p>
+            <p class="review-text">${escapeHtml(review.comment || "No comment left.")}</p>
             ${review.hostReply ? `
               <div class="host-reply-card">
                 <div class="review-header">
-                  <img id="${hostReplyAvatarId}" src="${hostAvatar.src}" alt="Host" class="${hostAvatar.isFallback ? "avatar-fallback" : ""}">
+                  <img id="${hostReplyAvatarId}" src="${escapeHtml(hostAvatar.src)}" alt="Host" class="${hostAvatar.isFallback ? "avatar-fallback" : ""}">
                   <div class="review-meta">
-                    <div class="reviewer-name">${property.hostName || "Host"}<span class="review-role">Host</span></div>
+                    <div class="reviewer-name">${escapeHtml(property.hostName || "Host")}<span class="review-role">Host</span></div>
                     <div class="review-date">${review.hostReplyCreatedAt ? new Date(review.hostReplyCreatedAt).toLocaleDateString("en-US", { month: "long", year: "numeric" }) : ""}</div>
                   </div>
                 </div>
-                <p class="review-text">${review.hostReply}</p>
+                <p class="review-text">${escapeHtml(review.hostReply)}</p>
               </div>
             ` : ""}
           </div>

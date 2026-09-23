@@ -8,7 +8,9 @@
       const guests = details.guests || 1;
       const bedrooms = details.bedrooms || 1;
       const beds = details.beds || 1;
-      const description = details.description || "A very nice place to stay.";
+      const description = window.RentlyRenderHelpers.escapeHtml(
+        details.description || "A very nice place to stay.",
+      );
 
       return `<p class="fw-bold mb-1">${guests} guests · ${bedrooms} bedrooms · ${beds} beds</p><p class="mt-2 text-muted">${description}</p>`;
     };
@@ -45,7 +47,6 @@
 
     if (previewDescription) {
       previewDescription.innerHTML =
-        details.descriptionHtml ||
         preview.buildListingPreviewDescriptionHtml(details);
       if (details.collapsedDescription) {
         previewDescription.classList.add("collapsed");
@@ -109,11 +110,12 @@
     amenities.forEach((amenityValue) => {
       const amenityName = normalizeAmenityName(amenityValue);
       const iconName = amenityIconMap[amenityName] || "wifi.svg";
+      const safeAmenityName = window.RentlyRenderHelpers.escapeHtml(amenityName);
       const amenityElement = document.createElement("div");
       amenityElement.className = "amenity-item";
       amenityElement.innerHTML = `
-        <img src="${assetBase}icons/${iconName}" onerror="this.src='${assetBase}icons/wifi.svg'; this.onerror=null;" alt="${amenityName}">
-        <span>${amenityName}</span>
+        <img src="${assetBase}icons/${iconName}" onerror="this.src='${assetBase}icons/wifi.svg'; this.onerror=null;" alt="${safeAmenityName}">
+        <span>${safeAmenityName}</span>
       `;
       container.appendChild(amenityElement);
     });

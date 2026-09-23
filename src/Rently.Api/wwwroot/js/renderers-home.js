@@ -115,10 +115,11 @@
       let html = "";
       topAmenities.forEach((item) => {
         const iconFile = iconMap[item.name] || "wifi.svg";
+        const safeName = root.RentlyRenderHelpers.escapeHtml(item.name);
         html += `
-                <button class="amenity-btn" data-amenity-name="${item.name}">
-                    <img src="${assetBase}icons/${iconFile}" alt="${item.name}" class="amenity-icon">
-                    <span class="amenity-label">${item.name}</span>
+                <button class="amenity-btn" data-amenity-name="${safeName}">
+                    <img src="${assetBase}icons/${iconFile}" alt="${safeName}" class="amenity-icon">
+                    <span class="amenity-label">${safeName}</span>
                 </button>
             `;
       });
