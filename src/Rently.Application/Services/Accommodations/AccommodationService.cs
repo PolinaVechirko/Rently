@@ -11,6 +11,13 @@ namespace Rently.Application.Services.Accommodations;
 
 public class AccommodationService : IAccommodationService
 {
+    private const int MaxPageSize = 200;
+    private const int MaxHomepageCount = 50;
+    private const string HomepageCacheVersionKey = "homepage:version";
+    private static readonly TimeSpan HomepageCacheDuration = TimeSpan.FromMinutes(5);
+
+    private const string NotOwnedAccommodationMessage = "Accommodation not found or you are not the owner.";
+
     private const string ConfirmedReservationsDeletionMessage =
         "This apartment cannot be deleted while it has confirmed reservations.";
 
@@ -28,17 +35,18 @@ public class AccommodationService : IAccommodationService
         CancellationToken cancellationToken = default)
     {
         var filters = queryDto ?? new AccommodationListQueryDto();
-        var today = DateTime.UtcNow.Date;
-        var accommodationsQuery = AccommodationQueries.BuildAccommodationListQuery(_context, today);
-        accommodationsQuery = AccommodationQueryFilters.ApplyListFilters(accommodationsQuery, filters, _context);
+        var limit = Math.Clamp(filters.Limit, 1, MaxPageSize);
+        var skip = Math.Max(0, filters.Skip);
 
-        var accommodations = await accommodationsQuery.ToListAsync(cancellationToken);
-        accommodations = AccommodationSorting.ApplyListSorting(accommodations, filters.SortBy);
+        var query = AccommodationQueries.BuildVisibleQuery(_context, DateTime.UtcNow.Date);
+        query = AccommodationQueryFilters.ApplyListFilters(query, filters, _context);
 
-        return accommodations
-            .Skip(filters.Skip)
-            .Take(filters.Limit)
-            .Select(accommodation => AccommodationMapper.ToDto(accommodation));
+        var sortOrder = AccommodationSorting.Parse(filters.SortBy, AccommodationSortOrder.Unsorted);
+        var sortedQuery = await AccommodationSorting.ApplyAsync(query, sortOrder, cancellationToken);
+        var accommodations = await AccommodationQueries.LoadPageAsync(
+            _context, sortedQuery, skip, limit, includeBookings: true, cancellationToken);
+
+        return accommodations.Select(accommodation => AccommodationMapper.ToDto(accommodation));
     }
 
     public async Task<PagedResultDto<AccommodationDto>> SearchAccommodationsAsync(
@@ -46,34 +54,27 @@ public class AccommodationService : IAccommodationService
         CancellationToken cancellationToken = default)
     {
         var filters = queryDto ?? new AccommodationSearchQueryDto();
-        filters.Limit = Math.Clamp(filters.Limit, 1, 200);
+        filters.Limit = Math.Clamp(filters.Limit, 1, MaxPageSize);
         filters.Skip = Math.Max(0, filters.Skip);
 
-        var effectiveCheckIn = filters.CheckIn?.Date;
-        var effectiveCheckOut = filters.CheckOut?.Date;
-
-        var today = DateTime.UtcNow.Date;
-        var accommodationsQuery = AccommodationQueries.BuildAccommodationSearchQuery(_context, today);
-        accommodationsQuery = AccommodationQueryFilters.ApplySearchFilters(
-            accommodationsQuery,
+        var query = AccommodationQueries.BuildVisibleQuery(_context, DateTime.UtcNow.Date);
+        query = AccommodationQueryFilters.ApplySearchFilters(
+            query,
             filters,
-            effectiveCheckIn,
-            effectiveCheckOut,
+            filters.CheckIn?.Date,
+            filters.CheckOut?.Date,
             _context);
 
-        var total = await accommodationsQuery.CountAsync(cancellationToken);
+        var total = await query.CountAsync(cancellationToken);
 
-        var allFilteredItems = await AccommodationQueries.LoadSearchResultsAsync(accommodationsQuery, cancellationToken);
-        var sortedItems = AccommodationSorting.ApplySearchSorting(allFilteredItems, filters.SortBy);
-
-        var items = sortedItems
-            .Skip(filters.Skip)
-            .Take(filters.Limit)
-            .ToList();
+        var sortOrder = AccommodationSorting.Parse(filters.SortBy, AccommodationSortOrder.Newest);
+        var sortedQuery = await AccommodationSorting.ApplyAsync(query, sortOrder, cancellationToken);
+        var accommodations = await AccommodationQueries.LoadPageAsync(
+            _context, sortedQuery, filters.Skip, filters.Limit, includeBookings: false, cancellationToken);
 
         return new PagedResultDto<AccommodationDto>
         {
-            Items = items.Select(accommodation => AccommodationMapper.ToListDto(accommodation)).ToList(),
+            Items = accommodations.Select(AccommodationMapper.ToListDto).ToList(),
             Total = total,
             Limit = filters.Limit,
             Skip = filters.Skip
@@ -93,42 +94,24 @@ public class AccommodationService : IAccommodationService
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<IReadOnlyList<AccommodationDto>> GetHomepageHighestRatedAsync(int count = 16, CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<AccommodationDto>> GetHomepageHighestRatedAsync(int count = 16, CancellationToken cancellationToken = default)
     {
-        count = Math.Clamp(count, 1, 50);
-        var cacheKey = AccommodationHomepageCache.HighestRatedKey(count);
-        if (_cache.TryGetValue(cacheKey, out List<AccommodationDto>? cached) && cached != null)
-        {
-            return cached;
-        }
-
-        var today = DateTime.UtcNow.Date;
-        var rows = await AccommodationHomepageQueries.GetHighestRatedAsync(_context, today, count, cancellationToken);
-        var result = AccommodationHomepageMapper.ToDtos(rows);
-
-        _cache.Set(cacheKey, result, AccommodationHomepageCache.CacheDuration);
-        return result;
+        count = Math.Clamp(count, 1, MaxHomepageCount);
+        return GetCachedHomepageSectionAsync(
+            $"highest-rated:{count}",
+            today => AccommodationHomepageQueries.GetHighestRatedAsync(_context, today, count, cancellationToken));
     }
 
-    public async Task<IReadOnlyList<AccommodationDto>> GetHomepageMostVisitedAsync(int count = 16, int skip = 0, CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<AccommodationDto>> GetHomepageMostVisitedAsync(int count = 16, int skip = 0, CancellationToken cancellationToken = default)
     {
-        count = Math.Clamp(count, 1, 50);
+        count = Math.Clamp(count, 1, MaxHomepageCount);
         skip = Math.Max(0, skip);
-        var cacheKey = AccommodationHomepageCache.MostVisitedKey(count, skip);
-        if (_cache.TryGetValue(cacheKey, out List<AccommodationDto>? cached) && cached != null)
-        {
-            return cached;
-        }
-
-        var today = DateTime.UtcNow.Date;
-        var rows = await AccommodationHomepageQueries.GetMostVisitedAsync(_context, today, count, skip, cancellationToken);
-        var result = AccommodationHomepageMapper.ToDtos(rows);
-
-        _cache.Set(cacheKey, result, AccommodationHomepageCache.CacheDuration);
-        return result;
+        return GetCachedHomepageSectionAsync(
+            $"most-visited:{count}:{skip}",
+            today => AccommodationHomepageQueries.GetMostVisitedAsync(_context, today, count, skip, cancellationToken));
     }
 
-    public async Task<AccommodationDto?> GetAccommodationByIdAsync(int id, CancellationToken cancellationToken = default)
+    public async Task<AccommodationDto> GetAccommodationByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         var accommodation = await _context.Accommodations
             .Include(a => a.Address)
@@ -139,12 +122,8 @@ public class AccommodationService : IAccommodationService
             .Include(a => a.Bookings)
             .Include(a => a.FavoritedBy)
             .AsNoTracking()
-            .FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
-
-        if (accommodation == null)
-        {
-            return null;
-        }
+            .FirstOrDefaultAsync(a => a.Id == id, cancellationToken)
+            ?? throw new NotFoundException("Accommodation not found.");
 
         var host = await _context.Users.FirstOrDefaultAsync(u => u.Id == accommodation.HostId, cancellationToken);
         var reviewerIds = accommodation.Reviews?.Select(r => r.GuestId).Distinct().ToList() ?? [];
@@ -167,19 +146,15 @@ public class AccommodationService : IAccommodationService
         await AssignCoverPhotoAsync(accommodation.Id, cancellationToken);
         ClearHomepageCache();
 
-        return await GetAccommodationByIdAsync(accommodation.Id, cancellationToken) ?? AccommodationMapper.ToDto(accommodation);
+        return await GetAccommodationByIdAsync(accommodation.Id, cancellationToken);
     }
 
-    public async Task<bool> DeleteAccommodationAsync(int id, string hostId, CancellationToken cancellationToken = default)
+    public async Task DeleteAccommodationAsync(int id, string hostId, CancellationToken cancellationToken = default)
     {
         var accommodation = await _context.Accommodations
             .Include(a => a.Address)
-            .FirstOrDefaultAsync(a => a.Id == id && a.HostId == hostId, cancellationToken);
-
-        if (accommodation == null)
-        {
-            return false;
-        }
+            .FirstOrDefaultAsync(a => a.Id == id && a.HostId == hostId, cancellationToken)
+            ?? throw new NotFoundException(NotOwnedAccommodationMessage);
 
         var hasConfirmedReservations = await _context.Bookings
             .AnyAsync(
@@ -206,7 +181,6 @@ public class AccommodationService : IAccommodationService
         }
 
         ClearHomepageCache();
-        return true;
     }
 
     public async Task<IEnumerable<string>> GetUniqueLocationsAsync(CancellationToken cancellationToken = default)
@@ -238,18 +212,14 @@ public class AccommodationService : IAccommodationService
         return accommodations.Select(accommodation => AccommodationMapper.ToDto(accommodation));
     }
 
-    public async Task<AccommodationDto?> UpdateAccommodationAsync(int id, string hostId, UpdateAccommodationDto dto, CancellationToken cancellationToken = default)
+    public async Task<AccommodationDto> UpdateAccommodationAsync(int id, string hostId, UpdateAccommodationDto dto, CancellationToken cancellationToken = default)
     {
         var accommodation = await _context.Accommodations
             .Include(a => a.Address)
             .Include(a => a.AccommodationAmenities)
             .Include(a => a.Photos)
-            .FirstOrDefaultAsync(a => a.Id == id && a.HostId == hostId, cancellationToken);
-
-        if (accommodation == null)
-        {
-            return null;
-        }
+            .FirstOrDefaultAsync(a => a.Id == id && a.HostId == hostId, cancellationToken)
+            ?? throw new NotFoundException(NotOwnedAccommodationMessage);
 
         await EnsureValidAmenitiesAsync(dto.AmenityIds, cancellationToken);
 
@@ -301,10 +271,34 @@ public class AccommodationService : IAccommodationService
         }
     }
 
+    private async Task<IReadOnlyList<AccommodationDto>> GetCachedHomepageSectionAsync(
+        string sectionKey,
+        Func<DateTime, Task<List<HomepageAccommodationRow>>> loadRows)
+    {
+        var cacheKey = $"homepage:v{GetHomepageCacheVersion()}:{sectionKey}";
+        if (_cache.TryGetValue(cacheKey, out List<AccommodationDto>? cached) && cached != null)
+        {
+            return cached;
+        }
+
+        var rows = await loadRows(DateTime.UtcNow.Date);
+        var result = AccommodationHomepageMapper.ToDtos(rows);
+        _cache.Set(cacheKey, result, HomepageCacheDuration);
+        return result;
+    }
+
+    private int GetHomepageCacheVersion()
+    {
+        return _cache.TryGetValue(HomepageCacheVersionKey, out int version) ? version : 0;
+    }
+
+    /// <summary>
+    /// Bumps the version that is part of every homepage cache key, so all cached sections
+    /// (any count or skip) become stale at once; old entries simply expire.
+    /// </summary>
     private void ClearHomepageCache()
     {
-        _cache.Remove(AccommodationHomepageCache.HighestRatedKey(16));
-        _cache.Remove(AccommodationHomepageCache.MostVisitedKey(16, 0));
+        _cache.Set(HomepageCacheVersionKey, GetHomepageCacheVersion() + 1);
     }
 
     private async Task AssignCoverPhotoAsync(int accommodationId, CancellationToken cancellationToken)

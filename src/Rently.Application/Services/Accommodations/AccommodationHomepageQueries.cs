@@ -1,31 +1,25 @@
 using Microsoft.EntityFrameworkCore;
+using Rently.Domain.Entities;
 using Rently.Persistence;
 
 namespace Rently.Application.Services.Accommodations;
 
 internal static class AccommodationHomepageQueries
 {
-    private const int WeightedRatingReviewThreshold = 20;
-
-    public static async Task<IReadOnlyList<HomepageAccommodationRow>> GetHighestRatedAsync(
+    public static async Task<List<HomepageAccommodationRow>> GetHighestRatedAsync(
         ApplicationDbContext dbContext,
         DateTime today,
         int count,
         CancellationToken cancellationToken = default)
     {
-        var reviewsTotal = await dbContext.Reviews.AsNoTracking().CountAsync(cancellationToken);
-        var averageRating = reviewsTotal == 0
-            ? 0.0
-            : await dbContext.Reviews.AsNoTracking().AverageAsync(review => (double)review.Rating, cancellationToken);
+        var reviewedAccommodations = AccommodationQueries.BuildVisibleQuery(dbContext, today)
+            .Where(accommodation => accommodation.Reviews!.Any());
 
-        return await BaseHomepageQuery(dbContext, today)
-            .Where(row => row.ReviewsCount > 0)
-            .OrderByDescending(row =>
-                ((double)row.ReviewsCount / (row.ReviewsCount + WeightedRatingReviewThreshold)) * row.AvgRating +
-                ((double)WeightedRatingReviewThreshold / (row.ReviewsCount + WeightedRatingReviewThreshold)) * averageRating +
-                ((double)row.Popularity / 1000.0))
-            .ThenByDescending(row => row.Popularity)
-            .ThenByDescending(row => row.CreatedAt)
+        var sortedQuery = (await AccommodationSorting.OrderByWeightedRatingAsync(reviewedAccommodations, cancellationToken))
+            .ThenByDescending(accommodation => accommodation.Bookings!.Count(booking => booking.Status == BookingStatus.Confirmed))
+            .ThenByDescending(accommodation => accommodation.CreatedAt);
+
+        return await ProjectRows(dbContext, sortedQuery)
             .Take(count)
             .ToListAsync(cancellationToken);
     }
@@ -37,7 +31,7 @@ internal static class AccommodationHomepageQueries
         int skip,
         CancellationToken cancellationToken = default)
     {
-        return BaseHomepageQuery(dbContext, today)
+        return ProjectRows(dbContext, AccommodationQueries.BuildVisibleQuery(dbContext, today))
             .OrderByDescending(row => row.Popularity)
             .ThenByDescending(row => row.AvgRating)
             .ThenByDescending(row => row.ReviewsCount)
@@ -46,11 +40,11 @@ internal static class AccommodationHomepageQueries
             .ToListAsync(cancellationToken);
     }
 
-    private static IQueryable<HomepageAccommodationRow> BaseHomepageQuery(ApplicationDbContext dbContext, DateTime today)
+    private static IQueryable<HomepageAccommodationRow> ProjectRows(
+        ApplicationDbContext dbContext,
+        IQueryable<Accommodation> accommodations)
     {
-        return dbContext.Accommodations
-            .AsNoTracking()
-            .Where(AccommodationQueries.IsVisibleOnDate(today))
+        return accommodations
             .Select(accommodation => new HomepageAccommodationRow
             {
                 Id = accommodation.Id,
@@ -74,7 +68,7 @@ internal static class AccommodationHomepageQueries
                     .Average() ?? 0.0,
                 Popularity = dbContext.Bookings.Count(booking =>
                     booking.AccommodationId == accommodation.Id &&
-                    booking.Status == Rently.Domain.Entities.BookingStatus.Confirmed),
+                    booking.Status == BookingStatus.Confirmed),
                 FirstPhoto =
                     dbContext.Photos
                         .Where(photo => photo.Id == accommodation.CoverPhotoId)

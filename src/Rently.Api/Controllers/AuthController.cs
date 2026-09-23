@@ -39,8 +39,6 @@ public class AuthController : ControllerBase
     {
         var userId = _currentUser.GetRequiredUserId();
         var userInfo = await _authService.GetUserInfoAsync(userId, cancellationToken);
-        if (userInfo == null) return NotFound();
-
         return Ok(userInfo);
     }
 

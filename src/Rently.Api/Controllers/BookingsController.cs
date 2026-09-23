@@ -50,8 +50,6 @@ public class BookingsController : ControllerBase
     {
         var userId = _currentUser.GetRequiredUserId();
         var result = await _service.CancelPendingBookingAsync(userId, id, cancellationToken);
-        if (result == null) return NotFound();
-
         return Ok(result);
     }
 
@@ -61,8 +59,6 @@ public class BookingsController : ControllerBase
     {
         var userId = _currentUser.GetRequiredUserId();
         var result = await _service.ConfirmPendingBookingAsync(userId, id, cancellationToken);
-        if (result == null) return NotFound();
-
         return Ok(result);
     }
 
@@ -72,8 +68,6 @@ public class BookingsController : ControllerBase
     {
         var userId = _currentUser.GetRequiredUserId();
         var result = await _service.DeclinePendingBookingAsync(userId, id, cancellationToken);
-        if (result == null) return NotFound();
-
         return Ok(result);
     }
 }

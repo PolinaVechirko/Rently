@@ -35,12 +35,16 @@ public static class ServiceCollectionExtensions
         IWebHostEnvironment environment)
     {
         var connectionString = configuration.GetConnectionString("DefaultConnection") ?? "Data Source=rently.db";
-        var jwtOptions = configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
         var corsOptions = configuration.GetSection(CorsOptions.SectionName).Get<CorsOptions>() ?? new CorsOptions();
 
         services.AddDbContext<ApplicationDbContext>(options => options.UseSqlite(connectionString));
         services.AddHttpContextAccessor();
-        services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
+        services.AddOptions<JwtOptions>()
+            .Bind(configuration.GetSection(JwtOptions.SectionName))
+            .Validate(
+                options => options.HasValidKeyLength(),
+                $"Jwt:Key must be at least {JwtOptions.MinimumKeyBytes} bytes long.")
+            .ValidateOnStart();
         services.Configure<ImageUploadOptions>(configuration.GetSection(ImageUploadOptions.SectionName));
         services.Configure<CorsOptions>(configuration.GetSection(CorsOptions.SectionName));
         services.AddIdentity<ApplicationUser, IdentityRole>(options =>
@@ -97,7 +101,7 @@ public static class ServiceCollectionExtensions
                     ValidateIssuerSigningKey = true,
                     ValidIssuer = jwtOptions.Issuer,
                     ValidAudience = jwtOptions.Audience,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.GetSigningKey()))
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.Key))
                 };
             });
 

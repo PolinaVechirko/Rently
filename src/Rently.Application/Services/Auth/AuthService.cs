@@ -65,7 +65,7 @@ public class AuthService : IAuthService
         };
     }
 
-    public async Task<UserInfoDto?> GetUserInfoAsync(string userId, CancellationToken cancellationToken = default)
+    public async Task<UserInfoDto> GetUserInfoAsync(string userId, CancellationToken cancellationToken = default)
     {
         return await _userManager.Users
             .AsNoTracking()
@@ -80,7 +80,8 @@ public class AuthService : IAuthService
                 ProfilePhotoUrl = u.ProfilePhotoUrl ?? UserMapper.DefaultAvatarUrl,
                 Bio = u.Bio
             })
-            .FirstOrDefaultAsync(cancellationToken);
+            .FirstOrDefaultAsync(cancellationToken)
+            ?? throw new NotFoundException("User not found.");
     }
 
     public async Task<UserInfoDto> UpdateProfileAsync(string userId, UpdateProfileDto dto, CancellationToken cancellationToken = default)

@@ -193,10 +193,10 @@ internal static class AccommodationQueryFilters
         var normalizedCheckOut = checkOut.Value.Date;
 
         return query.Where(accommodation =>
-            (accommodation.Bookings == null || !accommodation.Bookings.Any(booking =>
+            !accommodation.Bookings!.Any(booking =>
                 booking.Status != BookingStatus.Cancelled &&
                 booking.CheckInDate < normalizedCheckOut &&
-                booking.CheckOutDate > normalizedCheckIn)) &&
+                booking.CheckOutDate > normalizedCheckIn) &&
             !dbContext.AvailabilityBlocks.Any(block =>
                 block.AccommodationId == accommodation.Id &&
                 normalizedCheckIn < block.EndDate &&

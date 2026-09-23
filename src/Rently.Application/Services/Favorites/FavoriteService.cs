@@ -117,7 +117,7 @@ public class FavoriteService : IFavoriteService
         };
     }
 
-    public async Task<AddFavoriteResultDto?> AddFavoriteAsync(string userId, int accommodationId, string type, CancellationToken cancellationToken = default)
+    public async Task<AddFavoriteResultDto> AddFavoriteAsync(string userId, int accommodationId, string type, CancellationToken cancellationToken = default)
     {
         var favoriteType = ParseRequiredFavoriteType(type);
 
@@ -137,7 +137,7 @@ public class FavoriteService : IFavoriteService
 
         if (exists)
         {
-            return null;
+            throw new ConflictException("Already favorited");
         }
 
         _db.Favorites.Add(new Favorite
@@ -155,39 +155,22 @@ public class FavoriteService : IFavoriteService
         };
     }
 
-    public async Task<bool> RemoveFavoriteAsync(string userId, int accommodationId, string? type, CancellationToken cancellationToken = default)
+    public async Task RemoveFavoriteAsync(string userId, int accommodationId, string? type, CancellationToken cancellationToken = default)
     {
         var favoriteType = ParseOptionalFavoriteType(type);
 
-        if (favoriteType == null)
+        var favorites = await _db.Favorites
+            .Where(favorite => favorite.UserId == userId && favorite.AccommodationId == accommodationId)
+            .Where(favorite => favoriteType == null || favorite.Type == favoriteType.Value)
+            .ToListAsync(cancellationToken);
+
+        if (favorites.Count == 0)
         {
-            var favorites = await _db.Favorites
-                .Where(favorite => favorite.UserId == userId && favorite.AccommodationId == accommodationId)
-                .ToListAsync(cancellationToken);
-
-            if (favorites.Count == 0)
-            {
-                return false;
-            }
-
-            _db.Favorites.RemoveRange(favorites);
-            await _db.SaveChangesAsync(cancellationToken);
-            return true;
+            throw new NotFoundException("Favorite not found.");
         }
 
-        var favoriteToRemove = await _db.Favorites.FirstOrDefaultAsync(favorite =>
-            favorite.UserId == userId &&
-            favorite.AccommodationId == accommodationId &&
-            favorite.Type == favoriteType.Value, cancellationToken);
-
-        if (favoriteToRemove == null)
-        {
-            return false;
-        }
-
-        _db.Favorites.Remove(favoriteToRemove);
+        _db.Favorites.RemoveRange(favorites);
         await _db.SaveChangesAsync(cancellationToken);
-        return true;
     }
 
     private static Dictionary<string, ApplicationUser> BuildReviewersDictionary(
@@ -223,16 +206,6 @@ public class FavoriteService : IFavoriteService
 
     private static FavoriteType? ParseOptionalFavoriteType(string? type)
     {
-        if (string.IsNullOrWhiteSpace(type))
-        {
-            return null;
-        }
-
-        if (Enum.TryParse<FavoriteType>(type, ignoreCase: true, out var parsedType))
-        {
-            return parsedType;
-        }
-
-        throw new AppValidationException("Favorite type must be either Guest or Host.");
+        return string.IsNullOrWhiteSpace(type) ? null : ParseRequiredFavoriteType(type);
     }
 }

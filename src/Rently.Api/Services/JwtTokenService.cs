@@ -21,7 +21,7 @@ public class JwtTokenService : IJwtTokenService
     public string CreateToken(ApplicationUser user)
     {
         var tokenHandler = new JwtSecurityTokenHandler();
-        var signingKey = Encoding.UTF8.GetBytes(_jwtOptions.GetSigningKey());
+        var signingKey = Encoding.UTF8.GetBytes(_jwtOptions.Key);
 
         var tokenDescriptor = new SecurityTokenDescriptor
         {

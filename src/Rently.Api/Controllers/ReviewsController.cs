@@ -42,8 +42,6 @@ public class ReviewsController : ControllerBase
     {
         var userId = _currentUser.GetRequiredUserId();
         var result = await _service.ReplyAsync(userId, id, dto, cancellationToken);
-        if (result == null) return NotFound();
-
         return Ok(result);
     }
 }

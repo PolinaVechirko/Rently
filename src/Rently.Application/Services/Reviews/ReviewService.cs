@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Rently.Application.DTOs;
+using Rently.Application.Exceptions;
 using Rently.Application.Interfaces;
 using Rently.Application.Mappers;
 using Rently.Domain.Entities;
@@ -60,16 +61,12 @@ public class ReviewService : IReviewService
         return ReviewMapper.ToDto(review, reviewer);
     }
 
-    public async Task<ReviewReplyResultDto?> ReplyAsync(string hostId, int reviewId, ReviewReplyDto dto, CancellationToken cancellationToken = default)
+    public async Task<ReviewReplyResultDto> ReplyAsync(string hostId, int reviewId, ReviewReplyDto dto, CancellationToken cancellationToken = default)
     {
         var review = await _db.Reviews
             .Include(existingReview => existingReview.Accommodation)
-            .FirstOrDefaultAsync(existingReview => existingReview.Id == reviewId, cancellationToken);
-
-        if (review == null)
-        {
-            return null;
-        }
+            .FirstOrDefaultAsync(existingReview => existingReview.Id == reviewId, cancellationToken)
+            ?? throw new NotFoundException("Review not found.");
 
         ReviewValidation.EnsureHostOwnsAccommodation(review, hostId);
 

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Rently.Application.DTOs;
+using Rently.Application.Exceptions;
 using Rently.Application.Interfaces;
 using Rently.Application.Mappers;
 using Rently.Domain.Entities;
@@ -77,12 +78,12 @@ public class BookingService : IBookingService
             guests.TryGetValue(booking.GuestId, out var guest) ? guest : null));
     }
 
-    public async Task<BookingDto?> CancelPendingBookingAsync(string guestId, int bookingId, CancellationToken cancellationToken = default)
+    public async Task<BookingDto> CancelPendingBookingAsync(string guestId, int bookingId, CancellationToken cancellationToken = default)
     {
         var booking = await BuildBookingWithAccommodationQuery()
             .FirstOrDefaultAsync(booking => booking.Id == bookingId && booking.GuestId == guestId, cancellationToken);
 
-        if (booking == null) return null;
+        if (booking == null) throw new NotFoundException("Booking not found.");
         BookingValidation.EnsurePendingStatus(booking, "Only pending bookings can be cancelled.");
 
         booking.Status = BookingStatus.Cancelled;
@@ -91,7 +92,7 @@ public class BookingService : IBookingService
         return BookingMapper.ToDto(booking);
     }
 
-    public async Task<BookingDto?> ConfirmPendingBookingAsync(string hostId, int bookingId, CancellationToken cancellationToken = default)
+    public async Task<BookingDto> ConfirmPendingBookingAsync(string hostId, int bookingId, CancellationToken cancellationToken = default)
     {
         var booking = await BuildBookingWithAccommodationQuery()
             .FirstOrDefaultAsync(booking =>
@@ -99,7 +100,7 @@ public class BookingService : IBookingService
                 booking.Accommodation != null &&
                 booking.Accommodation.HostId == hostId, cancellationToken);
 
-        if (booking == null) return null;
+        if (booking == null) throw new NotFoundException("Booking not found.");
         BookingValidation.EnsurePendingStatus(booking, "Only pending bookings can be accepted.");
         await _availabilityService.EnsureAvailableAsync(
             booking.AccommodationId,
@@ -114,7 +115,7 @@ public class BookingService : IBookingService
         return BookingMapper.ToDto(booking);
     }
 
-    public async Task<BookingDto?> DeclinePendingBookingAsync(string hostId, int bookingId, CancellationToken cancellationToken = default)
+    public async Task<BookingDto> DeclinePendingBookingAsync(string hostId, int bookingId, CancellationToken cancellationToken = default)
     {
         var booking = await BuildBookingWithAccommodationQuery()
             .FirstOrDefaultAsync(booking =>
@@ -122,7 +123,7 @@ public class BookingService : IBookingService
                 booking.Accommodation != null &&
                 booking.Accommodation.HostId == hostId, cancellationToken);
 
-        if (booking == null) return null;
+        if (booking == null) throw new NotFoundException("Booking not found.");
         BookingValidation.EnsurePendingStatus(booking, "Only pending bookings can be declined.");
 
         booking.Status = BookingStatus.Cancelled;

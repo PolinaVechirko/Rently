@@ -61,7 +61,6 @@ public class AccommodationsController : ControllerBase
     public async Task<ActionResult<AccommodationDto>> GetById(int id, CancellationToken cancellationToken)
     {
         var result = await _service.GetAccommodationByIdAsync(id, cancellationToken);
-        if (result == null) return NotFound();
         return Ok(result);
     }
 
@@ -79,9 +78,7 @@ public class AccommodationsController : ControllerBase
     public async Task<ActionResult> Delete(int id, CancellationToken cancellationToken)
     {
         var userId = _currentUser.GetRequiredUserId();
-        var success = await _service.DeleteAccommodationAsync(id, userId, cancellationToken);
-        if (!success) return NotFound("Accommodation not found or you are not the owner.");
-
+        await _service.DeleteAccommodationAsync(id, userId, cancellationToken);
         return NoContent();
     }
 
@@ -102,13 +99,11 @@ public class AccommodationsController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize]
+    [Authorize(Roles = "Host,Both")]
     public async Task<ActionResult<AccommodationDto>> Update(int id, [FromBody] UpdateAccommodationDto dto, CancellationToken cancellationToken)
     {
         var userId = _currentUser.GetRequiredUserId();
         var result = await _service.UpdateAccommodationAsync(id, userId, dto, cancellationToken);
-        if (result == null) return NotFound("Accommodation not found or you are not the owner.");
-
         return Ok(result);
     }
 }

@@ -21,22 +21,18 @@ public class AvailabilityBlocksController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult> Get([FromQuery] int accommodationId, CancellationToken cancellationToken)
+    public async Task<ActionResult<IReadOnlyList<AvailabilityBlockDto>>> Get([FromQuery] int accommodationId, CancellationToken cancellationToken)
     {
         var userId = _currentUser.GetRequiredUserId();
         var blocks = await _service.GetBlocksAsync(userId, accommodationId, cancellationToken);
-        if (blocks == null) return NotFound();
-
         return Ok(blocks);
     }
 
     [HttpPost]
-    public async Task<ActionResult> Create([FromBody] CreateAvailabilityBlockDto dto, [FromQuery] int accommodationId, CancellationToken cancellationToken)
+    public async Task<ActionResult<AvailabilityBlockDto>> Create([FromBody] CreateAvailabilityBlockDto dto, [FromQuery] int accommodationId, CancellationToken cancellationToken)
     {
         var userId = _currentUser.GetRequiredUserId();
         var block = await _service.CreateBlockAsync(userId, accommodationId, dto, cancellationToken);
-        if (block == null) return NotFound();
-
         return Ok(block);
     }
 
@@ -44,9 +40,7 @@ public class AvailabilityBlocksController : ControllerBase
     public async Task<ActionResult> Delete(int id, [FromQuery] int accommodationId, CancellationToken cancellationToken)
     {
         var userId = _currentUser.GetRequiredUserId();
-        var deleted = await _service.DeleteBlockAsync(userId, accommodationId, id, cancellationToken);
-        if (deleted != true) return NotFound();
-
+        await _service.DeleteBlockAsync(userId, accommodationId, id, cancellationToken);
         return NoContent();
     }
 }

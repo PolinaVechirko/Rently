@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Rently.Application.Exceptions;
 using Rently.Domain.Entities;
 using Rently.Persistence;
 
@@ -13,11 +14,16 @@ public class AvailabilityBlockRulesService
         _dbContext = dbContext;
     }
 
-    public async Task<bool> HostOwnsAccommodationAsync(string hostId, int accommodationId, CancellationToken cancellationToken = default)
+    public async Task EnsureHostOwnsAccommodationAsync(string hostId, int accommodationId, CancellationToken cancellationToken = default)
     {
-        return await _dbContext.Accommodations
+        var ownsAccommodation = await _dbContext.Accommodations
             .AsNoTracking()
             .AnyAsync(accommodation => accommodation.Id == accommodationId && accommodation.HostId == hostId, cancellationToken);
+
+        if (!ownsAccommodation)
+        {
+            throw new NotFoundException("Accommodation not found or you are not the owner.");
+        }
     }
 
     public async Task EnsureNoConfirmedBookingOverlapAsync(int accommodationId, DateTime startDate, DateTime endDate, CancellationToken cancellationToken = default)

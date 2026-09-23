@@ -9,6 +9,7 @@ namespace Rently.Application.Services.Analytics;
 public class AnalyticsService : IAnalyticsService
 {
     private const int DefaultTopAmenitiesCount = 10;
+    private const int MaxTopAmenitiesCount = 50;
     private const int DefaultCityStatsCount = 10;
     private const int MaxCityStatsCount = 50;
     private static readonly TimeSpan CityStatsCacheDuration = TimeSpan.FromMinutes(5);
@@ -25,7 +26,8 @@ public class AnalyticsService : IAnalyticsService
     public async Task<IEnumerable<AmenityPopularityDto>> GetTopAmenitiesAsync(int count = DefaultTopAmenitiesCount, CancellationToken cancellationToken = default)
     {
         var thirtyDaysAgo = DateTime.UtcNow.AddDays(-30);
-        return await AnalyticsQueries.GetTopAmenitiesAsync(_context, thirtyDaysAgo, count, cancellationToken);
+        var normalizedCount = Math.Clamp(count, 1, MaxTopAmenitiesCount);
+        return await AnalyticsQueries.GetTopAmenitiesAsync(_context, thirtyDaysAgo, normalizedCount, cancellationToken);
     }
 
     public async Task<IEnumerable<CityStatsDto>> GetCityStatsAsync(int count = DefaultCityStatsCount, CancellationToken cancellationToken = default)

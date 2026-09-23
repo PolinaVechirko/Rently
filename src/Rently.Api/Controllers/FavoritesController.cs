@@ -37,15 +37,10 @@ public class FavoritesController : ControllerBase
     }
 
     [HttpPost("{accommodationId}")]
-    public async Task<ActionResult> AddFavorite(int accommodationId, [FromQuery] string type = "Guest", CancellationToken cancellationToken = default)
+    public async Task<ActionResult<AddFavoriteResultDto>> AddFavorite(int accommodationId, [FromQuery] string type = "Guest", CancellationToken cancellationToken = default)
     {
         var userId = _currentUser.GetRequiredUserId();
         var result = await _service.AddFavoriteAsync(userId, accommodationId, type, cancellationToken);
-        if (result == null)
-        {
-            return Conflict(new { message = "Already favorited" });
-        }
-
         return Ok(result);
     }
 
@@ -53,12 +48,7 @@ public class FavoritesController : ControllerBase
     public async Task<ActionResult> RemoveFavorite(int accommodationId, [FromQuery] string? type = null, CancellationToken cancellationToken = default)
     {
         var userId = _currentUser.GetRequiredUserId();
-        var removed = await _service.RemoveFavoriteAsync(userId, accommodationId, type, cancellationToken);
-        if (!removed)
-        {
-            return NotFound();
-        }
-
+        await _service.RemoveFavoriteAsync(userId, accommodationId, type, cancellationToken);
         return NoContent();
     }
 }
